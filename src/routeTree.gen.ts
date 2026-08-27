@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as CursosRouteImport } from './routes/cursos'
+import { Route as FranciellyRouteImport } from './routes/francielly'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +25,16 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CursosRoute = CursosRouteImport.update({
+  id: '/cursos',
+  path: '/cursos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FranciellyRoute = FranciellyRouteImport.update({
+  id: '/francielly',
+  path: '/francielly',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
@@ -32,30 +44,38 @@ const PrivacidadeRoute = PrivacidadeRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/cursos': typeof CursosRoute
+  '/francielly': typeof FranciellyRoute
   '/privacidade': typeof PrivacidadeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/cursos': typeof CursosRoute
+  '/francielly': typeof FranciellyRoute
   '/privacidade': typeof PrivacidadeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/cursos': typeof CursosRoute
+  '/francielly': typeof FranciellyRoute
   '/privacidade': typeof PrivacidadeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/privacidade'
+  fullPaths: '/' | '/admin' | '/cursos' | '/francielly' | '/privacidade'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/privacidade'
-  id: '__root__' | '/' | '/admin' | '/privacidade'
+  to: '/' | '/admin' | '/cursos' | '/francielly' | '/privacidade'
+  id: '__root__' | '/' | '/admin' | '/cursos' | '/francielly' | '/privacidade'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  CursosRoute: typeof CursosRoute
+  FranciellyRoute: typeof FranciellyRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
 }
 
@@ -75,6 +95,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cursos': {
+      id: '/cursos'
+      path: '/cursos'
+      fullPath: '/cursos'
+      preLoaderRoute: typeof CursosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/francielly': {
+      id: '/francielly'
+      path: '/francielly'
+      fullPath: '/francielly'
+      preLoaderRoute: typeof FranciellyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacidade': {
       id: '/privacidade'
       path: '/privacidade'
@@ -88,6 +122,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  CursosRoute: CursosRoute,
+  FranciellyRoute: FranciellyRoute,
   PrivacidadeRoute: PrivacidadeRoute,
 }
 export const routeTree = rootRouteImport

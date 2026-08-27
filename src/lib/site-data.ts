@@ -5,6 +5,7 @@ import { getSupabaseClient, supabaseConfigurado } from "./supabase";
 export type SiteSettingsData = {
   salon_name: string;
   professional_name: string;
+  logo_url?: string | null;
   whatsapp: string;
   instagram: string;
   address: string;
@@ -18,16 +19,35 @@ export type SiteSettingsData = {
   portfolio_description: string;
   about_title: string;
   about_text: string;
+  francielly_headline?: string | null;
+  francielly_bio?: string | null;
+  francielly_mission?: string | null;
+  space_title?: string;
+  space_description?: string;
   landmark: string | null;
   business_hours_text: string | null;
 };
 
 export type SiteImageData = {
   id: string;
-  image_key: "hero" | "about" | "products";
+  image_key: string;
   image_url: string;
   alt_text: string;
   storage_path: string | null;
+  created_at?: string;
+};
+
+export type ProfessionalData = {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+  image_url: string | null;
+  storage_path: string | null;
+  whatsapp?: string | null;
+  instagram?: string | null;
+  sort_order: number;
+  active: boolean;
 };
 
 export type ServiceData = {
@@ -83,7 +103,7 @@ export function usePublicSiteData() {
     refetchOnWindowFocus: "always",
     queryFn: async () => {
       const supabase = getSupabaseClient();
-      const [settings, images, services, categories, portfolio, testimonials] = await Promise.all([
+      const [settings, images, services, categories, portfolio, testimonials, professionals] = await Promise.all([
         supabase.from("site_settings").select("*").eq("id", 1).maybeSingle(),
         supabase.from("site_images").select("*").order("image_key"),
         supabase.from("services").select("*").eq("published", true).order("sort_order"),
@@ -94,6 +114,7 @@ export function usePublicSiteData() {
           .select("*")
           .eq("published", true)
           .order("created_at", { ascending: false }),
+        supabase.from("professionals").select("*").eq("active", true).order("sort_order"),
       ]);
 
       return {
@@ -103,6 +124,7 @@ export function usePublicSiteData() {
         categories: (categories.data ?? []) as CategoryData[],
         portfolio: (portfolio.data ?? []) as PortfolioData[],
         testimonials: (testimonials.data ?? []) as TestimonialData[],
+        professionals: (professionals.data ?? []) as ProfessionalData[],
       };
     },
   });

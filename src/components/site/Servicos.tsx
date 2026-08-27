@@ -1,72 +1,8 @@
 import { TituloSecao } from "./TituloSecao";
 import { BotaoLink } from "./Botao";
 import { contatoLink, SALAO } from "@/lib/salao";
-import tratamento from "@/assets/servico-tratamento.jpg";
-import definicao from "@/assets/servico-definicao.jpg";
-import mechas from "@/assets/servico-mechas.jpg";
-import penteado from "@/assets/servico-penteado.jpg";
-import corte from "@/assets/servico-corte.jpg";
-import cronograma from "@/assets/servico-cronograma.jpg";
-import consultoria from "@/assets/servico-consultoria.jpg";
+import { initialServices } from "@/lib/initial-content";
 import { usePublicSiteData } from "@/lib/site-data";
-
-const servicos = [
-  {
-    nome: "Tratamentos capilares",
-    descricao: "Hidratação, nutrição e reconstrução para devolver força, maciez e brilho aos fios.",
-    imagem: tratamento,
-    alt: "Aplicação de tratamento hidratante em cabelo crespo",
-    cta: "Solicite uma avaliação",
-  },
-  {
-    nome: "Definição e finalização de cachos",
-    descricao:
-      "Técnicas de finalização que respeitam o formato natural do seu cacho e prolongam a definição.",
-    imagem: definicao,
-    alt: "Detalhe de cachos definidos e brilhantes",
-    cta: "Consulte disponibilidade",
-  },
-  {
-    nome: "Mechas e iluminação",
-    descricao:
-      "Coloração pensada para cabelos texturizados, com cuidado na saúde do fio e no resultado luminoso.",
-    imagem: mechas,
-    alt: "Cabelo cacheado com mechas iluminadas",
-    cta: "Solicite uma avaliação",
-  },
-  {
-    nome: "Penteados",
-    descricao:
-      "Penteados para festas, casamentos e ocasiões especiais, valorizando o volume natural.",
-    imagem: penteado,
-    alt: "Penteado preso elegante em cabelo texturizado",
-    cta: "Consulte disponibilidade",
-  },
-  {
-    nome: "Corte especializado",
-    descricao:
-      "Corte curvo, fio a fio, desenhado de acordo com o movimento e a densidade dos seus cachos.",
-    imagem: corte,
-    alt: "Corte especializado em cabelo cacheado",
-    cta: "Consulte disponibilidade",
-  },
-  {
-    nome: "Cronograma capilar",
-    descricao:
-      "Plano de cuidados personalizado, com etapas e produtos indicados para a sua rotina.",
-    imagem: cronograma,
-    alt: "Produtos capilares e cronograma escrito sobre superfície rosada",
-    cta: "Solicite uma avaliação",
-  },
-  {
-    nome: "Consultoria para cuidados em casa",
-    descricao:
-      "Orientação prática sobre lavagem, finalização e manutenção entre uma visita e outra.",
-    imagem: consultoria,
-    alt: "Profissional orientando cliente sobre produtos para cachos",
-    cta: "Consulte disponibilidade",
-  },
-];
 
 export function Servicos() {
   const { data, isLoading } = usePublicSiteData();
@@ -74,11 +10,18 @@ export function Servicos() {
     ? data.services.map((service) => ({
         nome: service.name,
         descricao: service.description,
-        imagem: service.image_url ?? tratamento,
+        imagem: service.image_url ?? initialServices[0].image_url,
+        alt: service.name,
+        benefits: service.benefits ?? [],
+      }))
+    : initialServices.map((service) => ({
+        nome: service.name,
+        descricao: service.description,
+        imagem: service.image_url,
         alt: service.name,
         benefits: service.benefits,
-      }))
-    : servicos.slice(0, 4).map((service) => ({ ...service, benefits: [] as string[] }));
+      }));
+
   return (
     <section id="servicos" className="bg-blush-soft py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
@@ -93,7 +36,7 @@ export function Servicos() {
           />
         </div>
 
-        <div className="mt-12 grid gap-5 lg:grid-cols-2">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
           {isLoading
             ? Array.from({ length: 4 }, (_, index) => (
                 <div
@@ -110,7 +53,7 @@ export function Servicos() {
             : servicosExibidos.map((servico) => (
                 <article
                   key={servico.nome}
-                  className="group overflow-hidden rounded-3xl border border-border/60 bg-card shadow-card transition-shadow duration-300 hover:shadow-soft sm:grid sm:grid-cols-[12rem_1fr]"
+                  className="group flex flex-col justify-between overflow-hidden rounded-3xl border border-border/60 bg-card shadow-card transition-shadow duration-300 hover:shadow-soft sm:grid sm:grid-cols-[12rem_1fr]"
                 >
                   <div className="h-60 overflow-hidden sm:h-full sm:min-h-72">
                     <img
@@ -123,12 +66,12 @@ export function Servicos() {
                     />
                   </div>
                   <div className="flex min-w-0 flex-col p-6">
-                    <h3 className="text-xl leading-snug">{servico.nome}</h3>
+                    <h3 className="text-xl leading-snug font-display">{servico.nome}</h3>
                     <span className="rule-gold mt-3 max-w-[3.5rem]" />
                     <p className="mt-4 flex-1 text-sm leading-relaxed text-muted-foreground">
                       {servico.descricao}
                     </p>
-                    {servico.benefits.length ? (
+                    {servico.benefits && servico.benefits.length ? (
                       <ul className="mt-4 space-y-2 text-xs text-muted-foreground">
                         {servico.benefits.map((benefit) => (
                           <li key={benefit} className="flex gap-2">
@@ -139,7 +82,7 @@ export function Servicos() {
                     ) : null}
                     <BotaoLink
                       href={contatoLink(
-                        `Olá, ${SALAO.nome}! Gostaria de solicitar um orçamento para: ${servico.nome}.`,
+                        `Olá, ${SALAO.nome}! Gostaria de agendar ou tirar dúvidas sobre o serviço: ${servico.nome}.`,
                       )}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -152,21 +95,26 @@ export function Servicos() {
                 </article>
               ))}
         </div>
-        <div className="mt-8 rounded-2xl border border-primary/20 bg-card p-5 text-sm leading-relaxed text-muted-foreground">
-          Também oferecemos corte especializado, cronograma capilar e orientação para manter os
-          cuidados em casa. A indicação ideal é feita após conhecer o seu cabelo e o resultado que
-          você deseja.
+
+        <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 rounded-3xl border border-primary/20 bg-card p-6 sm:p-8 shadow-card">
+          <div className="max-w-2xl">
+            <h4 className="text-xl font-display">Não tem certeza de qual serviço escolher?</h4>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              A avaliação capilar é o primeiro passo para entendermos a densidade, curvatura e as
+              necessidades atuais do seu cabelo.
+            </p>
+          </div>
+          <BotaoLink
+            href={contatoLink(
+              `Olá, ${SALAO.nome}! Gostaria de agendar uma avaliação inicial para os meus cachos.`,
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto shrink-0 shadow-soft"
+          >
+            Agendar avaliação no WhatsApp
+          </BotaoLink>
         </div>
-        <BotaoLink
-          href={contatoLink(
-            `Olá, ${SALAO.nome}! Gostaria de agendar uma avaliação para o meu cabelo.`,
-          )}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-6 w-full sm:w-auto"
-        >
-          Agendar uma avaliação pelo WhatsApp
-        </BotaoLink>
       </div>
     </section>
   );

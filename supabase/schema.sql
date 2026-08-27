@@ -1,8 +1,9 @@
--- Bem Bonita — estrutura inicial para o futuro painel /admin
--- Execute este arquivo no SQL Editor do Supabase.
+-- Bem Bonita — Estrutura completa do banco de dados e painel /admin
+-- Execute este arquivo no SQL Editor do Supabase para criar/atualizar todas as tabelas.
 
 create extension if not exists pgcrypto;
 
+-- 1. Usuários Administradores
 create table if not exists public.admin_users (
   user_id uuid primary key references auth.users(id) on delete cascade,
   created_at timestamptz not null default now()
@@ -25,27 +26,70 @@ $$;
 revoke all on function public.is_admin() from public;
 grant execute on function public.is_admin() to anon, authenticated;
 
+-- 2. Configurações Gerais do Site e Páginas
 create table if not exists public.site_settings (
   id smallint primary key default 1 check (id = 1),
   salon_name text not null default 'Bem Bonita',
   professional_name text not null default 'Francielly Soares',
+  logo_url text,
   whatsapp text not null default '5531996792131',
   instagram text not null default '@salaobembonita_cielly',
   address text not null default 'Av. Francisco Vieira Martins, 595 — Lanna Shopping, sala 118, primeiro andar — Ponte Nova/MG',
   headline text not null default 'Seus cachos são a nossa arte',
-  description text,
+  description text default 'Salão especialista em cabelos crespos e cacheados em Ponte Nova/MG.',
+  hero_eyebrow text not null default 'Especialista em cachos em Ponte Nova',
+  hero_description text not null default 'Cortes, tratamentos, definição, mechas e penteados para valorizar a identidade dos seus cabelos.',
+  services_title text not null default 'Técnica dedicada a cada tipo de cacho',
+  services_description text not null default 'Atendimentos pensados para cabelos crespos e cacheados, com avaliação individual antes de cada procedimento.',
+  portfolio_title text not null default 'Técnica que respeita cada textura',
+  portfolio_description text not null default 'Trabalhos realizados no Bem Bonita, com foco em definição, movimento, mechas, cortes e penteados personalizados.',
+  about_title text not null default 'Beleza que respeita a sua essência',
+  about_text text not null default 'No Bem Bonita, cada cabelo é tratado de forma única. Sob os cuidados de Francielly Soares, o salão oferece técnicas, tratamentos e produtos pensados especialmente para cabelos crespos e cacheados.',
+  francielly_headline text default 'Paixão, técnica e identidade',
+  francielly_bio text default 'Especialista em cabelos crespos e cacheados, Francielly construiu o salão Bem Bonita a partir do propósito de transformar a relação que as mulheres têm com seus fios naturais, unindo técnica apurada, respeito à saúde capilar e acolhimento.',
+  francielly_mission text default 'Mais do que estética: resgate da autoestima',
+  space_title text default 'Um refúgio exclusivo para cuidar dos seus cachos',
+  space_description text default 'Localizado no Lanna Shopping em Ponte Nova, o salão Bem Bonita foi desenhado para proporcionar uma experiência relaxante, intimista e acolhedora.',
+  landmark text default 'Lanna Shopping, primeiro andar, sala 118',
+  business_hours_text text default 'Segunda a Sábado com horário agendado',
   updated_at timestamptz not null default now()
 );
+
+alter table public.site_settings add column if not exists logo_url text;
+alter table public.site_settings add column if not exists francielly_headline text default 'Paixão, técnica e identidade';
+alter table public.site_settings add column if not exists francielly_bio text;
+alter table public.site_settings add column if not exists francielly_mission text default 'Mais do que estética: resgate da autoestima';
+alter table public.site_settings add column if not exists space_title text;
+alter table public.site_settings add column if not exists space_description text;
 
 insert into public.site_settings (id, description)
 values (1, 'Salão especialista em cabelos crespos e cacheados em Ponte Nova/MG.')
 on conflict (id) do nothing;
 
+-- 3. Equipe de Profissionais
+create table if not exists public.professionals (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  role text not null,
+  bio text not null,
+  image_url text,
+  storage_path text,
+  whatsapp text default '5531996792131',
+  instagram text default '@salaobembonita_cielly',
+  sort_order integer not null default 0,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- 4. Serviços Cadastrados
 create table if not exists public.services (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   description text not null,
+  benefits text[] not null default '{}',
   image_url text,
+  storage_path text,
   cta_label text not null default 'Conversar sobre este serviço',
   sort_order integer not null default 0,
   published boolean not null default true,
@@ -53,22 +97,7 @@ create table if not exists public.services (
   updated_at timestamptz not null default now()
 );
 
-alter table public.services add column if not exists benefits text[] not null default '{}';
-alter table public.services add column if not exists storage_path text;
-
-create table if not exists public.portfolio_items (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  description text,
-  category text not null default 'cachos',
-  image_url text not null,
-  alt_text text not null,
-  sort_order integer not null default 0,
-  published boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
+-- 5. Galeria de Resultados & Categorias
 create table if not exists public.portfolio_categories (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
@@ -79,29 +108,33 @@ create table if not exists public.portfolio_categories (
   updated_at timestamptz not null default now()
 );
 
-alter table public.portfolio_items add column if not exists category_id uuid references public.portfolio_categories(id) on delete set null;
-alter table public.portfolio_items add column if not exists storage_path text;
-
-create table if not exists public.site_images (
+create table if not exists public.portfolio_items (
   id uuid primary key default gen_random_uuid(),
-  image_key text not null unique check (image_key in ('hero', 'about', 'products')),
+  title text not null,
+  description text,
+  category text not null default 'cachos',
+  category_id uuid references public.portfolio_categories(id) on delete set null,
   image_url text not null,
-  alt_text text not null,
   storage_path text,
+  alt_text text not null,
+  sort_order integer not null default 0,
+  published boolean not null default true,
+  created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-alter table public.site_settings add column if not exists hero_eyebrow text not null default 'Especialista em cachos em Ponte Nova';
-alter table public.site_settings add column if not exists hero_description text not null default 'Cortes, tratamentos, definição, mechas e penteados para valorizar a identidade dos seus cabelos.';
-alter table public.site_settings add column if not exists services_title text not null default 'Técnica dedicada a cada tipo de cacho';
-alter table public.site_settings add column if not exists services_description text not null default 'Atendimentos pensados para cabelos crespos e cacheados, com avaliação individual antes de cada procedimento.';
-alter table public.site_settings add column if not exists portfolio_title text not null default 'Técnica que respeita cada textura';
-alter table public.site_settings add column if not exists portfolio_description text not null default 'Trabalhos realizados no Bem Bonita, com foco em definição, movimento, mechas, cortes e penteados personalizados.';
-alter table public.site_settings add column if not exists about_title text not null default 'Beleza que respeita a sua essência';
-alter table public.site_settings add column if not exists about_text text not null default 'No Bem Bonita, cada cabelo é tratado de forma única. Sob os cuidados de Francielly Soares, o salão oferece técnicas, tratamentos e produtos pensados especialmente para cabelos crespos e cacheados.';
-alter table public.site_settings add column if not exists landmark text;
-alter table public.site_settings add column if not exists business_hours_text text;
+-- 6. Fotos Principais do Site e Espaço
+create table if not exists public.site_images (
+  id uuid primary key default gen_random_uuid(),
+  image_key text not null unique,
+  image_url text not null,
+  alt_text text not null,
+  storage_path text,
+  created_at text default 'Recente',
+  updated_at timestamptz not null default now()
+);
 
+-- 7. Depoimentos de Clientes
 create table if not exists public.testimonials (
   id uuid primary key default gen_random_uuid(),
   client_name text not null,
@@ -114,6 +147,7 @@ create table if not exists public.testimonials (
   updated_at timestamptz not null default now()
 );
 
+-- 8. Horários de Funcionamento
 create table if not exists public.business_hours (
   day_of_week smallint primary key check (day_of_week between 0 and 6),
   opens_at time,
@@ -124,6 +158,7 @@ create table if not exists public.business_hours (
   check (closed or (opens_at is not null and closes_at is not null))
 );
 
+-- 9. Solicitações de Contato / Leads
 create table if not exists public.contact_requests (
   id uuid primary key default gen_random_uuid(),
   name text not null check (char_length(name) between 2 and 120),
@@ -135,6 +170,7 @@ create table if not exists public.contact_requests (
   updated_at timestamptz not null default now()
 );
 
+-- Triggers para atualização automática de updated_at
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -148,6 +184,10 @@ $$;
 
 drop trigger if exists site_settings_updated_at on public.site_settings;
 create trigger site_settings_updated_at before update on public.site_settings
+for each row execute function public.set_updated_at();
+
+drop trigger if exists professionals_updated_at on public.professionals;
+create trigger professionals_updated_at before update on public.professionals
 for each row execute function public.set_updated_at();
 
 drop trigger if exists services_updated_at on public.services;
@@ -178,8 +218,10 @@ drop trigger if exists contact_requests_updated_at on public.contact_requests;
 create trigger contact_requests_updated_at before update on public.contact_requests
 for each row execute function public.set_updated_at();
 
+-- Políticas de Segurança RLS (Row Level Security)
 alter table public.admin_users enable row level security;
 alter table public.site_settings enable row level security;
+alter table public.professionals enable row level security;
 alter table public.services enable row level security;
 alter table public.portfolio_items enable row level security;
 alter table public.portfolio_categories enable row level security;
@@ -188,6 +230,7 @@ alter table public.testimonials enable row level security;
 alter table public.business_hours enable row level security;
 alter table public.contact_requests enable row level security;
 
+-- Policies
 drop policy if exists "Admins read admin users" on public.admin_users;
 create policy "Admins read admin users" on public.admin_users
 for select to authenticated using (public.is_admin());
@@ -197,6 +240,13 @@ create policy "Public reads site settings" on public.site_settings
 for select to anon, authenticated using (true);
 drop policy if exists "Admins manage site settings" on public.site_settings;
 create policy "Admins manage site settings" on public.site_settings
+for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Public reads active professionals" on public.professionals;
+create policy "Public reads active professionals" on public.professionals
+for select to anon, authenticated using (active or public.is_admin());
+drop policy if exists "Admins manage professionals" on public.professionals;
+create policy "Admins manage professionals" on public.professionals
 for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "Public reads published services" on public.services;
@@ -249,10 +299,12 @@ create policy "Admins manage contact requests" on public.contact_requests
 for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 grant usage on schema public to anon, authenticated;
-grant select on public.site_settings, public.site_images, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours to anon, authenticated;
+grant select on public.site_settings, public.professionals, public.site_images, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours to anon, authenticated;
 grant insert on public.contact_requests to anon, authenticated;
-grant select, insert, update, delete on public.admin_users, public.site_settings, public.site_images, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours, public.contact_requests to authenticated;
+grant select, insert, update, delete on public.admin_users, public.site_settings, public.professionals, public.site_images, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours, public.contact_requests to authenticated;
 
+-- Índices
+create index if not exists professionals_sort_order_idx on public.professionals (active, sort_order);
 create index if not exists services_public_order_idx on public.services (published, sort_order);
 create unique index if not exists services_unique_sort_order_idx on public.services (sort_order);
 create index if not exists portfolio_public_order_idx on public.portfolio_items (published, category_id, sort_order);
@@ -261,13 +313,14 @@ create index if not exists portfolio_categories_order_idx on public.portfolio_ca
 create index if not exists testimonials_public_date_idx on public.testimonials (published, created_at desc);
 create index if not exists contact_requests_status_date_idx on public.contact_requests (status, created_at desc);
 
+-- Storage bucket para upload de fotos
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'site-images',
   'site-images',
   true,
   5242880,
-  array['image/jpeg', 'image/png', 'image/webp']
+  array['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
 )
 on conflict (id) do update set
   public = excluded.public,
@@ -289,8 +342,3 @@ for update to authenticated using (bucket_id = 'site-images' and public.is_admin
 drop policy if exists "Admins delete site image files" on storage.objects;
 create policy "Admins delete site image files" on storage.objects
 for delete to authenticated using (bucket_id = 'site-images' and public.is_admin());
-
--- Depois de criar seu usuário em Authentication > Users, torne-o administrador:
--- insert into public.admin_users (user_id)
--- select id from auth.users where email = 'SEU_EMAIL@EXEMPLO.COM'
--- on conflict (user_id) do nothing;

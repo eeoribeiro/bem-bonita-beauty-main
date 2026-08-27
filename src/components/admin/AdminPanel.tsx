@@ -1,20 +1,44 @@
 import {
-  BarChart3,
+  ArrowDown,
+  ArrowUp,
+  Camera,
+  CheckCircle2,
+  Clock,
+  Copy,
   ExternalLink,
+  Eye,
   FileImage,
+  Globe,
+  GripVertical,
+  Image as ImageIcon,
   Images,
+  Info,
   LayoutDashboard,
+  Layers,
+  Lightbulb,
   LoaderCircle,
   LogOut,
+  MapPin,
   Menu,
+  MessageCircle,
   Moon,
   Pencil,
+  Phone,
   Plus,
+  RefreshCw,
   Save,
   Scissors,
   Settings,
+  ShoppingBag,
+  Sparkles,
   Sun,
+  Tag,
   Trash2,
+  Upload,
+  User,
+  UserCheck,
+  UserPlus,
+  Users,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
@@ -27,64 +51,95 @@ import {
   initialContentMarker,
   initialPortfolio,
   initialPortfolioCategories,
+  initialProfessionals,
   initialServices,
 } from "@/lib/initial-content";
-import { getSupabaseClient } from "@/lib/supabase";
+import { getSupabaseClient, supabaseConfigurado } from "@/lib/supabase";
 import type {
   CategoryData,
   PortfolioData,
+  ProfessionalData,
   ServiceData,
   SiteImageData,
   SiteSettingsData,
 } from "@/lib/site-data";
 
-type Tab = "overview" | "photos" | "services" | "portfolio" | "settings";
-type Modal = "services" | "portfolio" | null;
+type Tab = "overview" | "photos" | "services" | "team" | "portfolio" | "settings";
+type Modal = "services" | "portfolio" | "team_editor" | "new_photo" | null;
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
-  { id: "photos", label: "Fotos do site", icon: FileImage },
+  { id: "photos", label: "Fotos do site & Espaço", icon: FileImage },
   { id: "services", label: "Serviços", icon: Scissors },
+  { id: "team", label: "Equipe (3 Profissionais)", icon: Users },
   { id: "portfolio", label: "Galeria", icon: Images },
-  { id: "settings", label: "Informações do site", icon: Settings },
+  { id: "settings", label: "Informações & Páginas", icon: Settings },
 ];
 
-const emptyService = (): Omit<ServiceData, "id"> => ({
+const defaultDemoSettings: SiteSettingsData = {
+  salon_name: "Bem Bonita",
+  professional_name: "Francielly Soares",
+  logo_url: null,
+  whatsapp: "5531996792131",
+  instagram: "@salaobembonita_cielly",
+  address: "Av. Francisco Vieira Martins, 595 — Lanna Shopping, sala 118, primeiro andar — Ponte Nova/MG",
+  headline: "Seus cachos são a nossa arte",
+  description: "Salão especialista em cabelos crespos e cacheados em Ponte Nova/MG.",
+  hero_eyebrow: "Especialista em cachos em Ponte Nova",
+  hero_description: "Cortes, tratamentos, definição, mechas e penteados para valorizar a identidade dos seus cabelos.",
+  services_title: "Técnica dedicada a cada tipo de cacho",
+  services_description: "Atendimentos pensados para cabelos crespos e cacheados, com avaliação individual antes de cada procedimento.",
+  portfolio_title: "Técnica que respeita cada textura",
+  portfolio_description: "Trabalhos realizados no Bem Bonita, com foco em definição, movimento, mechas, cortes e penteados personalizados.",
+  about_title: "Beleza que respeita a sua essência",
+  about_text: "No Bem Bonita, cada cabelo é tratado de forma única. Sob os cuidados de Francielly Soares, o salão oferece técnicas, tratamentos e produtos pensados especialmente para cabelos crespos e cacheados.",
+  francielly_headline: "Paixão, técnica e identidade",
+  francielly_bio: "Especialista em cabelos crespos e cacheados, Francielly construiu o salão Bem Bonita a partir do propósito de transformar a relação que as mulheres têm com seus fios naturais, unindo técnica apurada, respeito à saúde capilar e acolhimento.",
+  francielly_mission: "Mais do que estética: resgate da autoestima",
+  landmark: "Lanna Shopping, primeiro andar, sala 118",
+  business_hours_text: "Segunda a Sábado com horário agendado",
+};
+
+const emptyService = (): Omit<ServiceData, "id" | "sort_order"> => ({
   name: "",
   description: "",
   benefits: [],
   image_url: null,
   storage_path: null,
   cta_label: "Conversar sobre este serviço",
-  sort_order: 1,
   published: true,
 });
 
-function firstAvailableOrder(items: Array<{ sort_order: number }>) {
-  const usedOrders = new Set(items.map((item) => item.sort_order));
-  let order = 1;
-  while (usedOrders.has(order)) order += 1;
-  return order;
-}
+const emptyProfessional = (): Omit<ProfessionalData, "id" | "sort_order"> => ({
+  name: "",
+  role: "",
+  bio: "",
+  image_url: null,
+  storage_path: null,
+  whatsapp: "5531996792131",
+  instagram: "@salaobembonita_cielly",
+  active: true,
+});
 
-const emptyPortfolio = (): Omit<PortfolioData, "id"> => ({
+const emptyPortfolio = (): Omit<PortfolioData, "id" | "sort_order"> => ({
   title: "",
   description: null,
-  category: "geral",
+  category: "cachos",
   category_id: null,
   image_url: "",
   storage_path: null,
   alt_text: "",
-  sort_order: 1,
   published: true,
 });
 
 export function AdminPanel({
   email,
   onLogout,
+  isDemo = false,
 }: {
   email: string;
   onLogout: () => Promise<unknown>;
+  isDemo?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("overview");
   const [modal, setModal] = useState<Modal>(null);
@@ -96,119 +151,95 @@ export function AdminPanel({
   const [settings, setSettings] = useState<SiteSettingsData | null>(null);
   const [images, setImages] = useState<SiteImageData[]>([]);
   const [services, setServices] = useState<ServiceData[]>([]);
+  const [professionals, setProfessionals] = useState<ProfessionalData[]>([]);
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioData[]>([]);
+
+  // Profissional em edição no modal
+  const [editingProf, setEditingProf] = useState<ProfessionalData | null>(null);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
     setError("");
-    const supabase = getSupabaseClient();
-    const [config, photos, serviceRows, categoryRows, portfolioRows] = await Promise.all([
-      supabase.from("site_settings").select("*").eq("id", 1).single(),
-      supabase.from("site_images").select("*").order("image_key"),
-      supabase.from("services").select("*").order("sort_order"),
-      supabase.from("portfolio_categories").select("*").order("sort_order"),
-      supabase.from("portfolio_items").select("*").order("sort_order"),
-    ]);
-    const firstError = [config, photos, serviceRows, categoryRows, portfolioRows].find(
-      (result) => result.error,
-    )?.error;
-    if (firstError)
-      setError(
-        "Não foi possível carregar o painel. Execute a versão mais recente do arquivo SQL no Supabase.",
+
+    if (!supabaseConfigurado || isDemo) {
+      setSettings(defaultDemoSettings);
+      setServices(
+        initialServices.map((s, idx) => ({
+          ...s,
+          id: `srv-${idx + 1}`,
+          sort_order: idx + 1,
+        }))
       );
-    else {
-      try {
-        let loadedServices = (serviceRows.data ?? []) as ServiceData[];
-        let loadedCategories = (categoryRows.data ?? []) as CategoryData[];
-        let loadedPortfolio = (portfolioRows.data ?? []) as PortfolioData[];
+      setProfessionals(
+        (initialProfessionals as ProfessionalData[]).map((p, idx) => ({
+          ...p,
+          id: `prof-${idx + 1}`,
+          sort_order: idx + 1,
+        }))
+      );
+      setCategories(
+        initialPortfolioCategories
+          .filter((c) => c.slug !== initialContentMarker)
+          .map((c, idx) => ({ ...c, id: `cat-${idx + 1}` }))
+      );
+      setPortfolio(
+        initialPortfolio.map((p, idx) => ({
+          ...p,
+          id: `port-${idx + 1}`,
+          sort_order: idx + 1,
+          category_id: "cat-1",
+        }))
+      );
+      setImages([
+        { id: "1", image_key: "hero", image_url: "/media/francielly-profissional.jpg", alt_text: "Foto principal (Hero)", storage_path: null, created_at: "Hoje" },
+        { id: "2", image_key: "about", image_url: "/media/francielly-produtos.jpg", alt_text: "Foto sobre a profissional", storage_path: null, created_at: "Hoje" },
+        { id: "3", image_key: "products", image_url: "/media/francielly-produtos.jpg", alt_text: "Foto da vitrine de produtos", storage_path: null, created_at: "Hoje" },
+        { id: "4", image_key: "francielly_bio", image_url: "/media/sobre-francielly.jpg", alt_text: "Foto da Francielly Soares", storage_path: null, created_at: "Hoje" },
+        { id: "5", image_key: "space_1", image_url: "/media/instagram-salao.jpg", alt_text: "Ambiente do salão no Lanna Shopping", storage_path: null, created_at: "Ontem" },
+        { id: "6", image_key: "space_2", image_url: "/media/instagram-produtos.jpg", alt_text: "Produtos no salão", storage_path: null, created_at: "Ontem" },
+        { id: "7", image_key: "space_3", image_url: "/media/instagram-cachos.jpg", alt_text: "Atendimento no espaço", storage_path: null, created_at: "Ontem" },
+      ]);
+      setLoading(false);
+      return;
+    }
 
-        // Corrige conteúdos antigos com ordem zero, repetida ou com lacunas.
-        // Primeiro usa posições temporárias para não colidir com índices únicos.
-        async function normalizeOrders<T extends { id: string; sort_order: number }>(
-          table: "services" | "portfolio_items",
-          rows: T[],
-        ) {
-          const ordered = [...rows].sort((a, b) => a.sort_order - b.sort_order);
-          const needsNormalization = ordered.some((item, index) => item.sort_order !== index + 1);
-          if (!needsNormalization) return ordered;
+    try {
+      const supabase = getSupabaseClient();
+      const [config, photos, serviceRows, categoryRows, portfolioRows, profRows] = await Promise.all([
+        supabase.from("site_settings").select("*").eq("id", 1).single(),
+        supabase.from("site_images").select("*").order("image_key"),
+        supabase.from("services").select("*").order("sort_order"),
+        supabase.from("portfolio_categories").select("*").order("sort_order"),
+        supabase.from("portfolio_items").select("*").order("sort_order"),
+        supabase.from("professionals").select("*").order("sort_order"),
+      ]);
 
-          const temporaryStart =
-            ordered.reduce((highest, item) => Math.max(highest, item.sort_order), 0) + 1000;
-          for (const [index, item] of ordered.entries()) {
-            const { data, error: orderError } = await supabase
-              .from(table)
-              .update({ sort_order: temporaryStart + index })
-              .eq("id", item.id)
-              .select("id")
-              .single();
-            if (orderError || !data) throw orderError ?? new Error("Ordem não confirmada.");
-          }
-          for (const [index, item] of ordered.entries()) {
-            const { data, error: orderError } = await supabase
-              .from(table)
-              .update({ sort_order: index + 1 })
-              .eq("id", item.id)
-              .select("id")
-              .single();
-            if (orderError || !data) throw orderError ?? new Error("Ordem não confirmada.");
-          }
-          return ordered.map((item, index) => ({ ...item, sort_order: index + 1 }));
-        }
+      const firstError = [config, photos, serviceRows, categoryRows, portfolioRows, profRows].find(
+        (result) => result.error,
+      )?.error;
 
-        loadedServices = await normalizeOrders("services", loadedServices);
-        loadedPortfolio = await normalizeOrders("portfolio_items", loadedPortfolio);
-
-        // Migra uma única vez as fotos que já eram exibidas pelo site antes do painel existir.
-        const contentAlreadyMigrated = loadedCategories.some(
-          (category) => category.slug === initialContentMarker,
+      if (firstError) {
+        setError(
+          "Não foi possível carregar o painel. Execute a versão mais recente do arquivo SQL no Supabase.",
         );
-        if (!contentAlreadyMigrated && !loadedServices.length) {
-          const inserted = await supabase.from("services").insert(initialServices).select("*");
-          if (inserted.error) throw inserted.error;
-          loadedServices = (inserted.data ?? []) as ServiceData[];
-        }
-
-        if (!contentAlreadyMigrated) {
-          const insertedCategories = await supabase
-            .from("portfolio_categories")
-            .upsert(initialPortfolioCategories, { onConflict: "slug" })
-            .select("*");
-          if (insertedCategories.error) throw insertedCategories.error;
-          loadedCategories = (insertedCategories.data ?? []) as CategoryData[];
-        }
-        if (!contentAlreadyMigrated && !loadedPortfolio.length) {
-          const categoryIds = new Map(loadedCategories.map((item) => [item.slug, item.id]));
-          const insertedPortfolio = await supabase
-            .from("portfolio_items")
-            .insert(
-              initialPortfolio.map((item) => ({
-                ...item,
-                category_id: categoryIds.get(item.category) ?? null,
-              })),
-            )
-            .select("*");
-          if (insertedPortfolio.error) throw insertedPortfolio.error;
-          loadedPortfolio = (insertedPortfolio.data ?? []) as PortfolioData[];
-        }
-
+      } else {
         setSettings(config.data as SiteSettingsData);
         setImages((photos.data ?? []) as SiteImageData[]);
-        setServices(loadedServices);
+        setServices((serviceRows.data ?? []) as ServiceData[]);
+        setProfessionals((profRows.data ?? []) as ProfessionalData[]);
         setCategories(
-          loadedCategories.filter((category) => category.slug !== initialContentMarker),
+          ((categoryRows.data ?? []) as CategoryData[]).filter(
+            (c) => c.slug !== initialContentMarker
+          )
         );
-        setPortfolio(loadedPortfolio);
-      } catch (migrationError) {
-        setError(
-          migrationError instanceof Error
-            ? `Não foi possível importar as fotos atuais: ${migrationError.message}`
-            : "Não foi possível importar as fotos atuais para o painel.",
-        );
+        setPortfolio((portfolioRows.data ?? []) as PortfolioData[]);
       }
+    } catch {
+      setError("Erro ao carregar dados do painel.");
     }
     setLoading(false);
-  }, []);
+  }, [isDemo]);
 
   useEffect(() => {
     void loadAll();
@@ -243,6 +274,16 @@ export function AdminPanel({
     setMenuOpen(false);
   }
 
+  function handleOpenAddProf() {
+    setEditingProf(null);
+    setModal("team_editor");
+  }
+
+  function handleOpenEditProf(prof: ProfessionalData) {
+    setEditingProf(prof);
+    setModal("team_editor");
+  }
+
   return (
     <div
       className={`${lightTheme ? "admin-light-theme" : ""} min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[17rem_1fr]`}
@@ -275,7 +316,7 @@ export function AdminPanel({
               key={id}
               type="button"
               onClick={() => navigate(id)}
-              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition ${tab === id ? "bg-secondary text-magenta" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition ${tab === id ? "bg-secondary text-magenta font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
             >
               <Icon className="h-4.5 w-4.5" /> {label}
             </button>
@@ -326,7 +367,7 @@ export function AdminPanel({
               href="/"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-magenta hover:underline"
+              className="inline-flex items-center gap-2 text-sm text-magenta hover:underline font-medium"
             >
               Ver site <ExternalLink className="h-4 w-4" />
             </a>
@@ -334,11 +375,21 @@ export function AdminPanel({
         </header>
 
         <div className="mx-auto max-w-7xl px-5 py-7 lg:px-8 lg:py-10">
+          {!supabaseConfigurado || isDemo ? (
+            <div className="mb-6 rounded-2xl border border-primary/40 bg-secondary/60 p-4 text-xs text-foreground/90 flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-gold shrink-0" />
+              <div>
+                <strong>Modo de Demonstração Local Ativo:</strong> Você pode gerenciar as 3 profissionais da equipe, fotos do espaço e serviços em tempo real!
+              </div>
+            </div>
+          ) : null}
+
           {notice ? (
             <div
               role="status"
-              className="mb-6 rounded-xl border border-green-400/30 bg-green-500/10 p-4 text-sm text-green-200"
+              className="mb-6 rounded-xl border border-green-400/30 bg-green-500/10 p-4 text-sm text-green-200 flex items-center gap-2"
             >
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
               {notice}
             </div>
           ) : null}
@@ -359,40 +410,59 @@ export function AdminPanel({
               {tab === "overview" ? (
                 <Overview
                   services={services.length}
+                  professionals={professionals.length}
                   portfolio={portfolio.length}
+                  categories={categories.length}
+                  settings={settings}
                   onNavigate={navigate}
+                  onOpenServices={() => setModal("services")}
+                  onOpenPortfolio={() => setModal("portfolio")}
+                  onOpenTeam={handleOpenAddProf}
                 />
               ) : null}
               {tab === "photos" ? (
                 <PhotosTab
                   images={images}
+                  setImages={setImages}
+                  isDemo={!supabaseConfigurado || isDemo}
                   onReload={loadAll}
                   onSuccess={showSuccess}
                   onError={showError}
                 />
               ) : null}
               {tab === "services" ? (
-                <ManagerCard
-                  title="Serviços"
-                  description={`${services.length} serviço(s) cadastrado(s).`}
-                  button="Gerenciar serviços"
-                  icon={Scissors}
-                  onClick={() => setModal("services")}
+                <ServicesOverviewTab
+                  services={services}
+                  onOpenManager={() => setModal("services")}
+                />
+              ) : null}
+              {tab === "team" ? (
+                <TeamManagerTab
+                  professionals={professionals}
+                  setProfessionals={setProfessionals}
+                  isDemo={!supabaseConfigurado || isDemo}
+                  onReload={loadAll}
+                  onSuccess={showSuccess}
+                  onError={showError}
+                  onOpenAdd={handleOpenAddProf}
+                  onOpenEdit={handleOpenEditProf}
                 />
               ) : null}
               {tab === "portfolio" ? (
-                <ManagerCard
-                  title="Galeria"
-                  description={`${portfolio.length} foto(s) cadastrada(s) em ${categories.length} categoria(s).`}
-                  button="Gerenciar galeria"
-                  icon={Images}
-                  onClick={() => setModal("portfolio")}
+                <PortfolioOverviewTab
+                  items={portfolio}
+                  categories={categories}
+                  onOpenManager={() => setModal("portfolio")}
                 />
               ) : null}
               {tab === "settings" && settings ? (
                 <SettingsTab
                   settings={settings}
+                  images={images}
+                  setImages={setImages}
+                  isDemo={!supabaseConfigurado || isDemo}
                   onChange={setSettings}
+                  onReload={loadAll}
                   onSuccess={showSuccess}
                   onError={showError}
                 />
@@ -402,23 +472,53 @@ export function AdminPanel({
         </div>
       </main>
 
+      {/* Modal de Serviços */}
       {modal === "services" ? (
-        <AdminModal title="Gerenciar serviços" onClose={() => setModal(null)}>
+        <AdminModal title="Gerenciar e Reordenar Serviços" onClose={() => setModal(null)}>
           <ServicesManager
             services={services}
+            setServices={setServices}
+            isDemo={!supabaseConfigurado || isDemo}
             onReload={loadAll}
             onSuccess={showSuccess}
             onError={showError}
           />
         </AdminModal>
       ) : null}
+
+      {/* Modal da Galeria */}
       {modal === "portfolio" ? (
-        <AdminModal title="Gerenciar galeria" onClose={() => setModal(null)}>
+        <AdminModal title="Gerenciar e Reordenar Galeria" onClose={() => setModal(null)}>
           <PortfolioManager
             items={portfolio}
+            setPortfolio={setPortfolio}
             categories={categories}
+            setCategories={setCategories}
+            isDemo={!supabaseConfigurado || isDemo}
             onReload={loadAll}
             onSuccess={showSuccess}
+            onError={showError}
+          />
+        </AdminModal>
+      ) : null}
+
+      {/* NOVO MODAL DEDICADO: Adicionar / Editar Profissional */}
+      {modal === "team_editor" ? (
+        <AdminModal
+          title={editingProf ? `Editar Profissional: ${editingProf.name}` : "Cadastrar Nova Profissional na Equipe"}
+          onClose={() => setModal(null)}
+        >
+          <ProfessionalEditorModal
+            initialData={editingProf}
+            professionals={professionals}
+            setProfessionals={setProfessionals}
+            isDemo={!supabaseConfigurado || isDemo}
+            onClose={() => setModal(null)}
+            onReload={loadAll}
+            onSuccess={(msg) => {
+              showSuccess(msg);
+              setModal(null);
+            }}
             onError={showError}
           />
         </AdminModal>
@@ -429,92 +529,1162 @@ export function AdminPanel({
 
 function Overview({
   services,
+  professionals,
   portfolio,
+  categories,
+  settings,
   onNavigate,
+  onOpenServices,
+  onOpenPortfolio,
+  onOpenTeam,
 }: {
   services: number;
+  professionals: number;
   portfolio: number;
+  categories: number;
+  settings: SiteSettingsData | null;
   onNavigate: (tab: Tab) => void;
+  onOpenServices: () => void;
+  onOpenPortfolio: () => void;
+  onOpenTeam: () => void;
 }) {
-  const cards = [
-    { label: "Serviços", value: services, tab: "services" as Tab, icon: Scissors },
-    { label: "Fotos da galeria", value: portfolio, tab: "portfolio" as Tab, icon: Images },
-  ];
   return (
-    <section>
-      <p className="eyebrow">Painel</p>
-      <h1 className="mt-3 text-3xl sm:text-4xl">Visão geral</h1>
-      <p className="mt-3 text-sm text-muted-foreground">
-        Gerencie o conteúdo exibido no site público.
-      </p>
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        {cards.map(({ label, value, tab, icon: Icon }) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => onNavigate(tab)}
-            className="rounded-2xl border border-border bg-card p-6 text-left shadow-card transition hover:-translate-y-0.5 hover:border-primary"
-          >
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-magenta">
-              <Icon className="h-5 w-5" />
-            </span>
-            <p className="mt-5 text-xs uppercase tracking-[0.16em] text-muted-foreground">
-              {label}
+    <section className="space-y-8">
+      {/* Banner de Boas-Vindas */}
+      <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-r from-secondary/80 via-card to-card p-6 sm:p-8 shadow-card">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300 border border-emerald-500/20">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              Site Ativo &amp; Sincronizado
+            </div>
+            <h1 className="mt-3 text-3xl sm:text-4xl font-display">
+              Painel de Gestão{" "}
+              <span className="text-gradient-pink italic font-normal">
+                {settings?.salon_name ?? "Bem Bonita"}
+              </span>
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground max-w-xl leading-relaxed">
+              Gerencie as profissionais do salão, fotos do espaço físico, catálogo de serviços e contatos.
             </p>
-            <p className="mt-2 font-display text-4xl">{value}</p>
-            <span className="mt-4 block text-sm text-magenta">Gerenciar →</span>
-          </button>
-        ))}
+          </div>
+          <div className="flex flex-wrap gap-3 shrink-0">
+            <a
+              href="/"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-2xl bg-secondary px-4 py-3 text-sm font-medium text-magenta hover:bg-secondary/80 transition"
+            >
+              <Globe className="h-4 w-4" /> Abrir site público
+            </a>
+          </div>
+        </div>
       </div>
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={() => onNavigate("photos")}
-          className="rounded-2xl border border-border bg-card p-5 text-left hover:border-primary"
-        >
-          <FileImage className="h-5 w-5 text-magenta" />
-          <h2 className="mt-3 text-xl">Trocar fotos principais</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Hero, seção sobre e produtos.</p>
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate("settings")}
-          className="rounded-2xl border border-border bg-card p-5 text-left hover:border-primary"
-        >
-          <Settings className="h-5 w-5 text-magenta" />
-          <h2 className="mt-3 text-xl">Editar informações</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Textos, contato, endereço e horários.
-          </p>
-        </button>
+
+      {/* Grid de Métricas e Indicadores */}
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+          Métricas &amp; Conteúdos Ativos
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div
+            onClick={onOpenServices}
+            className="group cursor-pointer rounded-2xl border border-border bg-card p-5 shadow-card transition hover:-translate-y-1 hover:border-primary"
+          >
+            <div className="flex items-center justify-between">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-magenta">
+                <Scissors className="h-5 w-5" />
+              </span>
+              <span className="text-xs font-medium text-magenta group-hover:underline">
+                Reordenar →
+              </span>
+            </div>
+            <p className="mt-4 text-xs uppercase tracking-wider text-muted-foreground">
+              Serviços Cadastrados
+            </p>
+            <p className="mt-1 font-display text-3xl font-semibold">{services}</p>
+            <p className="mt-2 text-xs text-muted-foreground">Todos com agendamento ativo</p>
+          </div>
+
+          <div
+            onClick={() => onNavigate("team")}
+            className="group cursor-pointer rounded-2xl border border-border bg-card p-5 shadow-card transition hover:-translate-y-1 hover:border-primary"
+          >
+            <div className="flex items-center justify-between">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-gold">
+                <Users className="h-5 w-5" />
+              </span>
+              <span className="text-xs font-medium text-gold group-hover:underline">
+                Gerenciar →
+              </span>
+            </div>
+            <p className="mt-4 text-xs uppercase tracking-wider text-muted-foreground">
+              Equipe do Salão
+            </p>
+            <p className="mt-1 font-display text-3xl font-semibold">{professionals}</p>
+            <p className="mt-2 text-xs text-muted-foreground">Fran e +2 especialistas</p>
+          </div>
+
+          <div
+            onClick={() => onNavigate("photos")}
+            className="group cursor-pointer rounded-2xl border border-border bg-card p-5 shadow-card transition hover:-translate-y-1 hover:border-primary"
+          >
+            <div className="flex items-center justify-between">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-magenta">
+                <FileImage className="h-5 w-5" />
+              </span>
+              <span className="text-xs font-medium text-magenta group-hover:underline">
+                Gerenciar →
+              </span>
+            </div>
+            <p className="mt-4 text-xs uppercase tracking-wider text-muted-foreground">
+              Fotos do Espaço &amp; Site
+            </p>
+            <p className="mt-1 font-display text-3xl font-semibold">7+</p>
+            <p className="mt-2 text-xs text-muted-foreground">Fotos do salão e Francielly</p>
+          </div>
+
+          <div
+            onClick={() => onNavigate("settings")}
+            className="group cursor-pointer rounded-2xl border border-border bg-card p-5 shadow-card transition hover:-translate-y-1 hover:border-primary"
+          >
+            <div className="flex items-center justify-between">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-gold">
+                <UserCheck className="h-5 w-5" />
+              </span>
+              <span className="text-xs font-medium text-gold group-hover:underline">
+                Editar Páginas →
+              </span>
+            </div>
+            <p className="mt-4 text-xs uppercase tracking-wider text-muted-foreground">
+              Página da Francielly
+            </p>
+            <p className="mt-1 font-display text-3xl font-semibold">Ativa</p>
+            <p className="mt-2 text-xs text-muted-foreground">História, bio e valores</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Ações Rápidas em Destaque */}
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+          Ações Rápidas
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <button
+            type="button"
+            onClick={onOpenServices}
+            className="flex items-center gap-3.5 rounded-2xl border border-border bg-card p-4 text-left transition hover:border-primary hover:bg-secondary/40"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-magenta">
+              <Plus className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-sm font-medium">Novo Serviço</p>
+              <p className="text-xs text-muted-foreground">Criar e inserir no final</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenTeam}
+            className="flex items-center gap-3.5 rounded-2xl border border-border bg-card p-4 text-left transition hover:border-primary hover:bg-secondary/40"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-gold">
+              <UserPlus className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-sm font-medium">+ Nova Profissional</p>
+              <p className="text-xs text-muted-foreground">Adicionar à equipe</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate("photos")}
+            className="flex items-center gap-3.5 rounded-2xl border border-border bg-card p-4 text-left transition hover:border-primary hover:bg-secondary/40"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-magenta">
+              <FileImage className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-sm font-medium">Fotos do Espaço &amp; Site</p>
+              <p className="text-xs text-muted-foreground">Salão, Hero e produtos</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate("settings")}
+            className="flex items-center gap-3.5 rounded-2xl border border-border bg-card p-4 text-left transition hover:border-primary hover:bg-secondary/40"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-gold">
+              <Settings className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-sm font-medium">Logo e Contatos</p>
+              <p className="text-xs text-muted-foreground">Marca, WhatsApp e endereço</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Resumo do Salão & Dicas de Conversão */}
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-card">
+          <div className="flex items-center justify-between pb-4 border-b border-border">
+            <h3 className="text-lg font-display flex items-center gap-2">
+              <Info className="h-4.5 w-4.5 text-magenta" /> Dados do Salão &amp; Profissional
+            </h3>
+            <button
+              type="button"
+              onClick={() => onNavigate("settings")}
+              className="text-xs text-magenta font-medium hover:underline"
+            >
+              Editar informações →
+            </button>
+          </div>
+          <div className="mt-5 space-y-3.5 text-sm">
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <User className="h-4 w-4 text-magenta shrink-0" />
+              <span>
+                <strong className="text-foreground">Profissional Principal:</strong>{" "}
+                {settings?.professional_name ?? "Francielly Soares"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Phone className="h-4 w-4 text-gold shrink-0" />
+              <span>
+                <strong className="text-foreground">WhatsApp:</strong> +
+                {settings?.whatsapp ?? "5531996792131"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <MessageCircle className="h-4 w-4 text-magenta shrink-0" />
+              <span>
+                <strong className="text-foreground">Instagram:</strong>{" "}
+                {settings?.instagram ?? "@salaobembonita_cielly"}
+              </span>
+            </div>
+            <div className="flex items-start gap-3 text-muted-foreground">
+              <MapPin className="h-4 w-4 text-gold shrink-0 mt-0.5" />
+              <span className="line-clamp-2">
+                <strong className="text-foreground">Endereço:</strong>{" "}
+                {settings?.address ?? "Lanna Shopping — Sala 118, Ponte Nova/MG"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-primary/30 bg-secondary/40 p-6 shadow-card flex flex-col justify-between">
+          <div>
+            <h3 className="text-lg font-display flex items-center gap-2 text-magenta">
+              <Lightbulb className="h-4.5 w-4.5 text-gold" /> Dicas de Posicionamento
+            </h3>
+            <ul className="mt-4 space-y-3 text-xs leading-relaxed text-foreground/80">
+              <li className="flex gap-2">
+                <span className="text-gold font-bold">•</span>
+                <span>
+                  Apresentar as <strong>3 profissionais da equipe</strong> aumenta a confiança das clientes e distribui a agenda de atendimentos.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-gold font-bold">•</span>
+                <span>
+                  Cada profissional tem seu link direto para agendamento no WhatsApp.
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
     </section>
   );
 }
 
-function ManagerCard({
-  title,
-  description,
-  button,
-  icon: Icon,
-  onClick,
+{/* ABA DE EQUIPE COM VISUAL EM GRID MODERNO E BOTÃO DE ABRIR MODAL */}
+function TeamManagerTab({
+  professionals,
+  setProfessionals,
+  isDemo,
+  onReload,
+  onSuccess,
+  onError,
+  onOpenAdd,
+  onOpenEdit,
 }: {
-  title: string;
-  description: string;
-  button: string;
-  icon: typeof Scissors;
-  onClick: () => void;
+  professionals: ProfessionalData[];
+  setProfessionals: React.Dispatch<React.SetStateAction<ProfessionalData[]>>;
+  isDemo: boolean;
+  onReload: () => Promise<void>;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+  onOpenAdd: () => void;
+  onOpenEdit: (item: ProfessionalData) => void;
+}) {
+  // Drag & drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  async function applyNewOrder(reorderedList: ProfessionalData[]) {
+    const withUpdatedOrder = reorderedList.map((p, idx) => ({ ...p, sort_order: idx + 1 }));
+    setProfessionals(withUpdatedOrder);
+
+    if (isDemo) {
+      onSuccess("Ordem da equipe atualizada no site.");
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseClient();
+      for (const [idx, item] of withUpdatedOrder.entries()) {
+        await supabase.from("professionals").update({ sort_order: 10000 + idx }).eq("id", item.id);
+      }
+      for (const item of withUpdatedOrder) {
+        await supabase.from("professionals").update({ sort_order: item.sort_order }).eq("id", item.id);
+      }
+      await onReload();
+      onSuccess("Ordem da equipe atualizada no site.");
+    } catch {
+      onError("Não foi possível salvar a nova ordem.");
+    }
+  }
+
+  function handleDragStart(index: number) {
+    setDraggedIndex(index);
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  }
+
+  function handleDrop(targetIndex: number) {
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const itemsCopy = [...professionals];
+    const [movedItem] = itemsCopy.splice(draggedIndex, 1);
+    itemsCopy.splice(targetIndex, 0, movedItem);
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    void applyNewOrder(itemsCopy);
+  }
+
+  async function moveProfessional(item: ProfessionalData, direction: "up" | "down") {
+    const currentIndex = professionals.findIndex((p) => p.id === item.id);
+    if (currentIndex === -1) return;
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= professionals.length) return;
+
+    const itemsCopy = [...professionals];
+    const [movedItem] = itemsCopy.splice(currentIndex, 1);
+    itemsCopy.splice(targetIndex, 0, movedItem);
+    await applyNewOrder(itemsCopy);
+  }
+
+  async function remove(item: ProfessionalData) {
+    if (!window.confirm(`Remover a profissional “${item.name}” da equipe?`)) return;
+
+    if (isDemo) {
+      const remaining = professionals.filter((p) => p.id !== item.id);
+      setProfessionals(remaining.map((p, idx) => ({ ...p, sort_order: idx + 1 })));
+      onSuccess("Profissional removida da equipe.");
+      return;
+    }
+
+    try {
+      const { error } = await getSupabaseClient().from("professionals").delete().eq("id", item.id);
+      if (error) onError("Não foi possível excluir.");
+      else {
+        await removerImagem(item.storage_path);
+        onSuccess("Profissional removida.");
+        await onReload();
+      }
+    } catch {
+      onError("Erro ao remover profissional.");
+    }
+  }
+
+  return (
+    <section className="space-y-8">
+      {/* Topo da Aba */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="eyebrow">Corpo Técnico</p>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-display">
+            Equipe do Salão ({professionals.length} profissionais)
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
+            Gerencie as profissionais do salão Bem Bonita (Fran e equipe). Você pode cadastrar novas integrantes, alterar fotos, especialidades e biografia com facilidade no modal.
+          </p>
+        </div>
+        <Botao type="button" onClick={onOpenAdd} className="shadow-card shrink-0">
+          <UserPlus className="h-4.5 w-4.5" /> Adicionar nova profissional
+        </Botao>
+      </div>
+
+      {/* Grid de Cards das Profissionais */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-display flex items-center gap-2">
+            <Users className="h-4.5 w-4.5 text-magenta" /> Profissionais exibidas no site ({professionals.length})
+          </h2>
+          <span className="text-xs text-muted-foreground">✨ Arraste os cards para alterar a ordem de exibição</span>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {professionals.map((item, index) => {
+            const isDragging = draggedIndex === index;
+            const isOver = dragOverIndex === index;
+
+            return (
+              <div
+                key={item.id}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDrop={() => handleDrop(index)}
+                onDragEnd={() => {
+                  setDraggedIndex(null);
+                  setDragOverIndex(null);
+                }}
+                className={`group relative overflow-hidden rounded-3xl border bg-card p-5 shadow-card transition-all duration-300 cursor-grab active:cursor-grabbing flex flex-col justify-between ${
+                  isDragging ? "opacity-40 scale-[0.98] border-dashed border-magenta" : ""
+                } ${isOver ? "border-primary ring-2 ring-primary/40 -translate-y-1" : "border-border hover:border-primary/60 hover:shadow-soft"}`}
+              >
+                <div>
+                  {/* Foto de Perfil & Badges */}
+                  <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-secondary/50 border border-border/80 mb-4">
+                    <img
+                      src={item.image_url ?? "/media/sobre-francielly.jpg"}
+                      alt={`Foto de ${item.name}`}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white backdrop-blur">
+                      <GripVertical className="h-3.5 w-3.5" />
+                      <span className="font-bold">#{index + 1}</span>
+                    </div>
+
+                    <div className="absolute top-2.5 right-2.5 rounded-full bg-secondary/90 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-magenta backdrop-blur">
+                      {index === 0 ? "Fundadora" : "Especialista"}
+                    </div>
+                  </div>
+
+                  {/* Informações da Profissional */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="text-base font-semibold font-display group-hover:text-magenta transition">
+                        {item.name}
+                      </h3>
+                      <p className="text-xs font-medium text-magenta uppercase tracking-wider mt-0.5">
+                        {item.role}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium ${
+                        item.active ? "bg-emerald-500/15 text-emerald-300" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {item.active ? "Ativa" : "Inativa"}
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-xs leading-relaxed text-muted-foreground line-clamp-3">
+                    {item.bio}
+                  </p>
+
+                  {item.whatsapp ? (
+                    <div className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <MessageCircle className="h-3 w-3 text-emerald-400" />
+                      <span>WhatsApp: +{item.whatsapp}</span>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Barra de Ações: Reordenar, Editar no Modal e Excluir */}
+                <div className="mt-5 flex items-center justify-between border-t border-border/80 pt-3.5">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void moveProfessional(item, "up");
+                      }}
+                      aria-label="Mover para a esquerda/cima"
+                      title="Mover para cima"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80 disabled:opacity-30"
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === professionals.length - 1}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void moveProfessional(item, "down");
+                      }}
+                      aria-label="Mover para a direita/baixo"
+                      title="Mover para baixo"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80 disabled:opacity-30"
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onOpenEdit(item)}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-semibold text-magenta hover:bg-secondary/80 transition"
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void remove(item)}
+                      aria-label={`Excluir ${item.name}`}
+                      title="Excluir profissional"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-red-950/40 text-red-300 hover:bg-red-950/70 transition"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Card de Atalho para Adicionar Nova Profissional */}
+          <div
+            onClick={onOpenAdd}
+            className="group cursor-pointer rounded-3xl border-2 border-dashed border-border/80 bg-secondary/20 p-8 shadow-card transition-all duration-300 hover:border-primary hover:bg-secondary/40 flex flex-col items-center justify-center text-center min-h-[320px]"
+          >
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-magenta group-hover:scale-110 transition duration-300 shadow-soft">
+              <UserPlus className="h-7 w-7" />
+            </div>
+            <h3 className="mt-4 text-base font-display font-semibold group-hover:text-magenta transition">
+              Adicionar Nova Profissional
+            </h3>
+            <p className="mt-1 text-xs text-muted-foreground max-w-xs">
+              Cadastre mais uma especialista com foto, biografia e botão direto de WhatsApp.
+            </p>
+            <span className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-magenta px-4 py-2 text-xs font-semibold text-white shadow-soft">
+              <Plus className="h-3.5 w-3.5" /> Abrir formulário
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+{/* NOVO COMPONENTE: Modal Intuitivo e Fácil de Adicionar / Editar Profissional */}
+function ProfessionalEditorModal({
+  initialData,
+  professionals,
+  setProfessionals,
+  isDemo,
+  onClose,
+  onReload,
+  onSuccess,
+  onError,
+}: {
+  initialData: ProfessionalData | null;
+  professionals: ProfessionalData[];
+  setProfessionals: React.Dispatch<React.SetStateAction<ProfessionalData[]>>;
+  isDemo: boolean;
+  onClose: () => void;
+  onReload: () => Promise<void>;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+}) {
+  const [form, setForm] = useState<Omit<ProfessionalData, "id" | "sort_order">>(
+    initialData
+      ? {
+          name: initialData.name,
+          role: initialData.role,
+          bio: initialData.bio,
+          image_url: initialData.image_url,
+          storage_path: initialData.storage_path,
+          whatsapp: initialData.whatsapp ?? "5531996792131",
+          instagram: initialData.instagram ?? "@salaobembonita_cielly",
+          active: initialData.active,
+        }
+      : emptyProfessional()
+  );
+
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Sugestões de cargos dinâmicas (salvas no localStorage)
+  const defaultRoleSuggestions = [
+    "Dona, Criadora & Cabeleireira Especialista",
+    "Colorista & Especialista em Mechas",
+    "Terapeuta Capilar & Cronograma",
+    "Especialista em Corte a Seco",
+    "Definição, Fisiologia & Finalização",
+    "Penteados & Noivas Cacheadas",
+  ];
+
+  const [roleSuggestions, setRoleSuggestions] = useState<string[]>(() => {
+    try {
+      const saved = window.localStorage.getItem("bem-bonita-role-suggestions");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return defaultRoleSuggestions;
+  });
+
+  const [newRoleInput, setNewRoleInput] = useState("");
+  const [showAddRoleInput, setShowAddRoleInput] = useState(false);
+
+  function handleAddRoleSuggestion() {
+    const trimmed = newRoleInput.trim();
+    if (!trimmed) return;
+    if (!roleSuggestions.includes(trimmed)) {
+      const updated = [...roleSuggestions, trimmed];
+      setRoleSuggestions(updated);
+      try {
+        window.localStorage.setItem("bem-bonita-role-suggestions", JSON.stringify(updated));
+      } catch {}
+    }
+    setForm((prev) => ({ ...prev, role: trimmed }));
+    setNewRoleInput("");
+    setShowAddRoleInput(false);
+  }
+
+  function handleRemoveRoleSuggestion(suggestionToRemove: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    const updated = roleSuggestions.filter((s) => s !== suggestionToRemove);
+    setRoleSuggestions(updated);
+    try {
+      window.localStorage.setItem("bem-bonita-role-suggestions", JSON.stringify(updated));
+    } catch {}
+  }
+
+  async function handleSelectImage(file: File) {
+    setUploading(true);
+    try {
+      if (isDemo) {
+        const fakeUrl = URL.createObjectURL(file);
+        setForm((prev) => ({ ...prev, image_url: fakeUrl, storage_path: null }));
+        setUploading(false);
+        return;
+      }
+      const uploaded = await uploadImagem(file, "team");
+      setForm((prev) => ({ ...prev, image_url: uploaded.url, storage_path: uploaded.path }));
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Falha no upload da foto.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!form.name.trim()) {
+      onError("Por favor, preencha o nome da profissional.");
+      return;
+    }
+    if (!form.role.trim()) {
+      onError("Por favor, preencha o cargo ou especialidade.");
+      return;
+    }
+
+    setSaving(true);
+
+    const nextOrder = initialData
+      ? initialData.sort_order
+      : (professionals.length ? Math.max(...professionals.map((p) => p.sort_order), 0) + 1 : 1);
+
+    const payload = {
+      ...form,
+      sort_order: nextOrder,
+    };
+
+    if (isDemo) {
+      if (initialData) {
+        setProfessionals((prev) =>
+          prev.map((p) => (p.id === initialData.id ? { ...payload, id: initialData.id } : p))
+        );
+      } else {
+        const newId = `prof-${Date.now()}`;
+        setProfessionals((prev) => [...prev, { ...payload, id: newId }]);
+      }
+      onSuccess(initialData ? "Profissional atualizada com sucesso!" : "Nova profissional adicionada à equipe com sucesso!");
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const query = initialData
+        ? getSupabaseClient().from("professionals").update(payload).eq("id", initialData.id)
+        : getSupabaseClient().from("professionals").insert(payload);
+      const { data: saved, error } = await query.select("id, sort_order").single();
+      if (error || !saved) onError("Não foi possível salvar os dados da profissional.");
+      else {
+        onSuccess(initialData ? "Profissional atualizada com sucesso." : "Nova profissional cadastrada na equipe!");
+        await onReload();
+      }
+    } catch {
+      onError("Erro ao salvar profissional.");
+    }
+    setSaving(false);
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* 1. Área de Upload de Foto com Preview de Destaque */}
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <label className="block text-sm font-semibold mb-3 flex items-center gap-2">
+          <Camera className="h-4 w-4 text-magenta" /> Foto de Perfil da Profissional
+        </label>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+          <div className="relative aspect-[4/5] w-28 shrink-0 overflow-hidden rounded-2xl border border-border bg-secondary/50 shadow-inner">
+            {form.image_url ? (
+              <img
+                src={form.image_url}
+                alt="Foto da profissional"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full flex-col items-center justify-center text-muted-foreground p-2 text-center">
+                <User className="h-8 w-8 opacity-40 mb-1" />
+                <span className="text-[10px] leading-tight">Sem foto</span>
+              </div>
+            )}
+            {uploading ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/75 text-white text-xs font-semibold">
+                <LoaderCircle className="h-4 w-4 animate-spin text-magenta" />
+              </div>
+            ) : null}
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Escolha uma foto nítida e profissional (vertical/retrato recomendada).
+            </p>
+            <label className="inline-flex items-center gap-2 rounded-xl bg-secondary hover:bg-secondary/80 px-4 py-2.5 text-xs font-semibold text-magenta cursor-pointer transition border border-primary/20 hover:border-primary shadow-xs">
+              <Upload className="h-3.5 w-3.5" />
+              <span>{uploading ? "Enviando foto..." : form.image_url ? "Trocar foto de perfil" : "Fazer upload de foto"}</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={uploading}
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    void handleSelectImage(file);
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Nome & Especialidade com Chips Rápidos */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-sm font-semibold text-foreground">Nome Completo</span>
+          <input
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="Ex: Francielly Soares ou Nome da Especialista"
+            className="admin-input"
+            required
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-sm font-semibold text-foreground">Especialidade / Cargo</span>
+          <input
+            value={form.role}
+            onChange={(e) => setForm({ ...form, role: e.target.value })}
+            placeholder="Ex: Colorista & Terapeuta Capilar"
+            className="admin-input"
+            required
+          />
+        </label>
+      </div>
+
+      {/* Gerenciamento de Sugestões Rápidas de Especialidade (Adicionar / Remover) */}
+      <div className="space-y-2.5 rounded-2xl bg-secondary/30 p-4 border border-border">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-gold" /> Sugestões rápidas de cargo (clique para preencher):
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowAddRoleInput((v) => !v)}
+            className="text-xs text-magenta font-semibold hover:underline flex items-center gap-1"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {showAddRoleInput ? "Fechar" : "+ Nova sugestão"}
+          </button>
+        </div>
+
+        {showAddRoleInput ? (
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              value={newRoleInput}
+              onChange={(e) => setNewRoleInput(e.target.value)}
+              placeholder="Ex: Trancista & Especialista Afro"
+              className="admin-input mt-0 py-2 text-xs flex-1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddRoleSuggestion();
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleAddRoleSuggestion}
+              className="rounded-xl bg-magenta px-3.5 py-2 text-xs font-semibold text-white shadow-soft hover:bg-magenta/90 shrink-0"
+            >
+              Adicionar
+            </button>
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {roleSuggestions.map((suggestion) => {
+            const isSelected = form.role === suggestion;
+            return (
+              <div
+                key={suggestion}
+                onClick={() => setForm({ ...form, role: suggestion })}
+                className={`group inline-flex items-center gap-1.5 rounded-full pl-3 pr-1.5 py-1 text-[11px] font-medium cursor-pointer transition ${
+                  isSelected
+                    ? "bg-magenta text-white shadow-soft"
+                    : "bg-card border border-border text-foreground hover:border-primary/50 hover:bg-secondary/70"
+                }`}
+              >
+                <span>{suggestion}</span>
+                <button
+                  type="button"
+                  onClick={(e) => handleRemoveRoleSuggestion(suggestion, e)}
+                  title={`Remover sugestão "${suggestion}"`}
+                  aria-label={`Remover sugestão ${suggestion}`}
+                  className={`flex h-4 w-4 items-center justify-center rounded-full transition ${
+                    isSelected
+                      ? "hover:bg-white/20 text-white"
+                      : "text-muted-foreground hover:bg-red-500/20 hover:text-red-400"
+                  }`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. Biografia / Apresentação */}
+      <label className="block">
+        <span className="text-sm font-semibold text-foreground">Biografia / Apresentação da Profissional</span>
+        <textarea
+          rows={3}
+          value={form.bio}
+          onChange={(e) => setForm({ ...form, bio: e.target.value })}
+          placeholder="Ex: Especialista em transição capilar, corte a seco e cronogramas personalizados com foco no bem-estar e autoestima das clientes."
+          className="admin-input resize-y"
+          required
+        />
+      </label>
+
+      {/* 4. WhatsApp & Instagram */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+            <MessageCircle className="h-3.5 w-3.5 text-emerald-400" /> WhatsApp para Agendamentos
+          </span>
+          <input
+            value={form.whatsapp ?? ""}
+            onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+            placeholder="5531996792131"
+            className="admin-input"
+          />
+          <span className="text-[11px] text-muted-foreground mt-1 block">
+            O botão "Agendar" no card direcionará para este número.
+          </span>
+        </label>
+
+        <label className="block">
+          <span className="text-sm font-semibold text-foreground">Instagram (opcional)</span>
+          <input
+            value={form.instagram ?? ""}
+            onChange={(e) => setForm({ ...form, instagram: e.target.value })}
+            placeholder="@salaobembonita_cielly"
+            className="admin-input"
+          />
+        </label>
+      </div>
+
+      {/* 5. Status Ativo */}
+      <div className="rounded-2xl bg-secondary/40 p-4 border border-border">
+        <Toggle
+          label="Profissional ativa e visível no site (na Home e na página da equipe)"
+          checked={form.active}
+          onChange={(active) => setForm({ ...form, active })}
+        />
+      </div>
+
+      {/* 6. Botões de Ação */}
+      <div className="flex items-center justify-end gap-3 pt-2 border-t border-border">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition"
+        >
+          Cancelar
+        </button>
+        <Botao type="submit" disabled={saving || uploading}>
+          {saving ? (
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {saving ? "Salvando..." : initialData ? "Salvar alterações" : "Adicionar à equipe"}
+        </Botao>
+      </div>
+    </form>
+  );
+}
+
+{/* Aba de Prévia da Galeria com Categorias e Miniaturas */}
+function PortfolioOverviewTab({
+  items,
+  categories,
+  onOpenManager,
+}: {
+  items: PortfolioData[];
+  categories: CategoryData[];
+  onOpenManager: () => void;
+}) {
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  const filteredItems = activeCategory === "all"
+    ? items
+    : items.filter((item) => item.category === activeCategory);
+
+  return (
+    <section className="space-y-8">
+      {/* Topo da Galeria */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="eyebrow">Catálogo Visual</p>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-display">Galeria de Resultados</h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
+            {items.length} foto(s) cadastradas em {categories.length} categorias.
+            Veja abaixo a prévia das imagens exibidas no site.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3 shrink-0">
+          <Botao type="button" onClick={onOpenManager} className="shadow-card">
+            <Images className="h-4 w-4" /> Gerenciar &amp; Reordenar Galeria
+          </Botao>
+        </div>
+      </div>
+
+      {/* Categorias / Filtros Ativos */}
+      <div className="rounded-3xl border border-border bg-card p-5 shadow-card">
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <Tag className="h-4 w-4 text-gold" /> Categorias Ativas
+          </h3>
+          <button
+            type="button"
+            onClick={onOpenManager}
+            className="text-xs text-magenta font-medium hover:underline"
+          >
+            + Adicionar / Editar Categorias
+          </button>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2.5">
+          <button
+            type="button"
+            onClick={() => setActiveCategory("all")}
+            className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+              activeCategory === "all"
+                ? "bg-magenta text-white shadow-soft"
+                : "bg-secondary text-foreground/80 hover:bg-secondary/80"
+            }`}
+          >
+            Todas as Fotos ({items.length})
+          </button>
+          {categories.map((cat) => {
+            const count = items.filter((item) => item.category === cat.slug).length;
+            const isActive = activeCategory === cat.slug;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setActiveCategory(cat.slug)}
+                className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                  isActive
+                    ? "bg-magenta text-white shadow-soft"
+                    : "bg-secondary text-foreground/80 hover:bg-secondary/80"
+                }`}
+              >
+                {cat.name} ({count})
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Prévia da Grade de Fotos da Galeria */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-display flex items-center gap-2">
+            <Eye className="h-4.5 w-4.5 text-magenta" /> Prévia Visual das Fotos ({filteredItems.length})
+          </h2>
+          <span className="text-xs text-muted-foreground">
+            Clique em "Gerenciar" para arrastar e reordenar
+          </span>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {filteredItems.map((item, index) => (
+            <div
+              key={item.id}
+              onClick={onOpenManager}
+              className="group cursor-pointer overflow-hidden rounded-3xl border border-border bg-card p-3 shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-soft flex flex-col justify-between"
+            >
+              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-secondary/40">
+                <img
+                  src={item.image_url}
+                  alt={item.alt_text}
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                />
+                <div className="absolute top-2.5 left-2.5 rounded-full bg-black/60 px-2.5 py-0.5 text-[11px] font-bold text-white backdrop-blur">
+                  #{item.sort_order || index + 1}
+                </div>
+                <div className="absolute top-2.5 right-2.5 rounded-full bg-secondary/90 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-magenta backdrop-blur">
+                  {item.category}
+                </div>
+              </div>
+              <div className="p-2 pt-3">
+                <p className="text-sm font-medium truncate group-hover:text-magenta transition">
+                  {item.title}
+                </p>
+                <div className="mt-2 flex items-center justify-between border-t border-border/70 pt-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1 text-[11px] text-emerald-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Ativo no site
+                  </span>
+                  <span className="text-[11px] font-medium text-magenta group-hover:underline">
+                    Editar →
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+{/* Aba de Prévia de Serviços com Detalhes */}
+function ServicesOverviewTab({
+  services,
+  onOpenManager,
+}: {
+  services: ServiceData[];
+  onOpenManager: () => void;
 }) {
   return (
-    <section>
-      <p className="eyebrow">Conteúdo</p>
-      <h1 className="mt-3 text-3xl sm:text-4xl">{title}</h1>
-      <div className="mt-8 max-w-2xl rounded-3xl border border-border bg-card p-7 shadow-card">
-        <Icon className="h-8 w-8 text-magenta" />
-        <p className="mt-5 text-muted-foreground">{description}</p>
-        <Botao type="button" onClick={onClick} className="mt-6">
-          {button}
-        </Botao>
+    <section className="space-y-8">
+      {/* Topo da Seção de Serviços */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="eyebrow">Atendimentos</p>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-display">Catálogo de Serviços</h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
+            {services.length} serviços cadastrados com link direto para agendamento no WhatsApp.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3 shrink-0">
+          <Botao type="button" onClick={onOpenManager} className="shadow-card">
+            <Scissors className="h-4 w-4" /> Gerenciar &amp; Reordenar Serviços
+          </Botao>
+        </div>
+      </div>
+
+      {/* Grid de Cards dos Serviços */}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {services.map((item, index) => (
+          <div
+            key={item.id}
+            onClick={onOpenManager}
+            className="group cursor-pointer overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-soft flex flex-col justify-between"
+          >
+            <div>
+              {item.image_url ? (
+                <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-secondary/40 mb-4">
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute top-2.5 left-2.5 rounded-full bg-black/60 px-2.5 py-0.5 text-[11px] font-bold text-white backdrop-blur">
+                    #{item.sort_order || index + 1}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="text-base font-semibold group-hover:text-magenta transition">
+                  {item.name}
+                </h3>
+                <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
+                  Ativo
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground line-clamp-3">
+                {item.description}
+              </p>
+
+              {item.benefits?.length ? (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {item.benefits.slice(0, 2).map((b, i) => (
+                    <span
+                      key={i}
+                      className="rounded-full bg-secondary px-2.5 py-0.5 text-[10px] text-muted-foreground"
+                    >
+                      ✓ {b}
+                    </span>
+                  ))}
+                  {item.benefits.length > 2 ? (
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
+                      +{item.benefits.length - 2}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs">
+              <span className="text-muted-foreground font-mono text-[11px]">
+                Posição #{index + 1}
+              </span>
+              <span className="font-semibold text-magenta group-hover:underline">
+                Reordenar ou Editar →
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -522,39 +1692,112 @@ function ManagerCard({
 
 function PhotosTab({
   images,
+  setImages,
+  isDemo,
   onReload,
   onSuccess,
   onError,
 }: {
   images: SiteImageData[];
+  setImages: React.Dispatch<React.SetStateAction<SiteImageData[]>>;
+  isDemo: boolean;
   onReload: () => Promise<void>;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
 }) {
   const [uploading, setUploading] = useState<string | null>(null);
-  const slots = [
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newCategory, setNewCategory] = useState("space");
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+
+  const mainSlots = [
     {
       key: "hero",
-      title: "Foto principal",
-      description: "Imagem de maior destaque, exibida logo no início do site.",
+      title: "Foto Principal (Hero)",
+      badge: "Início do Site",
+      description: "Imagem de maior impacto visual, exibida logo na abertura do site.",
       fallback: "/media/francielly-profissional.jpg",
     },
     {
       key: "about",
-      title: "Foto da seção Sobre",
-      description: "Apresenta a profissional e reforça a identidade do salão.",
+      title: "Foto Sobre a Profissional (Home)",
+      badge: "Autoridade",
+      description: "Francielly Soares com as ferramentas e produtos profissionais na Home.",
       fallback: "/media/francielly-produtos.jpg",
     },
     {
+      key: "francielly_bio",
+      title: "Foto Oficial da Francielly (/francielly)",
+      badge: "Página Francielly",
+      description: "Foto principal da página de história e metodologia de Francielly Soares.",
+      fallback: "/media/sobre-francielly.jpg",
+    },
+    {
       key: "products",
-      title: "Foto de produtos",
-      description: "Imagem usada na área de cuidados e produtos para cachos.",
+      title: "Banner da Linha de Produtos",
+      badge: "Produtos",
+      description: "Imagem de destaque para a seção de cosméticos e tratamentos.",
       fallback: "/media/francielly-produtos.jpg",
     },
-  ] as const;
-  async function save(key: (typeof slots)[number]["key"], file: File) {
+  ];
+
+  const spaceSlots = [
+    {
+      key: "space_1",
+      title: "Ambiente Principal do Salão",
+      badge: "Espaço Físico",
+      description: "Visão geral do espaço interno, decoração aconchegante no Lanna Shopping.",
+      fallback: "/media/instagram-salao.jpg",
+    },
+    {
+      key: "space_2",
+      title: "Vitrine & Recepção",
+      badge: "Espaço Físico",
+      description: "Exposição dos produtos e recepção dos clientes.",
+      fallback: "/media/instagram-produtos.jpg",
+    },
+    {
+      key: "space_3",
+      title: "Lavatório & Atendimento",
+      badge: "Espaço Físico",
+      description: "Cadeira de atendimento e área de tratamentos capilares.",
+      fallback: "/media/instagram-cachos.jpg",
+    },
+  ];
+
+  async function save(key: string, file: File, customTitle?: string) {
     setUploading(key);
     try {
+      if (isDemo) {
+        const fakeUrl = URL.createObjectURL(file);
+        const exists = images.some((img) => img.image_key === key);
+        if (exists) {
+          setImages((prev) =>
+            prev.map((img) =>
+              img.image_key === key
+                ? { ...img, image_url: fakeUrl, created_at: "Agora mesmo" }
+                : img
+            )
+          );
+        } else {
+          setImages((prev) => [
+            {
+              id: `img-${Date.now()}`,
+              image_key: key,
+              image_url: fakeUrl,
+              alt_text: customTitle ?? `Foto ${key}`,
+              storage_path: null,
+              created_at: "Agora mesmo",
+            },
+            ...prev,
+          ]);
+        }
+        onSuccess("Foto atualizada com sucesso em tempo real!");
+        setUploading(null);
+        return;
+      }
+
       const previous = images.find((image) => image.image_key === key);
       const uploaded = await uploadImagem(file, `site/${key}`);
       const { error } = await getSupabaseClient()
@@ -564,108 +1807,638 @@ function PhotosTab({
             image_key: key,
             image_url: uploaded.url,
             storage_path: uploaded.path,
-            alt_text: previous?.alt_text ?? `Imagem ${key} do salão Bem Bonita`,
+            alt_text: customTitle ?? previous?.alt_text ?? `Imagem ${key} do salão Bem Bonita`,
           },
           { onConflict: "image_key" },
         );
       if (error) throw error;
       await removerImagem(previous?.storage_path);
       await onReload();
-      onSuccess("Imagem atualizada no site.");
+      onSuccess("Imagem atualizada e salva no site.");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Não foi possível enviar a imagem.");
     } finally {
       setUploading(null);
     }
   }
+
+  async function handleCreateNewPhoto(file: File) {
+    const key = `custom_${newCategory}_${Date.now()}`;
+    await save(key, file, newTitle || "Foto");
+    setShowAddModal(false);
+    setNewTitle("");
+  }
+
+  function handleCopy(url: string) {
+    navigator.clipboard.writeText(url);
+    setCopiedUrl(url);
+    setTimeout(() => setCopiedUrl(null), 2500);
+  }
+
+  function handleDeleteCustom(img: SiteImageData) {
+    if (!window.confirm("Deseja remover esta foto do histórico?")) return;
+    setImages((prev) => prev.filter((i) => i.id !== img.id));
+    onSuccess("Foto removida do histórico.");
+  }
+
   return (
-    <section>
-      <p className="eyebrow">Mídia</p>
-      <h1 className="mt-3 text-3xl sm:text-4xl">Fotos do site</h1>
-      <p className="mt-3 text-sm text-muted-foreground">
-        A prévia aparece antes do envio. Ao concluir, a imagem é atualizada automaticamente no site.
-      </p>
-      <div className="mt-8 grid max-w-6xl gap-6 md:grid-cols-2">
-        {slots.map((slot, index) => {
-          const item = images.find((image) => image.image_key === slot.key);
-          return (
-            <div
-              key={slot.key}
-              className={`group rounded-[2rem] border border-border bg-card p-5 shadow-card transition hover:border-primary/50 sm:p-6 ${index === 0 ? "md:col-span-2" : ""}`}
-            >
-              <div className="mb-5 flex items-start gap-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-secondary font-display text-lg text-magenta">
-                  {index + 1}
-                </span>
+    <section className="space-y-12">
+      {/* Topo da Aba */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="eyebrow">Mídia &amp; Ambientes</p>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-display">Fotos do Site, Francielly e Espaço</h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
+            Substitua a imagem de qualquer área específica clicando diretamente no botão{" "}
+            <strong>"Trocar foto desta área"</strong> presente em cada card.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowAddModal(true)}
+          className="inline-flex items-center gap-2 rounded-2xl bg-secondary px-5 py-3 text-sm font-semibold text-magenta hover:bg-secondary/80 transition self-start sm:self-auto shadow-card shrink-0"
+        >
+          <Plus className="h-4 w-4" /> Adicionar nova foto
+        </button>
+      </div>
+
+      {/* Seção 1: Fotos Principais de Destaque */}
+      <div>
+        <div className="flex items-center gap-3 mb-5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary text-magenta">
+            <Sparkles className="h-4 w-4" />
+          </span>
+          <div>
+            <h2 className="text-xl font-display">Fotos Principais &amp; Apresentação</h2>
+            <p className="text-xs text-muted-foreground">Exibidas no Hero, seção Sobre, Linha de Produtos e na página /francielly</p>
+          </div>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {mainSlots.map((slot, index) => {
+            const item = images.find((image) => image.image_key === slot.key);
+            const isCurrentlyUploading = uploading === slot.key;
+
+            return (
+              <div
+                key={slot.key}
+                className="group rounded-3xl border border-border bg-card p-5 shadow-card transition hover:border-primary/50 flex flex-col justify-between"
+              >
                 <div>
-                  <h2 className="text-xl">{slot.title}</h2>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-magenta bg-secondary px-2.5 py-0.5 rounded-full">
+                      {slot.badge}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-mono">Slot #{index + 1}</span>
+                  </div>
+                  <h3 className="text-base font-display">{slot.title}</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground min-h-8">
                     {slot.description}
                   </p>
                 </div>
+
+                <div className="mt-4">
+                  {/* Prévia da Imagem */}
+                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border/80 bg-secondary/40 shadow-inner">
+                    <img
+                      src={item?.image_url ?? slot.fallback}
+                      alt={slot.title}
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                    />
+                    {isCurrentlyUploading ? (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/75 backdrop-blur-xs text-white text-xs font-semibold gap-2">
+                        <LoaderCircle className="h-4 w-4 animate-spin text-magenta" /> Enviando...
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Botão Dedicado e Explícito de Troca */}
+                  <label className="mt-3.5 flex items-center justify-center gap-2 rounded-2xl bg-secondary/90 hover:bg-secondary px-4 py-2.5 text-xs font-semibold text-magenta cursor-pointer transition border border-primary/20 hover:border-primary shadow-xs">
+                    <Camera className="h-3.5 w-3.5 shrink-0" />
+                    <span>{isCurrentlyUploading ? "Atualizando..." : "Trocar foto"}</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={isCurrentlyUploading}
+                      className="sr-only"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          void save(slot.key, file);
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
-              <ImageField
-                label="Clique na imagem para substituir"
-                currentUrl={item?.image_url ?? slot.fallback}
-                uploading={uploading === slot.key}
-                onSelect={(file) => void save(slot.key, file)}
-                wide={index === 0}
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Seção 2: Fotos do Espaço do Salão Físico */}
+      <div>
+        <div className="flex items-center gap-3 mb-5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary text-gold">
+            <MapPin className="h-4 w-4" />
+          </span>
+          <div>
+            <h2 className="text-xl font-display">Fotos do Espaço do Salão Físico</h2>
+            <p className="text-xs text-muted-foreground">
+              Imagens exibidas na nova seção do salão no Lanna Shopping para encantar futuros clientes
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-3">
+          {spaceSlots.map((slot, index) => {
+            const item = images.find((image) => image.image_key === slot.key);
+            const isCurrentlyUploading = uploading === slot.key;
+
+            return (
+              <div
+                key={slot.key}
+                className="group rounded-3xl border border-border bg-card p-5 shadow-card transition hover:border-primary/50 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-gold bg-secondary px-2.5 py-0.5 rounded-full">
+                      {slot.badge}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-mono">Espaço #{index + 1}</span>
+                  </div>
+                  <h3 className="text-lg font-display">{slot.title}</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground min-h-8">
+                    {slot.description}
+                  </p>
+                </div>
+
+                <div className="mt-4">
+                  {/* Prévia da Imagem */}
+                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border/80 bg-secondary/40 shadow-inner">
+                    <img
+                      src={item?.image_url ?? slot.fallback}
+                      alt={slot.title}
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                    />
+                    {isCurrentlyUploading ? (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/75 backdrop-blur-xs text-white text-xs font-semibold gap-2">
+                        <LoaderCircle className="h-4 w-4 animate-spin text-gold" /> Enviando...
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Botão Dedicado de Troca */}
+                  <label className="mt-3.5 flex items-center justify-center gap-2 rounded-2xl bg-secondary/90 hover:bg-secondary px-4 py-2.5 text-xs font-semibold text-magenta cursor-pointer transition border border-primary/20 hover:border-primary shadow-xs">
+                    <Camera className="h-3.5 w-3.5 shrink-0" />
+                    <span>{isCurrentlyUploading ? "Atualizando..." : "Trocar foto deste espaço"}</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={isCurrentlyUploading}
+                      className="sr-only"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          void save(slot.key, file);
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Seção 3: Histórico de Imagens Enviadas */}
+      <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-card">
+        <div className="flex items-center justify-between pb-4 border-b border-border">
+          <div>
+            <h2 className="text-xl font-display flex items-center gap-2">
+              <Clock className="h-5 w-5 text-magenta" /> Histórico de Fotos Cadastradas
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Registro de todas as fotos ativas no salão. Você pode copiar o link ou consultar as imagens.
+            </p>
+          </div>
+          <span className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full font-medium">
+            {images.length} foto(s)
+          </span>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {images.map((img) => (
+            <div
+              key={img.id}
+              className="group relative overflow-hidden rounded-2xl border border-border bg-background p-3 shadow-card transition hover:border-primary/60"
+            >
+              <div className="aspect-square overflow-hidden rounded-xl bg-secondary/40">
+                <img
+                  src={img.image_url}
+                  alt={img.alt_text}
+                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                />
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-medium truncate text-foreground">{img.alt_text || img.image_key}</p>
+                <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>{img.created_at ?? "Recente"}</span>
+                  <span className="font-mono text-[10px] text-magenta uppercase">{img.image_key}</span>
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleCopy(img.image_url)}
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-magenta transition font-medium"
+                >
+                  <Copy className="h-3 w-3" />
+                  {copiedUrl === img.image_url ? "Copiado!" : "Copiar link"}
+                </button>
+                {img.image_key.startsWith("custom_") ? (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCustom(img)}
+                    className="text-red-300 hover:text-red-200 text-[11px]"
+                  >
+                    Excluir
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Modal para Adicionar Nova Foto */}
+      {showAddModal ? (
+        <AdminModal title="Adicionar Nova Foto de Destaque / Espaço" onClose={() => setShowAddModal(false)}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium">Título / Identificação da Foto</label>
+              <input
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Ex: Poltrona de atendimento ou Café do salão"
+                className="admin-input"
               />
             </div>
-          );
-        })}
-      </div>
+            <div>
+              <label className="block text-sm font-medium">Categoria</label>
+              <select
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                className="admin-input"
+              >
+                <option value="space">Espaço Físico do Salão</option>
+                <option value="francielly">Francielly Soares</option>
+                <option value="highlight">Foto de Destaque</option>
+                <option value="treatment">Tratamento &amp; Cuidado</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Selecione o arquivo de imagem</label>
+              <ImageField
+                label="Clique para escolher a imagem"
+                uploading={uploading === "new"}
+                onSelect={(file) => void handleCreateNewPhoto(file)}
+              />
+            </div>
+          </div>
+        </AdminModal>
+      ) : null}
     </section>
   );
 }
 
 function SettingsTab({
   settings,
+  images,
+  setImages,
+  isDemo,
   onChange,
+  onReload,
   onSuccess,
   onError,
 }: {
   settings: SiteSettingsData;
+  images: SiteImageData[];
+  setImages: React.Dispatch<React.SetStateAction<SiteImageData[]>>;
+  isDemo: boolean;
   onChange: (settings: SiteSettingsData) => void;
+  onReload: () => Promise<void>;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
 }) {
   const [saving, setSaving] = useState(false);
-  const fields: Array<{
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFranPhoto, setUploadingFranPhoto] = useState(false);
+
+  const franImage =
+    images.find((img) => img.image_key === "francielly_bio" || img.image_key === "about")?.image_url ??
+    "/media/sobre-francielly.jpg";
+
+  async function handleLogoUpload(file: File) {
+    setUploadingLogo(true);
+    try {
+      if (isDemo) {
+        const fakeUrl = URL.createObjectURL(file);
+        onChange({ ...settings, logo_url: fakeUrl });
+        onSuccess("Logotipo atualizado no preview!");
+        setUploadingLogo(false);
+        return;
+      }
+      const uploaded = await uploadImagem(file, "site/logo");
+      const updated = { ...settings, logo_url: uploaded.url };
+      onChange(updated);
+      await getSupabaseClient().from("site_settings").update({ logo_url: uploaded.url }).eq("id", 1);
+      onSuccess("Logotipo atualizado e salvo no site!");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Falha no upload do logotipo.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
+  async function handleFranPhotoUpload(file: File) {
+    setUploadingFranPhoto(true);
+    try {
+      if (isDemo) {
+        const fakeUrl = URL.createObjectURL(file);
+        setImages((prev) => {
+          const exists = prev.some((i) => i.image_key === "francielly_bio");
+          if (exists) {
+            return prev.map((i) =>
+              i.image_key === "francielly_bio" ? { ...i, image_url: fakeUrl } : i
+            );
+          }
+          return [
+            {
+              id: `img-${Date.now()}`,
+              image_key: "francielly_bio",
+              image_url: fakeUrl,
+              alt_text: "Foto oficial de Francielly Soares",
+              storage_path: null,
+            },
+            ...prev,
+          ];
+        });
+        onSuccess("Foto da página Francielly atualizada!");
+        setUploadingFranPhoto(false);
+        return;
+      }
+      const uploaded = await uploadImagem(file, "site/francielly_bio");
+      await getSupabaseClient()
+        .from("site_images")
+        .upsert(
+          {
+            image_key: "francielly_bio",
+            image_url: uploaded.url,
+            storage_path: uploaded.path,
+            alt_text: "Foto oficial de Francielly Soares",
+          },
+          { onConflict: "image_key" }
+        );
+      await onReload();
+      onSuccess("Foto de Francielly atualizada com sucesso!");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Falha ao atualizar foto de Francielly.");
+    } finally {
+      setUploadingFranPhoto(false);
+    }
+  }
+
+  function handleRemoveLogo() {
+    onChange({ ...settings, logo_url: null });
+    onSuccess("Logotipo personalizado removido. O site usará a logo tipográfica padrão.");
+  }
+
+  const generalFields: Array<{
     key: keyof SiteSettingsData;
     label: string;
     multiline?: boolean;
     help?: string;
   }> = [
-    { key: "headline", label: "Título principal" },
-    { key: "hero_description", label: "Descrição principal", multiline: true },
-    { key: "about_text", label: "Texto da seção Sobre", multiline: true },
-    { key: "whatsapp", label: "WhatsApp", help: "Somente números, incluindo DDD." },
+    { key: "salon_name", label: "Nome do Salão (Marca)", help: "Texto usado caso não haja imagem de logo." },
+    { key: "headline", label: "Título principal da Home (Hero)" },
+    { key: "hero_description", label: "Descrição principal da Home", multiline: true },
+    { key: "about_text", label: "Texto da seção Sobre na Home", multiline: true },
+    { key: "whatsapp", label: "WhatsApp", help: "Somente números com DDD (ex: 5531996792131)." },
     { key: "instagram", label: "Instagram", help: "Usuário do Instagram com ou sem @." },
-    { key: "address", label: "Endereço", multiline: true },
+    { key: "address", label: "Endereço completo", multiline: true },
     { key: "landmark", label: "Ponto de referência", multiline: true },
     { key: "business_hours_text", label: "Horário de atendimento", multiline: true },
   ];
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setSaving(true);
-    const { error } = await getSupabaseClient().from("site_settings").update(settings).eq("id", 1);
-    if (error) onError("Não foi possível salvar as informações.");
-    else onSuccess("Informações atualizadas com sucesso.");
+    if (isDemo) {
+      setTimeout(() => {
+        onSuccess("Todas as informações e textos foram salvos com sucesso!");
+        setSaving(false);
+      }, 300);
+      return;
+    }
+
+    try {
+      const { error } = await getSupabaseClient().from("site_settings").update(settings).eq("id", 1);
+      if (error) onError("Não foi possível salvar as informações.");
+      else onSuccess("Informações atualizadas com sucesso.");
+    } catch {
+      onError("Erro ao salvar informações.");
+    }
     setSaving(false);
   }
+
   return (
-    <section>
-      <p className="eyebrow">Configurações</p>
-      <h1 className="mt-3 text-3xl sm:text-4xl">Informações do site</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-        Edite somente as informações essenciais que clientes consultam no site.
-      </p>
+    <section className="space-y-8">
+      <div>
+        <p className="eyebrow">Configurações</p>
+        <h1 className="mt-2 text-3xl sm:text-4xl font-display">Informações, Logotipo &amp; Páginas</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          Edite a marca, faça upload do logotipo, altere contatos e personalize a página exclusiva de Francielly Soares.
+        </p>
+      </div>
+
+      {/* 1. Seção Compacta de Logotipo */}
+      <div className="max-w-4xl rounded-2xl border border-border bg-card p-5 shadow-card">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="relative h-16 w-24 shrink-0 flex items-center justify-center rounded-xl border border-dashed border-border bg-secondary/50 p-2 overflow-hidden">
+              {settings.logo_url ? (
+                <img
+                  src={settings.logo_url}
+                  alt="Logotipo do Salão"
+                  className="max-h-full max-w-full object-contain"
+                />
+              ) : (
+                <div className="text-center">
+                  <ImageIcon className="mx-auto h-5 w-5 text-muted-foreground/60" />
+                  <span className="text-[9px] text-muted-foreground block">Sem logo</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h2 className="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+                <Sparkles className="h-4 w-4 text-gold" /> Logotipo Oficial da Marca
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                PNG com fundo transparente ou SVG recomendado.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <label className="inline-flex items-center gap-2 rounded-xl bg-secondary hover:bg-secondary/80 px-3.5 py-2 text-xs font-semibold text-magenta cursor-pointer transition border border-primary/20 hover:border-primary shadow-xs">
+              <Camera className="h-3.5 w-3.5" />
+              <span>{uploadingLogo ? "Enviando..." : settings.logo_url ? "Substituir logo" : "Fazer upload de logo"}</span>
+              <input
+                type="file"
+                accept="image/png,image/svg+xml,image/jpeg,image/webp"
+                disabled={uploadingLogo}
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    void handleLogoUpload(file);
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </label>
+
+            {settings.logo_url ? (
+              <button
+                type="button"
+                onClick={handleRemoveLogo}
+                className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300 hover:bg-red-500/20 transition"
+              >
+                Remover
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Seção Exclusiva: Página da Francielly Soares */}
+      <div className="max-w-4xl rounded-3xl border border-primary/40 bg-secondary/30 p-6 sm:p-8 shadow-card space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-border/80">
+          <div>
+            <span className="eyebrow flex items-center gap-1.5">
+              <UserCheck className="h-3.5 w-3.5 text-magenta" /> Página Institucional
+            </span>
+            <h2 className="text-xl font-display mt-1">Página da Especialista (/francielly)</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Personalize a biografia, foto oficial e frases de autoridade de Francielly Soares.
+            </p>
+          </div>
+          <a
+            href="/francielly"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-magenta font-semibold hover:underline"
+          >
+            Abrir página /francielly <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </div>
+
+        {/* Foto de Apresentação da Francielly */}
+        <div className="grid gap-6 sm:grid-cols-[10rem_1fr] sm:items-center rounded-2xl bg-card p-4 border border-border">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-secondary border border-border">
+            <img
+              src={franImage}
+              alt="Foto oficial de Francielly Soares"
+              className="h-full w-full object-cover"
+            />
+            {uploadingFranPhoto ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/75 text-white text-xs font-semibold gap-1">
+                <LoaderCircle className="h-3.5 w-3.5 animate-spin text-magenta" /> Enviando...
+              </div>
+            ) : null}
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">Foto Principal da Francielly</h3>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Foto de autoridade exibida no topo da página de biografia da especialista.
+            </p>
+            <label className="mt-3.5 inline-flex items-center gap-2 rounded-xl bg-secondary hover:bg-secondary/80 px-3.5 py-2 text-xs font-semibold text-magenta cursor-pointer transition border border-primary/20 hover:border-primary shadow-xs">
+              <Camera className="h-3.5 w-3.5" />
+              <span>{uploadingFranPhoto ? "Enviando..." : "Trocar foto da Francielly"}</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={uploadingFranPhoto}
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    void handleFranPhotoUpload(file);
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </label>
+          </div>
+        </div>
+
+        {/* Textos da Francielly */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="sm:col-span-1">
+            <span className="text-sm font-medium">Nome da Especialista</span>
+            <input
+              value={String(settings.professional_name ?? "")}
+              onChange={(e) => onChange({ ...settings, professional_name: e.target.value })}
+              className="admin-input"
+            />
+          </label>
+          <label className="sm:col-span-1">
+            <span className="text-sm font-medium">Frase / Subtítulo de Destaque</span>
+            <input
+              value={String(settings.francielly_headline ?? "")}
+              onChange={(e) => onChange({ ...settings, francielly_headline: e.target.value })}
+              placeholder="Ex: Paixão, técnica e identidade"
+              className="admin-input"
+            />
+          </label>
+          <label className="sm:col-span-2">
+            <span className="text-sm font-medium">Biografia / História de Francielly</span>
+            <textarea
+              rows={3}
+              value={String(settings.francielly_bio ?? "")}
+              onChange={(e) => onChange({ ...settings, francielly_bio: e.target.value })}
+              placeholder="Descreva a trajetória, formação e valores da especialista..."
+              className="admin-input resize-y"
+            />
+          </label>
+          <label className="sm:col-span-2">
+            <span className="text-sm font-medium">Propósito / Título da Missão</span>
+            <input
+              value={String(settings.francielly_mission ?? "")}
+              onChange={(e) => onChange({ ...settings, francielly_mission: e.target.value })}
+              placeholder="Ex: Mais do que estética: resgate da autoestima"
+              className="admin-input"
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* 3. Formulário Geral de Informações do Salão e Contatos */}
       <form
         onSubmit={submit}
-        className="mt-8 grid max-w-4xl gap-5 rounded-3xl border border-border bg-card p-6 sm:grid-cols-2 sm:p-8"
+        className="grid max-w-4xl gap-5 rounded-3xl border border-border bg-card p-6 sm:grid-cols-2 sm:p-8 shadow-card"
       >
-        {fields.map((field) => (
+        <div className="sm:col-span-2 pb-2 border-b border-border">
+          <h2 className="text-xl font-display">Textos Gerais da Home, Contato &amp; Localização</h2>
+        </div>
+
+        {generalFields.map((field) => (
           <label key={field.key} className={field.multiline ? "sm:col-span-2" : ""}>
             <span className="text-sm font-medium">{field.label}</span>
             {field.multiline ? (
@@ -687,14 +2460,14 @@ function SettingsTab({
             ) : null}
           </label>
         ))}
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-2 mt-2">
           <Botao type="submit" disabled={saving}>
             {saving ? (
               <LoaderCircle className="h-4 w-4 animate-spin" />
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {saving ? "Salvando..." : "Salvar alterações"}
+            {saving ? "Salvando..." : "Salvar todas as alterações"}
           </Botao>
         </div>
       </form>
@@ -704,11 +2477,15 @@ function SettingsTab({
 
 function ServicesManager({
   services,
+  setServices,
+  isDemo,
   onReload,
   onSuccess,
   onError,
 }: {
   services: ServiceData[];
+  setServices: React.Dispatch<React.SetStateAction<ServiceData[]>>;
+  isDemo: boolean;
   onReload: () => Promise<void>;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
@@ -718,6 +2495,11 @@ function ServicesManager({
   const [benefits, setBenefits] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Drag & drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   function edit(item?: ServiceData) {
     setEditingId(item?.id ?? null);
     setForm(
@@ -729,16 +2511,22 @@ function ServicesManager({
             image_url: item.image_url,
             storage_path: item.storage_path,
             cta_label: item.cta_label,
-            sort_order: item.sort_order,
             published: item.published,
           }
-        : { ...emptyService(), sort_order: firstAvailableOrder(services) },
+        : emptyService(),
     );
     setBenefits(item?.benefits?.join("\n") ?? "");
   }
+
   async function selectImage(file: File) {
     setUploading(true);
     try {
+      if (isDemo) {
+        const fakeUrl = URL.createObjectURL(file);
+        setForm((current) => ({ ...current, image_url: fakeUrl, storage_path: null }));
+        setUploading(false);
+        return;
+      }
       const uploaded = await uploadImagem(file, "services");
       setForm((current) => ({ ...current, image_url: uploaded.url, storage_path: uploaded.path }));
     } catch (error) {
@@ -747,145 +2535,313 @@ function ServicesManager({
       setUploading(false);
     }
   }
+
+  async function applyNewOrder(reorderedList: ServiceData[]) {
+    const withUpdatedOrder = reorderedList.map((s, idx) => ({ ...s, sort_order: idx + 1 }));
+    setServices(withUpdatedOrder);
+
+    if (isDemo) {
+      onSuccess("Ordem dos serviços atualizada.");
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseClient();
+      for (const [idx, item] of withUpdatedOrder.entries()) {
+        await supabase.from("services").update({ sort_order: 10000 + idx }).eq("id", item.id);
+      }
+      for (const item of withUpdatedOrder) {
+        await supabase.from("services").update({ sort_order: item.sort_order }).eq("id", item.id);
+      }
+      await onReload();
+      onSuccess("Ordem dos serviços atualizada.");
+    } catch {
+      onError("Não foi possível salvar a nova ordem.");
+    }
+  }
+
+  function handleDragStart(index: number) {
+    setDraggedIndex(index);
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  }
+
+  function handleDrop(targetIndex: number) {
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const itemsCopy = [...services];
+    const [movedItem] = itemsCopy.splice(draggedIndex, 1);
+    itemsCopy.splice(targetIndex, 0, movedItem);
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    void applyNewOrder(itemsCopy);
+  }
+
+  async function moveService(item: ServiceData, direction: "up" | "down") {
+    const currentIndex = services.findIndex((s) => s.id === item.id);
+    if (currentIndex === -1) return;
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= services.length) return;
+
+    const itemsCopy = [...services];
+    const [movedItem] = itemsCopy.splice(currentIndex, 1);
+    itemsCopy.splice(targetIndex, 0, movedItem);
+    await applyNewOrder(itemsCopy);
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const order = Number(form.sort_order);
-    if (!Number.isInteger(order) || order < 1) {
-      onError("A ordem precisa ser um número inteiro a partir de 1.");
-      return;
-    }
-    const serviceWithSameOrder = services.find(
-      (item) => item.sort_order === order && item.id !== editingId,
-    );
-    if (serviceWithSameOrder) {
-      onError(
-        `A ordem ${order} já está sendo usada por “${serviceWithSameOrder.name}”. Escolha outra ordem.`,
-      );
-      return;
-    }
     setSaving(true);
+
+    const nextOrder = editingId
+      ? (services.find((s) => s.id === editingId)?.sort_order ?? services.length + 1)
+      : (services.length ? Math.max(...services.map((s) => s.sort_order), 0) + 1 : 1);
+
     const payload = {
       ...form,
-      sort_order: order,
+      sort_order: nextOrder,
       benefits: benefits
         .split("\n")
         .map((item) => item.trim())
         .filter(Boolean),
     };
-    const query = editingId
-      ? getSupabaseClient().from("services").update(payload).eq("id", editingId)
-      : getSupabaseClient().from("services").insert(payload);
-    const { data: savedService, error } = await query.select("id, sort_order").single();
-    if (error || !savedService) onError("Não foi possível confirmar a ordem do serviço.");
-    else {
-      onSuccess("Serviço salvo e site atualizado.");
+
+    if (isDemo) {
+      if (editingId) {
+        setServices((prev) =>
+          prev.map((s) => (s.id === editingId ? { ...payload, id: editingId } : s))
+        );
+      } else {
+        const newId = `srv-${Date.now()}`;
+        setServices((prev) => [...prev, { ...payload, id: newId }]);
+      }
+      onSuccess(editingId ? "Serviço atualizado com sucesso." : "Novo serviço criado e adicionado ao final da lista!");
       edit();
-      await onReload();
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const query = editingId
+        ? getSupabaseClient().from("services").update(payload).eq("id", editingId)
+        : getSupabaseClient().from("services").insert(payload);
+      const { data: savedService, error } = await query.select("id, sort_order").single();
+      if (error || !savedService) onError("Não foi possível salvar o serviço.");
+      else {
+        onSuccess(editingId ? "Serviço atualizado." : "Novo serviço adicionado no final da lista.");
+        edit();
+        await onReload();
+      }
+    } catch {
+      onError("Erro ao salvar serviço.");
     }
     setSaving(false);
   }
+
   async function remove(item: ServiceData) {
     if (!window.confirm(`Excluir o serviço “${item.name}”?`)) return;
-    const { error } = await getSupabaseClient().from("services").delete().eq("id", item.id);
-    if (error) onError("Não foi possível excluir o serviço.");
-    else {
-      await removerImagem(item.storage_path);
-      onSuccess("Serviço excluído.");
-      await onReload();
+
+    if (isDemo) {
+      const remaining = services.filter((s) => s.id !== item.id);
+      setServices(remaining.map((s, idx) => ({ ...s, sort_order: idx + 1 })));
+      onSuccess("Serviço excluído com sucesso.");
+      return;
+    }
+
+    try {
+      const { error } = await getSupabaseClient().from("services").delete().eq("id", item.id);
+      if (error) onError("Não foi possível excluir o serviço.");
+      else {
+        await removerImagem(item.storage_path);
+        onSuccess("Serviço excluído.");
+        await onReload();
+      }
+    } catch {
+      onError("Erro ao excluir serviço.");
     }
   }
+
   return (
     <div className="grid gap-8 xl:grid-cols-[1.35fr_0.65fr]">
       <div>
         <div className="flex items-center justify-between">
-          <h3 className="text-xl">Serviços cadastrados ({services.length})</h3>
+          <div>
+            <h3 className="text-xl font-display">Serviços cadastrados ({services.length})</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              ✨ Arraste os cards para reorganizar a ordem no site.
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => edit()}
-            className="inline-flex items-center gap-2 text-sm text-magenta"
+            className="inline-flex items-center gap-2 text-sm text-magenta font-medium hover:underline shrink-0"
           >
-            <Plus className="h-4 w-4" /> Novo
+            <Plus className="h-4 w-4" /> Novo serviço
           </button>
         </div>
-        <div className="mt-5 space-y-4">
-          {services.map((item) => (
-            <article
-              key={item.id}
-              className="overflow-hidden rounded-3xl border border-border bg-background shadow-card sm:grid sm:grid-cols-[11rem_1fr]"
-            >
-              {item.image_url ? (
-                <img
-                  src={item.image_url}
-                  alt={`Imagem do serviço ${item.name}`}
-                  className="aspect-[4/3] h-full min-h-44 w-full object-cover sm:aspect-auto"
-                />
-              ) : (
-                <div className="flex aspect-[4/3] h-full min-h-44 w-full items-center justify-center bg-muted text-sm text-muted-foreground sm:aspect-auto">
-                  Sem imagem
+        <div className="mt-5 space-y-3.5">
+          {services.map((item, index) => {
+            const isDragging = draggedIndex === index;
+            const isOver = dragOverIndex === index;
+
+            return (
+              <article
+                key={item.id}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDrop={() => handleDrop(index)}
+                onDragEnd={() => {
+                  setDraggedIndex(null);
+                  setDragOverIndex(null);
+                }}
+                className={`group relative overflow-hidden rounded-3xl border bg-background shadow-card transition-all duration-200 cursor-grab active:cursor-grabbing sm:grid sm:grid-cols-[2.5rem_9.5rem_1fr] ${
+                  isDragging ? "opacity-40 scale-[0.98] border-dashed border-magenta" : ""
+                } ${isOver ? "border-primary ring-2 ring-primary/40 -translate-y-1" : "border-border"}`}
+              >
+                <div className="hidden sm:flex items-center justify-center border-r border-border bg-secondary/30 text-muted-foreground group-hover:text-foreground">
+                  <GripVertical className="h-5 w-5 opacity-60 group-hover:opacity-100 transition" />
                 </div>
-              )}
-              <div className="flex min-w-0 flex-col p-4 sm:p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-base font-medium leading-snug">{item.name}</p>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ${item.published ? "bg-emerald-500/15 text-emerald-300" : "bg-muted text-muted-foreground"}`}
-                  >
-                    {item.published ? "Ativo" : "Inativo"}
-                  </span>
-                </div>
-                <p className="mt-2 line-clamp-2 min-h-10 text-xs leading-relaxed text-muted-foreground">
-                  {item.description}
-                </p>
-                <div className="mt-auto flex items-center justify-between border-t border-border pt-4">
-                  <div className="text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">Ordem {item.sort_order}</span>
-                    <span className="mx-2">•</span>
-                    {item.benefits?.length ?? 0} benefício(s)
+
+                {item.image_url ? (
+                  <img
+                    src={item.image_url}
+                    alt={`Imagem do serviço ${item.name}`}
+                    className="aspect-[4/3] h-full min-h-36 w-full object-cover sm:aspect-auto"
+                  />
+                ) : (
+                  <div className="flex aspect-[4/3] h-full min-h-36 w-full items-center justify-center bg-muted text-sm text-muted-foreground sm:aspect-auto">
+                    Sem imagem
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => edit(item)}
-                      aria-label={`Editar ${item.name}`}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-magenta"
+                )}
+                <div className="flex min-w-0 flex-col p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-[11px] font-bold text-magenta">
+                        {index + 1}
+                      </span>
+                      <p className="text-base font-medium leading-snug">{item.name}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${item.published ? "bg-emerald-500/15 text-emerald-300" : "bg-muted text-muted-foreground"}`}
                     >
-                      <Pencil className="h-5 w-5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void remove(item)}
-                      aria-label={`Excluir ${item.name}`}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-red-950/40 text-red-300"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
+                      {item.published ? "Ativo" : "Inativo"}
+                    </span>
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                    {item.description}
+                  </p>
+                  <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                    <span className="text-[11px] text-muted-foreground">
+                      Posição #{index + 1}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={index === 0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void moveService(item, "up");
+                        }}
+                        aria-label="Mover para cima"
+                        title="Mover para cima"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
+                      >
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={index === services.length - 1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void moveService(item, "down");
+                        }}
+                        aria-label="Mover para baixo"
+                        title="Mover para baixo"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
+                      >
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          edit(item);
+                        }}
+                        aria-label={`Editar ${item.name}`}
+                        title="Editar serviço"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-magenta"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void remove(item);
+                        }}
+                        aria-label={`Excluir ${item.name}`}
+                        title="Excluir serviço"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-red-950/40 text-red-300"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       </div>
+
       <form
         onSubmit={submit}
         className="space-y-4 rounded-2xl border border-border bg-background p-5"
       >
-        <h3 className="text-xl">{editingId ? "Editar serviço" : "Novo serviço"}</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-display">{editingId ? "Editar serviço" : "Novo serviço"}</h3>
+          {editingId ? (
+            <button
+              type="button"
+              onClick={() => edit()}
+              className="text-xs text-muted-foreground hover:text-magenta"
+            >
+              Cancelar edição
+            </button>
+          ) : (
+            <span className="text-[11px] text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
+              Será inserido como último
+            </span>
+          )}
+        </div>
         <ImageField
           currentUrl={form.image_url}
-          uploading={uploading}
+          uploading={uploading === "service"}
           onSelect={(file) => void selectImage(file)}
         />
         <Field
-          label="Nome"
+          label="Nome do serviço"
           value={form.name}
           onChange={(value) => setForm({ ...form, name: value })}
+          placeholder="Ex: Terapia de Nutrição Lipídica"
           required
         />
         <Field
           label="Descrição"
           value={form.description}
           onChange={(value) => setForm({ ...form, description: value })}
+          placeholder="Descreva o procedimento e o resultado esperado..."
           multiline
           required
         />
@@ -893,26 +2849,16 @@ function ServicesManager({
           label="Benefícios (um por linha)"
           value={benefits}
           onChange={setBenefits}
+          placeholder="Cachos mais soltos&#10;Brilho intenso&#10;Sem frizz"
           multiline
         />
-        <Field
-          label="Ordem de exibição"
-          value={String(form.sort_order)}
-          onChange={(value) => setForm({ ...form, sort_order: Number(value) })}
-          type="number"
-          min={1}
-          required
-        />
-        <p className="-mt-2 text-xs leading-relaxed text-muted-foreground">
-          Cada serviço deve ter uma ordem diferente. A ordem 1 aparece primeiro no site.
-        </p>
         <Toggle
-          label="Serviço ativo"
+          label="Serviço ativo e visível no site"
           checked={form.published}
           onChange={(published) => setForm({ ...form, published })}
         />
-        <Botao type="submit" disabled={saving || uploading}>
-          {saving ? "Salvando..." : "Salvar serviço"}
+        <Botao type="submit" disabled={saving || Boolean(uploading)} className="w-full">
+          {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Criar serviço (adicionar ao final)"}
         </Botao>
       </form>
     </div>
@@ -921,13 +2867,19 @@ function ServicesManager({
 
 function PortfolioManager({
   items,
+  setPortfolio,
   categories,
+  setCategories,
+  isDemo,
   onReload,
   onSuccess,
   onError,
 }: {
   items: PortfolioData[];
+  setPortfolio: React.Dispatch<React.SetStateAction<PortfolioData[]>>;
   categories: CategoryData[];
+  setCategories: React.Dispatch<React.SetStateAction<CategoryData[]>>;
+  isDemo: boolean;
   onReload: () => Promise<void>;
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
@@ -937,6 +2889,11 @@ function PortfolioManager({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newCategory, setNewCategory] = useState("");
+
+  // Drag & drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   function edit(item?: PortfolioData) {
     setEditingId(item?.id ?? null);
     setForm(
@@ -949,15 +2906,21 @@ function PortfolioManager({
             image_url: item.image_url,
             storage_path: item.storage_path,
             alt_text: item.alt_text,
-            sort_order: item.sort_order,
             published: item.published,
           }
-        : { ...emptyPortfolio(), sort_order: firstAvailableOrder(items) },
+        : emptyPortfolio(),
     );
   }
+
   async function selectImage(file: File) {
     setUploading(true);
     try {
+      if (isDemo) {
+        const fakeUrl = URL.createObjectURL(file);
+        setForm((current) => ({ ...current, image_url: fakeUrl, storage_path: null }));
+        setUploading(false);
+        return;
+      }
       const uploaded = await uploadImagem(file, "portfolio");
       setForm((current) => ({ ...current, image_url: uploaded.url, storage_path: uploaded.path }));
     } catch (error) {
@@ -966,6 +2929,7 @@ function PortfolioManager({
       setUploading(false);
     }
   }
+
   async function addCategory() {
     const name = newCategory.trim();
     if (!name) return;
@@ -975,114 +2939,208 @@ function PortfolioManager({
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
-    const { error } = await getSupabaseClient()
-      .from("portfolio_categories")
-      .insert({ name, slug, sort_order: categories.length, active: true });
-    if (error) onError("Não foi possível criar a categoria.");
-    else {
+
+    if (isDemo) {
+      const newCat: CategoryData = {
+        id: `cat-${Date.now()}`,
+        name,
+        slug,
+        sort_order: categories.length + 1,
+        active: true,
+      };
+      setCategories((prev) => [...prev, newCat]);
       setNewCategory("");
-      onSuccess("Categoria criada.");
-      await onReload();
-    }
-  }
-  async function removeCategory(category: CategoryData) {
-    if (!window.confirm(`Excluir a categoria “${category.name}”? As fotos ficarão sem categoria.`))
+      onSuccess("Categoria criada com sucesso.");
       return;
-    const { error } = await getSupabaseClient()
-      .from("portfolio_categories")
-      .delete()
-      .eq("id", category.id);
-    if (error) onError("Não foi possível excluir a categoria.");
-    else {
-      onSuccess("Categoria excluída.");
-      await onReload();
+    }
+
+    try {
+      const { error } = await getSupabaseClient()
+        .from("portfolio_categories")
+        .insert({ name, slug, sort_order: categories.length, active: true });
+      if (error) onError("Não foi possível criar a categoria.");
+      else {
+        setNewCategory("");
+        onSuccess("Categoria criada.");
+        await onReload();
+      }
+    } catch {
+      onError("Erro ao criar categoria.");
     }
   }
-  async function renameCategory(category: CategoryData) {
-    const name = window.prompt("Novo nome da categoria:", category.name)?.trim();
-    if (!name || name === category.name) return;
-    const slug = name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-    const { error } = await getSupabaseClient()
-      .from("portfolio_categories")
-      .update({ name, slug })
-      .eq("id", category.id);
-    if (error) onError("Não foi possível renomear a categoria.");
-    else {
-      onSuccess("Categoria atualizada.");
-      await onReload();
+
+  async function removeCategory(category: CategoryData) {
+    if (!window.confirm(`Excluir a categoria “${category.name}”?`)) return;
+
+    if (isDemo) {
+      setCategories((prev) => prev.filter((c) => c.id !== category.id));
+      onSuccess("Categoria excluída com sucesso.");
+      return;
+    }
+
+    try {
+      const { error } = await getSupabaseClient()
+        .from("portfolio_categories")
+        .delete()
+        .eq("id", category.id);
+      if (error) onError("Não foi possível excluir a categoria.");
+      else {
+        onSuccess("Categoria excluída.");
+        await onReload();
+      }
+    } catch {
+      onError("Erro ao excluir categoria.");
     }
   }
+
+  async function applyNewOrder(reorderedList: PortfolioData[]) {
+    const withUpdatedOrder = reorderedList.map((p, idx) => ({ ...p, sort_order: idx + 1 }));
+    setPortfolio(withUpdatedOrder);
+
+    if (isDemo) {
+      onSuccess("Ordem da galeria atualizada.");
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseClient();
+      for (const [idx, item] of withUpdatedOrder.entries()) {
+        await supabase.from("portfolio_items").update({ sort_order: 10000 + idx }).eq("id", item.id);
+      }
+      for (const item of withUpdatedOrder) {
+        await supabase.from("portfolio_items").update({ sort_order: item.sort_order }).eq("id", item.id);
+      }
+      await onReload();
+      onSuccess("Ordem da galeria atualizada.");
+    } catch {
+      onError("Não foi possível salvar a nova ordem.");
+    }
+  }
+
+  function handleDragStart(index: number) {
+    setDraggedIndex(index);
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  }
+
+  function handleDrop(targetIndex: number) {
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const itemsCopy = [...items];
+    const [movedItem] = itemsCopy.splice(draggedIndex, 1);
+    itemsCopy.splice(targetIndex, 0, movedItem);
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    void applyNewOrder(itemsCopy);
+  }
+
+  async function movePortfolio(item: PortfolioData, direction: "up" | "down") {
+    const currentIndex = items.findIndex((p) => p.id === item.id);
+    if (currentIndex === -1) return;
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+
+    const itemsCopy = [...items];
+    const [movedItem] = itemsCopy.splice(currentIndex, 1);
+    itemsCopy.splice(targetIndex, 0, movedItem);
+    await applyNewOrder(itemsCopy);
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!form.image_url) {
       onError("Escolha uma imagem para a galeria.");
       return;
     }
-    const order = Number(form.sort_order);
-    if (!Number.isInteger(order) || order < 1) {
-      onError("A ordem precisa ser um número inteiro a partir de 1.");
-      return;
-    }
-    const photoWithSameOrder = items.find(
-      (item) => item.sort_order === order && item.id !== editingId,
-    );
-    if (photoWithSameOrder) {
-      onError(
-        `A ordem ${order} já está sendo usada por “${photoWithSameOrder.title}”. Escolha outra ordem.`,
-      );
-      return;
-    }
+
     setSaving(true);
+    const nextOrder = editingId
+      ? (items.find((p) => p.id === editingId)?.sort_order ?? items.length + 1)
+      : (items.length ? Math.max(...items.map((p) => p.sort_order), 0) + 1 : 1);
+
     const selected = categories.find((category) => category.id === form.category_id);
     const payload = {
       ...form,
       category: selected?.slug ?? form.category,
-      sort_order: order,
+      sort_order: nextOrder,
     };
-    const query = editingId
-      ? getSupabaseClient().from("portfolio_items").update(payload).eq("id", editingId)
-      : getSupabaseClient().from("portfolio_items").insert(payload);
-    const { data: savedPhoto, error } = await query.select("id, sort_order").single();
-    if (error || !savedPhoto) onError("Não foi possível confirmar a ordem da foto.");
-    else {
-      onSuccess("Galeria atualizada.");
+
+    if (isDemo) {
+      if (editingId) {
+        setPortfolio((prev) =>
+          prev.map((p) => (p.id === editingId ? { ...payload, id: editingId } : p))
+        );
+      } else {
+        const newId = `port-${Date.now()}`;
+        setPortfolio((prev) => [...prev, { ...payload, id: newId }]);
+      }
+      onSuccess(editingId ? "Foto atualizada com sucesso." : "Nova foto adicionada ao final da galeria!");
       edit();
-      await onReload();
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const query = editingId
+        ? getSupabaseClient().from("portfolio_items").update(payload).eq("id", editingId)
+        : getSupabaseClient().from("portfolio_items").insert(payload);
+      const { data: savedPhoto, error } = await query.select("id, sort_order").single();
+      if (error || !savedPhoto) onError("Não foi possível salvar a foto.");
+      else {
+        onSuccess(editingId ? "Foto atualizada." : "Nova foto adicionada ao final da galeria.");
+        edit();
+        await onReload();
+      }
+    } catch {
+      onError("Erro ao salvar foto.");
     }
     setSaving(false);
   }
+
   async function remove(item: PortfolioData) {
     if (!window.confirm(`Excluir a foto “${item.title}”?`)) return;
-    const { error } = await getSupabaseClient().from("portfolio_items").delete().eq("id", item.id);
-    if (error) onError("Não foi possível excluir a foto.");
-    else {
-      await removerImagem(item.storage_path);
-      onSuccess("Foto excluída.");
-      await onReload();
+
+    if (isDemo) {
+      const remaining = items.filter((p) => p.id !== item.id);
+      setPortfolio(remaining.map((p, idx) => ({ ...p, sort_order: idx + 1 })));
+      onSuccess("Foto excluída com sucesso.");
+      return;
+    }
+
+    try {
+      const { error } = await getSupabaseClient().from("portfolio_items").delete().eq("id", item.id);
+      if (error) onError("Não foi possível excluir a foto.");
+      else {
+        await removerImagem(item.storage_path);
+        onSuccess("Foto excluída.");
+        await onReload();
+      }
+    } catch {
+      onError("Erro ao excluir foto.");
     }
   }
+
   return (
     <div className="space-y-7">
       <section className="rounded-2xl border border-border bg-background p-5">
-        <h3 className="text-xl">Categorias</h3>
+        <h3 className="text-xl font-display">Categorias</h3>
         <div className="mt-4 flex flex-wrap gap-2">
           {categories.map((category) => (
             <span
               key={category.id}
-              className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-2 text-xs text-magenta"
+              className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-2 text-xs text-magenta font-medium"
             >
-              <button
-                type="button"
-                onClick={() => void renameCategory(category)}
-                className="hover:underline"
-              >
-                {category.name}
-              </button>
+              <span>{category.name}</span>
               <button
                 type="button"
                 onClick={() => void removeCategory(category)}
@@ -1097,80 +3155,169 @@ function PortfolioManager({
           <input
             value={newCategory}
             onChange={(event) => setNewCategory(event.target.value)}
-            placeholder="Nova categoria"
+            placeholder="Nova categoria (ex: Mechas, Cortes, Noivas)"
             className="admin-input mt-0"
           />
           <button
             type="button"
             onClick={() => void addCategory()}
-            className="rounded-xl bg-secondary px-4 text-sm text-magenta"
+            className="rounded-xl bg-secondary px-4 text-sm text-magenta font-medium"
           >
             Adicionar
           </button>
         </div>
       </section>
+
       <div className="grid gap-8 xl:grid-cols-[1.35fr_0.65fr]">
         <div>
-          <h3 className="text-xl">Fotos cadastradas ({items.length})</h3>
-          <div className="mt-5 grid gap-5 sm:grid-cols-2">
-            {items.map((item) => (
-              <article
-                key={item.id}
-                className="overflow-hidden rounded-3xl border border-border bg-background shadow-card"
-              >
-                <img
-                  src={item.image_url}
-                  alt={item.alt_text}
-                  className="aspect-[4/5] w-full object-cover"
-                />
-                <div className="p-4 sm:p-5">
-                  <p className="truncate text-base font-medium">{item.title}</p>
-                  <div className="mt-2 text-xs font-medium text-muted-foreground">
-                    Ordem {item.sort_order}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-display">Fotos cadastradas ({items.length})</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                ✨ Arraste os cards para reorganizar a vitrine da galeria.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => edit()}
+              className="inline-flex items-center gap-2 text-sm text-magenta font-medium hover:underline shrink-0"
+            >
+              <Plus className="h-4 w-4" /> Nova foto
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {items.map((item, index) => {
+              const isDragging = draggedIndex === index;
+              const isOver = dragOverIndex === index;
+
+              return (
+                <article
+                  key={item.id}
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={() => handleDrop(index)}
+                  onDragEnd={() => {
+                    setDraggedIndex(null);
+                    setDragOverIndex(null);
+                  }}
+                  className={`group relative overflow-hidden rounded-3xl border bg-background shadow-card transition-all duration-200 cursor-grab active:cursor-grabbing ${
+                    isDragging ? "opacity-40 scale-[0.98] border-dashed border-magenta" : ""
+                  } ${isOver ? "border-primary ring-2 ring-primary/40 -translate-y-1" : "border-border"}`}
+                >
+                  <div className="relative aspect-[4/5] w-full overflow-hidden">
+                    <img
+                      src={item.image_url}
+                      alt={item.alt_text}
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white backdrop-blur">
+                      <GripVertical className="h-3.5 w-3.5" />
+                      <span className="font-bold">#{index + 1}</span>
+                    </div>
                   </div>
-                  <div className="mt-4 flex justify-between border-t border-border pt-4">
-                    <button
-                      type="button"
-                      onClick={() => edit(item)}
-                      aria-label={`Editar ${item.title}`}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-magenta"
-                    >
-                      <Pencil className="h-5 w-5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void remove(item)}
-                      aria-label={`Excluir ${item.title}`}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-red-950/40 text-red-300"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
+                  <div className="p-4 sm:p-5">
+                    <p className="truncate text-base font-medium">{item.title}</p>
+                    <div className="mt-2 text-xs font-medium text-muted-foreground flex items-center justify-between">
+                      <span>Posição #{index + 1}</span>
+                      <span className="text-[11px] uppercase tracking-wider text-magenta bg-secondary/80 px-2 py-0.5 rounded-full font-medium">
+                        {item.category}
+                      </span>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={index === 0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void movePortfolio(item, "up");
+                          }}
+                          aria-label="Mover para cima"
+                          title="Mover para cima"
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
+                        >
+                          <ArrowUp className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={index === items.length - 1}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void movePortfolio(item, "down");
+                          }}
+                          aria-label="Mover para baixo"
+                          title="Mover para baixo"
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
+                        >
+                          <ArrowDown className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            edit(item);
+                          }}
+                          aria-label={`Editar ${item.title}`}
+                          title="Editar foto"
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-magenta"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void remove(item);
+                          }}
+                          aria-label={`Excluir ${item.title}`}
+                          title="Excluir foto"
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-red-950/40 text-red-300"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </div>
+
         <form
           onSubmit={submit}
           className="space-y-4 rounded-2xl border border-border bg-background p-5"
         >
-          <h3 className="text-xl">{editingId ? "Editar foto" : "Nova foto"}</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-display">{editingId ? "Editar foto" : "Nova foto"}</h3>
+            {editingId ? (
+              <button
+                type="button"
+                onClick={() => edit()}
+                className="text-xs text-muted-foreground hover:text-magenta"
+              >
+                Cancelar edição
+              </button>
+            ) : (
+              <span className="text-[11px] text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
+                Será inserida como última
+              </span>
+            )}
+          </div>
           <ImageField
             currentUrl={form.image_url}
             uploading={uploading}
             onSelect={(file) => void selectImage(file)}
           />
           <Field
-            label="Título"
+            label="Título do trabalho"
             value={form.title}
-            onChange={(title) => setForm({ ...form, title })}
-            required
-          />
-          <Field
-            label="Texto alternativo"
-            value={form.alt_text}
-            onChange={(alt_text) => setForm({ ...form, alt_text })}
+            onChange={(value) => setForm({ ...form, title: value })}
+            placeholder="Ex: Morena Iluminada em Cachos 3B"
             required
           />
           <label className="block text-sm font-medium">
@@ -1189,23 +3336,19 @@ function PortfolioManager({
             </select>
           </label>
           <Field
-            label="Ordem de exibição"
-            value={String(form.sort_order)}
-            onChange={(value) => setForm({ ...form, sort_order: Number(value) })}
-            type="number"
-            min={1}
+            label="Texto alternativo (acessibilidade / SEO)"
+            value={form.alt_text}
+            onChange={(value) => setForm({ ...form, alt_text: value })}
+            placeholder="Ex: Cachos definidos com mechas iluminadas"
             required
           />
-          <p className="-mt-2 text-xs leading-relaxed text-muted-foreground">
-            Cada foto deve ter uma ordem diferente. A ordem 1 aparece primeiro na galeria.
-          </p>
           <Toggle
-            label="Foto ativa"
+            label="Exibir foto na galeria do site"
             checked={form.published}
             onChange={(published) => setForm({ ...form, published })}
           />
-          <Botao type="submit" disabled={saving || uploading}>
-            {saving ? "Salvando..." : "Salvar foto"}
+          <Botao type="submit" disabled={saving || uploading} className="w-full">
+            {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Adicionar à galeria (como última)"}
           </Botao>
         </form>
       </div>
@@ -1217,37 +3360,41 @@ function Field({
   label,
   value,
   onChange,
-  multiline = false,
-  required = false,
   type = "text",
+  placeholder,
+  required,
   min,
+  multiline,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  multiline?: boolean;
-  required?: boolean;
   type?: string;
+  placeholder?: string;
+  required?: boolean;
   min?: number;
+  multiline?: boolean;
 }) {
   return (
     <label className="block text-sm font-medium">
       {label}
       {multiline ? (
         <textarea
-          value={value}
-          required={required}
-          onChange={(event) => onChange(event.target.value)}
           rows={3}
+          value={value}
+          placeholder={placeholder}
+          onChange={(event) => onChange(event.target.value)}
+          required={required}
           className="admin-input resize-y"
         />
       ) : (
         <input
           type={type}
           value={value}
-          required={required}
           min={min}
+          placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
+          required={required}
           className="admin-input"
         />
       )}
@@ -1265,12 +3412,12 @@ function Toggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-center gap-3 self-end rounded-xl border border-border px-3 py-3 text-sm">
+    <label className="flex items-center gap-3 text-sm font-medium cursor-pointer">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 accent-pink-500"
+        className="h-4 w-4 rounded border-border text-magenta focus:ring-magenta"
       />
       {label}
     </label>

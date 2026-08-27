@@ -37,7 +37,7 @@ export function AdminModal({
         className="max-h-[94vh] w-full max-w-7xl overflow-y-auto rounded-3xl border border-border bg-card shadow-soft"
       >
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card/95 px-5 py-4 backdrop-blur sm:px-7">
-          <h2 id="admin-modal-title" className="text-2xl">
+          <h2 id="admin-modal-title" className="text-lg sm:text-2xl font-display truncate pr-2">
             {title}
           </h2>
           <button

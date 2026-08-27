@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { Menu, X, MessageCircle } from "lucide-react";
+import { Menu, X, MessageCircle, Sun, Moon } from "lucide-react";
 
 import { BotaoLink } from "./Botao";
 import { Logo } from "./Logo";
 import { contatoLink, MENU, SALAO } from "@/lib/salao";
+import { useTheme } from "@/hooks/use-theme";
 
 export function Header() {
   const [aberto, setAberto] = useState(false);
   const [rolou, setRolou] = useState(false);
+  const { theme, toggleTheme, isLight } = useTheme();
 
   useEffect(() => {
     const onScroll = () => setRolou(window.scrollY > 24);
@@ -41,40 +43,60 @@ export function Header() {
       }`}
     >
       <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 lg:px-8">
-        <a href="#inicio" className="min-w-0" aria-label="Bem Bonita — início">
+        <a href="/" className="min-w-0" aria-label="Bem Bonita — início">
           <Logo />
         </a>
 
-        <nav className="hidden items-center gap-7 xl:flex" aria-label="Menu principal">
-          {MENU.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="text-sm text-foreground/80 transition-colors hover:text-magenta"
+        <div className="flex items-center gap-3">
+          <nav className="hidden items-center gap-6 xl:flex" aria-label="Menu principal">
+            {MENU.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="text-sm font-medium text-foreground/80 transition-colors hover:text-magenta"
+              >
+                {item.label}
+              </a>
+            ))}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-card text-foreground/80 transition-colors hover:border-primary hover:text-magenta"
+              aria-label={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
+              title={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
             >
-              {item.label}
-            </a>
-          ))}
-          <BotaoLink
-            href={agendar}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-5 py-2.5"
-          >
-            Solicitar avaliação
-          </BotaoLink>
-        </nav>
+              {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </button>
+            <BotaoLink
+              href={agendar}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-2.5"
+            >
+              Solicitar avaliação
+            </BotaoLink>
+          </nav>
 
-        <button
-          type="button"
-          onClick={() => setAberto((v) => !v)}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-foreground xl:hidden"
-          aria-expanded={aberto}
-          aria-controls="menu-mobile"
-          aria-label={aberto ? "Fechar menu" : "Abrir menu"}
-        >
-          {aberto ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-foreground xl:hidden"
+            aria-label={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
+          >
+            {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAberto((v) => !v)}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-foreground xl:hidden"
+            aria-expanded={aberto}
+            aria-controls="menu-mobile"
+            aria-label={aberto ? "Fechar menu" : "Abrir menu"}
+          >
+            {aberto ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {aberto ? (

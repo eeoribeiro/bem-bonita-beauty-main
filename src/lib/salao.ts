@@ -38,10 +38,11 @@ export function contatoLink(mensagem: string) {
 export const CONTATO_LABEL = TEM_WHATSAPP ? "Falar pelo WhatsApp" : "Falar pelo Instagram";
 
 export const MENU = [
-  { label: "Início", href: "#inicio" },
-  { label: "Sobre", href: "#sobre" },
-  { label: "Serviços", href: "#servicos" },
-  { label: "Resultados", href: "#resultados" },
-  { label: "Produtos", href: "#produtos" },
-  { label: "Localização", href: "#localizacao" },
+  { label: "Início", href: "/#inicio" },
+  { label: "Sobre a Francielly", href: "/francielly" },
+  { label: "Serviços", href: "/#servicos" },
+  { label: "Resultados", href: "/#resultados" },
+  { label: "Produtos", href: "/#produtos" },
+  { label: "Cursos", href: "/cursos" },
+  { label: "Localização", href: "/#localizacao" },
 ] as const;

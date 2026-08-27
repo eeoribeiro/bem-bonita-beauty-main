@@ -98,8 +98,10 @@
 
   --gradient-blush: linear-gradient(160deg, oklch(0.205 0.009 330) 0%, oklch(0.27 0.045 350) 100%);
   --gradient-pink: linear-gradient(100deg, oklch(0.7 0.156 349) 0%, oklch(0.578 0.209 355) 100%);
+  --gradient-gold: linear-gradient(100deg, oklch(0.82 0.09 80) 0%, oklch(0.708 0.089 75) 100%);
 }
 
+.light,
 .admin-light-theme {
   --background: oklch(0.975 0.008 345);
   --foreground: oklch(0.22 0.012 330);
@@ -155,6 +157,18 @@
   background-image: var(--gradient-pink);
   background-clip: text;
   color: transparent;
+}
+
+@utility text-gradient-gold {
+  background-image: var(--gradient-gold);
+  background-clip: text;
+  color: transparent;
+}
+
+@utility italic-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
 }
 
 @utility bg-blush-soft {

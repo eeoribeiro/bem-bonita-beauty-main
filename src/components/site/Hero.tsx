@@ -24,8 +24,11 @@ export function Hero() {
             <Sparkles className="h-3.5 w-3.5 text-gold" />
             {settings?.hero_eyebrow ?? "Especialista em cachos em Ponte Nova"}
           </p>
-          <h1 className="mt-5 text-4xl leading-[1.1] sm:text-5xl lg:text-6xl">
-            {headlineWords.join(" ")} <span className="text-gradient-pink">{highlight}</span>
+          <h1 className="mt-5 text-4xl leading-[1.15] sm:text-5xl lg:text-6xl">
+            {headlineWords.join(" ")}{" "}
+            <span className="text-gradient-pink font-display italic font-normal tracking-wide">
+              {highlight}
+            </span>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
             {settings?.hero_description ??
@@ -34,15 +37,14 @@ export function Hero() {
 
           <div className="mt-9 flex flex-wrap gap-3">
             <BotaoLink
-              href={contatoLink(`Olá, ${SALAO.nome}! Gostaria de agendar um horário.`)}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#agendamento"
+              className="shadow-soft"
             >
               <MessageCircle className="h-4 w-4" />
-              Solicitar uma avaliação
+              Atendimento Personalizado
             </BotaoLink>
-            <BotaoLink href="#resultados" variante="outline">
-              Ver resultados reais
+            <BotaoLink href="#servicos" variante="outline">
+              Conhecer serviços
             </BotaoLink>
           </div>
 

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { Botao } from "@/components/site/Botao";
-import { getSupabaseClient } from "@/lib/supabase";
+import { getSupabaseClient, supabaseConfigurado } from "@/lib/supabase";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -19,11 +19,15 @@ export const Route = createFileRoute("/admin")({
 
 function Admin() {
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(supabaseConfigurado);
   const [authorized, setAuthorized] = useState(false);
   const [error, setError] = useState("");
 
   const verify = useCallback(async (nextSession: Session | null) => {
+    if (!supabaseConfigurado) {
+      setLoading(false);
+      return;
+    }
     setSession(nextSession);
     setError("");
     if (!nextSession) {
@@ -32,17 +36,25 @@ function Admin() {
       return;
     }
     setLoading(true);
-    const { data, error: accessError } = await getSupabaseClient()
-      .from("admin_users")
-      .select("user_id")
-      .eq("user_id", nextSession.user.id)
-      .maybeSingle();
-    setAuthorized(Boolean(data) && !accessError);
-    if (accessError) setError("Não foi possível verificar o acesso administrativo.");
+    try {
+      const { data, error: accessError } = await getSupabaseClient()
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", nextSession.user.id)
+        .maybeSingle();
+      setAuthorized(Boolean(data) && !accessError);
+      if (accessError) setError("Não foi possível verificar o acesso administrativo.");
+    } catch {
+      setError("Erro ao conectar com o banco.");
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => {
+    if (!supabaseConfigurado) {
+      setLoading(false);
+      return;
+    }
     const supabase = getSupabaseClient();
     void supabase.auth.getSession().then(({ data }) => verify(data.session));
     const { data } = supabase.auth.onAuthStateChange(
@@ -74,6 +86,11 @@ function Login({ externalError }: { externalError: string }) {
     event.preventDefault();
     setSubmitting(true);
     setError("");
+    if (!supabaseConfigurado) {
+      setError("O Supabase ainda não está configurado neste ambiente.");
+      setSubmitting(false);
+      return;
+    }
     const { error: loginError } = await getSupabaseClient().auth.signInWithPassword({
       email,
       password,
@@ -99,8 +116,11 @@ function Login({ externalError }: { externalError: string }) {
         <p className="eyebrow mt-6">Área protegida</p>
         <h1 className="mt-3 text-3xl">Painel Bem Bonita</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Entre com o usuário administrador cadastrado no Supabase.
+          {supabaseConfigurado
+            ? "Entre com o usuário administrador cadastrado no Supabase."
+            : "O Supabase ainda não está configurado neste ambiente."}
         </p>
+
         <form onSubmit={login} className="mt-7 space-y-5">
           <label className="block text-sm font-medium">
             E-mail
@@ -178,9 +198,15 @@ function AccessDenied({ email, error }: { email: string; error: string }) {
           não consta na tabela <code>admin_users</code>.
         </p>
         {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
-        <Botao onClick={() => void getSupabaseClient().auth.signOut()} className="mt-6">
-          Sair e tentar outra conta
-        </Botao>
+        <div className="mt-6 flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => void getSupabaseClient().auth.signOut()}
+            className="text-xs text-muted-foreground hover:text-magenta underline"
+          >
+            Sair e tentar outra conta
+          </button>
+        </div>
       </div>
     </main>
   );
