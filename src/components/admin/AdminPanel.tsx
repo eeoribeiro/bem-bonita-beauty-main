@@ -83,7 +83,7 @@ const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "space", label: "Espaço do Salão", icon: MapPin },
   { id: "services", label: "Serviços", icon: Scissors },
   { id: "products", label: "Produtos", icon: ShoppingBag },
-  { id: "team", label: "Equipe (3 Profissionais)", icon: Users },
+  { id: "team", label: "Equipe", icon: Users },
   { id: "portfolio", label: "Galeria", icon: Images },
   { id: "francielly", label: "Página da Francielly", icon: UserCheck },
   { id: "settings", label: "Informações do Site", icon: Settings },
@@ -1418,7 +1418,7 @@ function ProfessionalEditorModal({
       </div>
 
       {/* Gerenciamento de Sugestões Rápidas de Especialidade (Adicionar / Remover) */}
-      <div className="space-y-2.5 rounded-2xl bg-secondary/30 p-4 border border-border">
+      <div className="hidden">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
             <Sparkles className="h-3.5 w-3.5 text-gold" /> Sugestões rápidas de cargo (clique para preencher):
@@ -1920,13 +1920,6 @@ function PhotosTab({
       fallback: fotoFranciellyFallback,
     },
     {
-      key: "francielly_bio",
-      title: "Foto Oficial da Francielly (/francielly)",
-      badge: "Página Francielly",
-      description: "Foto principal da página de história e metodologia de Francielly Soares.",
-      fallback: fotoFranciellyFallback,
-    },
-    {
       key: "products",
       title: "Banner da Linha de Produtos",
       badge: "Produtos",
@@ -2062,7 +2055,7 @@ function PhotosTab({
         <button
           type="button"
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-2 rounded-2xl bg-secondary px-5 py-3 text-sm font-semibold text-magenta hover:bg-secondary/80 transition self-start sm:self-auto shadow-card shrink-0"
+          className="hidden"
         >
           <Plus className="h-4 w-4" /> Adicionar nova foto
         </button>
@@ -2076,11 +2069,11 @@ function PhotosTab({
           </span>
           <div>
             <h2 className="text-xl font-display">Fotos Principais &amp; Apresentação</h2>
-            <p className="text-xs text-muted-foreground">Exibidas no Hero, seção Sobre, Linha de Produtos e na página /francielly</p>
+            <p className="text-xs text-muted-foreground">Somente as imagens principais da página inicial e da linha de produtos</p>
           </div>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {mainSlots.map((slot, index) => {
             const item = images.find((image) => image.image_key === slot.key);
             const isCurrentlyUploading = uploading === slot.key;
@@ -2095,7 +2088,6 @@ function PhotosTab({
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-magenta bg-secondary px-2.5 py-0.5 rounded-full">
                       {slot.badge}
                     </span>
-                    <span className="text-xs text-muted-foreground font-mono">Slot #{index + 1}</span>
                   </div>
                   <h3 className="text-base font-display">{slot.title}</h3>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground min-h-8">
@@ -2145,7 +2137,7 @@ function PhotosTab({
       </div> : null}
 
       {/* Seção 2: Fotos do Espaço do Salão Físico */}
-      <div>
+      {mode === "space" ? <div>
         <div className="flex items-center gap-3 mb-5">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary text-gold">
             <MapPin className="h-4 w-4" />
@@ -2173,7 +2165,6 @@ function PhotosTab({
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-gold bg-secondary px-2.5 py-0.5 rounded-full">
                       {slot.badge}
                     </span>
-                    <span className="text-xs text-muted-foreground font-mono">Espaço #{index + 1}</span>
                   </div>
                   <h3 className="text-lg font-display">{slot.title}</h3>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground min-h-8">
@@ -2220,10 +2211,10 @@ function PhotosTab({
             );
           })}
         </div>
-      </div>
+      </div> : null}
 
       {/* Seção 3: Histórico de Imagens Enviadas */}
-      <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-card">
+      <div className="hidden">
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <div>
             <h2 className="text-xl font-display flex items-center gap-2">
@@ -2284,7 +2275,7 @@ function PhotosTab({
       </div>
 
       {/* Modal para Adicionar Nova Foto */}
-      {showAddModal ? (
+      {false && showAddModal ? (
         <AdminModal title="Adicionar Nova Foto de Destaque / Espaço" onClose={() => setShowAddModal(false)}>
           <div className="space-y-4">
             <div>
@@ -2705,7 +2696,7 @@ function SettingsTab({
 
         <div className="border-t border-border pt-6">
           <h3 className="text-lg font-display">Bloco do espaço do salão</h3>
-          <div className="mt-4 grid gap-5 rounded-2xl border border-border bg-card p-4 sm:grid-cols-[12rem_1fr] sm:items-center">
+          <div className="hidden">
             <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-secondary">
               <SafeImage src={spaceImage} fallbackSrc={fotoEspacoFallback} alt="Prévia do espaço do salão" className="h-full w-full object-cover" />
               {uploadingSpacePhoto ? <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-xs font-semibold text-white"><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Enviando...</div> : null}
