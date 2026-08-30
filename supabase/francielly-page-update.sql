@@ -3,6 +3,14 @@
 -- iniciais. Depois disso, todos os textos permanecem editáveis pelo /admin.
 
 alter table public.site_settings
+  add column if not exists professional_name text default 'Francielly Soares',
+  add column if not exists francielly_headline text default 'Paixão, técnica e identidade',
+  add column if not exists francielly_bio text,
+  add column if not exists francielly_mission text default 'Mais do que estética: resgate da autoestima',
+  add column if not exists landmark text,
+  add column if not exists space_title text,
+  add column if not exists space_description text,
+  add column if not exists updated_at timestamptz default now(),
   add column if not exists francielly_eyebrow text default 'Sobre a especialista',
   add column if not exists francielly_methodology_eyebrow text default 'Método Bem Bonita',
   add column if not exists francielly_method_1_title text default 'Corte a Seco e Curvatura Real',
