@@ -82,6 +82,18 @@ const produtosLinha: ProdutoItem[] = [
 export function Produtos() {
   const { data, isLoading } = usePublicSiteData();
   const productsImage = data?.images.find((image) => image.image_key === "products");
+  const products = data?.products?.length
+    ? data.products.map((product) => ({
+        id: product.id,
+        nome: product.name,
+        subtitulo: product.subtitle,
+        curvatura: product.hair_type,
+        descricao: product.description,
+        beneficios: product.benefits,
+        imagem: product.image_url ?? kitImg,
+        destaque: product.featured,
+      }))
+    : produtosLinha;
 
   return (
     <section id="produtos" className="bg-blush-soft py-20 lg:py-28">
@@ -157,7 +169,7 @@ export function Produtos() {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {produtosLinha.map((produto) => (
+            {products.map((produto) => (
               <article
                 key={produto.id}
                 className={`group flex flex-col justify-between overflow-hidden rounded-3xl border bg-card p-6 shadow-card transition-all duration-300 hover:shadow-soft hover:border-primary/50 ${

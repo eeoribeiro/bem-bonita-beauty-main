@@ -94,6 +94,22 @@ create table if not exists public.professionals (
 );
 
 -- 4. Serviços Cadastrados
+create table if not exists public.products (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  subtitle text not null default '',
+  hair_type text not null default '',
+  description text not null,
+  benefits text[] not null default '{}',
+  image_url text,
+  storage_path text,
+  featured boolean not null default false,
+  sort_order integer not null default 0,
+  published boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.services (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -205,6 +221,10 @@ drop trigger if exists services_updated_at on public.services;
 create trigger services_updated_at before update on public.services
 for each row execute function public.set_updated_at();
 
+drop trigger if exists products_updated_at on public.products;
+create trigger products_updated_at before update on public.products
+for each row execute function public.set_updated_at();
+
 drop trigger if exists portfolio_items_updated_at on public.portfolio_items;
 create trigger portfolio_items_updated_at before update on public.portfolio_items
 for each row execute function public.set_updated_at();
@@ -234,6 +254,7 @@ alter table public.admin_users enable row level security;
 alter table public.site_settings enable row level security;
 alter table public.professionals enable row level security;
 alter table public.services enable row level security;
+alter table public.products enable row level security;
 alter table public.portfolio_items enable row level security;
 alter table public.portfolio_categories enable row level security;
 alter table public.site_images enable row level security;
@@ -265,6 +286,13 @@ create policy "Public reads published services" on public.services
 for select to anon, authenticated using (published or public.is_admin());
 drop policy if exists "Admins manage services" on public.services;
 create policy "Admins manage services" on public.services
+for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Public reads published products" on public.products;
+create policy "Public reads published products" on public.products
+for select to anon, authenticated using (published or public.is_admin());
+drop policy if exists "Admins manage products" on public.products;
+create policy "Admins manage products" on public.products
 for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "Public reads published portfolio" on public.portfolio_items;

@@ -56,21 +56,25 @@ import {
   initialServices,
 } from "@/lib/initial-content";
 import { getSupabaseClient, supabaseConfigurado } from "@/lib/supabase";
+import { initialProducts } from "@/lib/initial-products";
 import fotoFranciellyFallback from "@/assets/sobre-francielly.jpg";
 import fotoEspacoFallback from "@/assets/instagram-salao.jpg";
 import fotoHeroFallback from "@/assets/hero-cachos.jpg";
 import fotoProdutosFallback from "@/assets/instagram-produtos.jpg";
 import fotoCachosFallback from "@/assets/instagram-cachos.jpg";
+import fotoMechasFallback from "@/assets/resultado-mechas.jpg";
+import fotoDefinicaoFallback from "@/assets/servico-definicao.jpg";
 import type {
   CategoryData,
   PortfolioData,
   ProfessionalData,
+  ProductData,
   ServiceData,
   SiteImageData,
   SiteSettingsData,
 } from "@/lib/site-data";
 
-type Tab = "overview" | "photos" | "space" | "services" | "team" | "portfolio" | "francielly" | "settings";
+type Tab = "overview" | "photos" | "space" | "services" | "products" | "team" | "portfolio" | "francielly" | "settings";
 type Modal = "services" | "portfolio" | "team_editor" | "new_photo" | null;
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
@@ -78,6 +82,7 @@ const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "photos", label: "Fotos gerais do site", icon: FileImage },
   { id: "space", label: "Espaço do Salão", icon: MapPin },
   { id: "services", label: "Serviços", icon: Scissors },
+  { id: "products", label: "Produtos", icon: ShoppingBag },
   { id: "team", label: "Equipe (3 Profissionais)", icon: Users },
   { id: "portfolio", label: "Galeria", icon: Images },
   { id: "francielly", label: "Página da Francielly", icon: UserCheck },
@@ -173,6 +178,7 @@ export function AdminPanel({
   const [images, setImages] = useState<SiteImageData[]>([]);
   const [services, setServices] = useState<ServiceData[]>([]);
   const [professionals, setProfessionals] = useState<ProfessionalData[]>([]);
+  const [products, setProducts] = useState<ProductData[]>([]);
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioData[]>([]);
 
@@ -199,6 +205,7 @@ export function AdminPanel({
           sort_order: idx + 1,
         }))
       );
+      setProducts(initialProducts);
       setCategories(
         initialPortfolioCategories
           .filter((c) => c.slug !== initialContentMarker)
@@ -227,13 +234,14 @@ export function AdminPanel({
 
     try {
       const supabase = getSupabaseClient();
-      const [config, photos, serviceRows, categoryRows, portfolioRows, profRows] = await Promise.all([
+      const [config, photos, serviceRows, categoryRows, portfolioRows, profRows, productRows] = await Promise.all([
         supabase.from("site_settings").select("*").eq("id", 1).single(),
         supabase.from("site_images").select("*").order("image_key"),
         supabase.from("services").select("*").order("sort_order"),
         supabase.from("portfolio_categories").select("*").order("sort_order"),
         supabase.from("portfolio_items").select("*").order("sort_order"),
         supabase.from("professionals").select("*").order("sort_order"),
+        supabase.from("products").select("*").order("sort_order"),
       ]);
 
       const firstError = [config, photos, serviceRows, categoryRows, portfolioRows, profRows].find(
@@ -248,7 +256,14 @@ export function AdminPanel({
         setSettings(config.data as SiteSettingsData);
         setImages((photos.data ?? []) as SiteImageData[]);
         setServices((serviceRows.data ?? []) as ServiceData[]);
-        setProfessionals((profRows.data ?? []) as ProfessionalData[]);
+        const savedProfessionals = (profRows.data ?? []) as ProfessionalData[];
+        setProfessionals(savedProfessionals.length > 0 ? savedProfessionals : initialProfessionals.map((professional, index) => ({
+          ...professional,
+          id: `pending-prof-${index + 1}`,
+          image_url: [fotoFranciellyFallback, fotoMechasFallback, fotoDefinicaoFallback][index],
+        })));
+        const savedProducts = (productRows.data ?? []) as ProductData[];
+        setProducts(savedProducts.length > 0 ? savedProducts : initialProducts);
         setCategories(
           ((categoryRows.data ?? []) as CategoryData[]).filter(
             (c) => c.slug !== initialContentMarker
@@ -489,6 +504,9 @@ export function AdminPanel({
                   onSuccess={showSuccess}
                   onError={showError}
                 />
+              ) : null}
+              {tab === "products" ? (
+                <ProductsManagerTab products={products} setProducts={setProducts} isDemo={!supabaseConfigurado || isDemo} onReload={loadAll} onSuccess={showSuccess} onError={showError} />
               ) : null}
               {tab === "space" ? (
                 <PhotosTab
@@ -872,6 +890,24 @@ function TeamManagerTab({
   // Drag & drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [importing, setImporting] = useState(false);
+  const pendingProfessionals = professionals.filter((item) => item.id.startsWith("pending-prof-"));
+
+  async function importProfessionals() {
+    if (pendingProfessionals.length === 0) return;
+    setImporting(true);
+    try {
+      const rows = pendingProfessionals.map(({ id: _id, ...professional }) => professional);
+      const { error } = await getSupabaseClient().from("professionals").insert(rows);
+      if (error) throw error;
+      await onReload();
+      onSuccess("As três profissionais foram salvas no Supabase e agora podem ser editadas normalmente.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível salvar a equipe no Supabase.");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function applyNewOrder(reorderedList: ProfessionalData[]) {
     const withUpdatedOrder = reorderedList.map((p, idx) => ({ ...p, sort_order: idx + 1 }));
@@ -879,6 +915,10 @@ function TeamManagerTab({
 
     if (isDemo) {
       onSuccess("Ordem da equipe atualizada no site.");
+      return;
+    }
+    if (pendingProfessionals.length > 0) {
+      onError("Salve os profissionais no Supabase antes de alterar a ordem.");
       return;
     }
 
@@ -976,6 +1016,19 @@ function TeamManagerTab({
           <UserPlus className="h-4.5 w-4.5" /> Adicionar nova profissional
         </Botao>
       </div>
+
+      {pendingProfessionals.length > 0 ? (
+        <div className="flex flex-col gap-4 rounded-2xl border border-gold/40 bg-gold/10 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Os 3 cards do site ainda não estão no Supabase</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Eles já aparecem abaixo para conferência. Salve-os uma única vez para liberar edição, exclusão e reordenação permanentes.</p>
+          </div>
+          <Botao type="button" disabled={importing} onClick={() => void importProfessionals()} className="shrink-0">
+            {importing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {importing ? "Salvando equipe..." : "Salvar os 3 no Supabase"}
+          </Botao>
+        </div>
+      ) : null}
 
       {/* Grid de Cards das Profissionais */}
       <div>
@@ -1271,7 +1324,7 @@ function ProfessionalEditorModal({
     }
 
     try {
-      const query = initialData
+      const query = initialData && !initialData.id.startsWith("pending-prof-")
         ? getSupabaseClient().from("professionals").update(payload).eq("id", initialData.id)
         : getSupabaseClient().from("professionals").insert(payload);
       const { data: saved, error } = await query.select("id, sort_order").single();
@@ -1735,6 +1788,94 @@ function ServicesOverviewTab({
       </div>
     </section>
   );
+}
+
+function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess, onError }: {
+  products: ProductData[];
+  setProducts: React.Dispatch<React.SetStateAction<ProductData[]>>;
+  isDemo: boolean;
+  onReload: () => Promise<void>;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+}) {
+  const emptyProduct = (): ProductData => ({ id: "", name: "", subtitle: "", hair_type: "", description: "", benefits: [], image_url: null, storage_path: null, featured: false, sort_order: products.length + 1, published: true });
+  const [editing, setEditing] = useState<ProductData | null>(null);
+  const [benefitsText, setBenefitsText] = useState("");
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [uploadingProduct, setUploadingProduct] = useState(false);
+  const pending = products.some((product) => product.id.startsWith("pending-product-"));
+
+  function openEditor(product?: ProductData) {
+    const value = product ?? emptyProduct();
+    setEditing({ ...value });
+    setBenefitsText(value.benefits.join("\n"));
+  }
+
+  async function selectProductImage(file: File) {
+    if (!editing) return;
+    setUploadingProduct(true);
+    try {
+      if (isDemo) setEditing({ ...editing, image_url: URL.createObjectURL(file), storage_path: null });
+      else {
+        const uploaded = await uploadImagem(file, "products");
+        setEditing({ ...editing, image_url: uploaded.url, storage_path: uploaded.path });
+      }
+    } catch (error) { onError(error instanceof Error ? error.message : "Falha no upload da imagem."); }
+    finally { setUploadingProduct(false); }
+  }
+
+  async function saveProduct(event: FormEvent) {
+    event.preventDefault();
+    if (!editing?.name.trim() || !editing.description.trim()) { onError("Preencha o nome e a descrição do produto."); return; }
+    const payload = { ...editing, benefits: benefitsText.split("\n").map((item) => item.trim()).filter(Boolean) };
+    setSavingProduct(true);
+    try {
+      if (isDemo) {
+        setProducts((current) => payload.id ? current.map((item) => item.id === payload.id ? payload : item) : [...current, { ...payload, id: `product-${Date.now()}` }]);
+      } else {
+        const { id, ...row } = payload;
+        const query = id && !id.startsWith("pending-product-")
+          ? getSupabaseClient().from("products").update(row).eq("id", id)
+          : getSupabaseClient().from("products").insert(row);
+        const { error } = await query;
+        if (error) throw error;
+        await onReload();
+      }
+      onSuccess("Produto salvo e atualizado no site.");
+      setEditing(null);
+    } catch { onError("Não foi possível salvar. Execute o SQL atualizado do projeto no Supabase."); }
+    finally { setSavingProduct(false); }
+  }
+
+  async function importProducts() {
+    setSavingProduct(true);
+    try {
+      const rows = products.map(({ id: _id, ...product }) => product);
+      const { error } = await getSupabaseClient().from("products").insert(rows);
+      if (error) throw error;
+      await onReload();
+      onSuccess("Catálogo atual salvo no Supabase.");
+    } catch { onError("Execute o SQL atualizado no Supabase antes de salvar os produtos."); }
+    finally { setSavingProduct(false); }
+  }
+
+  async function removeProduct(product: ProductData) {
+    if (!window.confirm(`Excluir o produto “${product.name}”?`)) return;
+    if (product.id.startsWith("pending-product-")) { setProducts((current) => current.filter((item) => item.id !== product.id)); return; }
+    const { error } = await getSupabaseClient().from("products").delete().eq("id", product.id);
+    if (error) onError("Não foi possível excluir o produto.");
+    else { await removerImagem(product.storage_path); await onReload(); onSuccess("Produto excluído."); }
+  }
+
+  return <section className="space-y-8">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div><p className="eyebrow">Catálogo</p><h1 className="mt-2 text-3xl font-display sm:text-4xl">Produtos ({products.length})</h1><p className="mt-2 text-sm text-muted-foreground">Adicione e edite os produtos exibidos na seção “Linha Bem Bonita”.</p></div>
+      <Botao type="button" onClick={() => openEditor()}><Plus className="h-4 w-4" /> Adicionar produto</Botao>
+    </div>
+    {pending && !isDemo ? <div className="flex flex-col gap-4 rounded-2xl border border-gold/40 bg-gold/10 p-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold">O catálogo atual ainda está salvo apenas no site</p><p className="mt-1 text-xs text-muted-foreground">Importe os cinco produtos para começar a gerenciá-los pelo painel.</p></div><Botao type="button" disabled={savingProduct} onClick={() => void importProducts()}><Save className="h-4 w-4" /> Salvar catálogo no Supabase</Botao></div> : null}
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{products.map((product) => <article key={product.id} className="rounded-3xl border border-border bg-card p-5 shadow-card"><div className="aspect-square overflow-hidden rounded-2xl bg-secondary"><SafeImage src={product.image_url ?? fotoProdutosFallback} fallbackSrc={fotoProdutosFallback} alt={product.name} className="h-full w-full object-cover" /></div><div className="mt-4"><div className="flex items-start justify-between gap-2"><h2 className="font-display text-lg">{product.name}</h2><span className={`rounded-full px-2 py-1 text-[10px] ${product.published ? "bg-emerald-500/15 text-emerald-300" : "bg-secondary text-muted-foreground"}`}>{product.published ? "Ativo" : "Oculto"}</span></div><p className="mt-1 text-xs text-muted-foreground">{product.subtitle}</p><div className="mt-4 flex gap-2"><button type="button" onClick={() => openEditor(product)} className="flex-1 rounded-xl bg-secondary px-3 py-2 text-xs font-semibold text-magenta">Editar</button><button type="button" onClick={() => void removeProduct(product)} className="rounded-xl border border-red-500/30 px-3 py-2 text-xs text-red-300">Excluir</button></div></div></article>)}</div>
+    {editing ? <AdminModal title={editing.id ? "Editar produto" : "Adicionar produto"} onClose={() => setEditing(null)}><form onSubmit={saveProduct} className="space-y-4"><ImageField label="Foto do produto" currentUrl={editing.image_url} uploading={uploadingProduct} onSelect={(file) => void selectProductImage(file)} /><label className="block"><span className="text-sm font-medium">Nome</span><input className="admin-input" value={editing.name} onChange={(event) => setEditing({ ...editing, name: event.target.value })} /></label><label className="block"><span className="text-sm font-medium">Subtítulo</span><input className="admin-input" value={editing.subtitle} onChange={(event) => setEditing({ ...editing, subtitle: event.target.value })} /></label><label className="block"><span className="text-sm font-medium">Tipos de cabelo / curvaturas</span><input className="admin-input" value={editing.hair_type} onChange={(event) => setEditing({ ...editing, hair_type: event.target.value })} /></label><label className="block"><span className="text-sm font-medium">Descrição</span><textarea rows={3} className="admin-input" value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} /></label><label className="block"><span className="text-sm font-medium">Benefícios — um por linha</span><textarea rows={4} className="admin-input" value={benefitsText} onChange={(event) => setBenefitsText(event.target.value)} /></label><div className="grid gap-3 sm:grid-cols-2"><label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={editing.featured} onChange={(event) => setEditing({ ...editing, featured: event.target.checked })} /> Produto em destaque</label><label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={editing.published} onChange={(event) => setEditing({ ...editing, published: event.target.checked })} /> Ativo no site</label></div><Botao type="submit" disabled={savingProduct || uploadingProduct}>{savingProduct ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar produto</Botao></form></AdminModal> : null}
+  </section>;
 }
 
 function PhotosTab({

@@ -73,6 +73,20 @@ export type ServiceData = {
   published: boolean;
 };
 
+export type ProductData = {
+  id: string;
+  name: string;
+  subtitle: string;
+  hair_type: string;
+  description: string;
+  benefits: string[];
+  image_url: string | null;
+  storage_path: string | null;
+  featured: boolean;
+  sort_order: number;
+  published: boolean;
+};
+
 export type CategoryData = {
   id: string;
   name: string;
@@ -114,7 +128,7 @@ export function usePublicSiteData() {
     refetchOnWindowFocus: "always",
     queryFn: async () => {
       const supabase = getSupabaseClient();
-      const [settings, images, services, categories, portfolio, testimonials, professionals] = await Promise.all([
+      const [settings, images, services, categories, portfolio, testimonials, professionals, products] = await Promise.all([
         supabase.from("site_settings").select("*").eq("id", 1).maybeSingle(),
         supabase.from("site_images").select("*").order("image_key"),
         supabase.from("services").select("*").eq("published", true).order("sort_order"),
@@ -126,6 +140,7 @@ export function usePublicSiteData() {
           .eq("published", true)
           .order("created_at", { ascending: false }),
         supabase.from("professionals").select("*").eq("active", true).order("sort_order"),
+        supabase.from("products").select("*").eq("published", true).order("sort_order"),
       ]);
 
       return {
@@ -136,6 +151,7 @@ export function usePublicSiteData() {
         portfolio: (portfolio.data ?? []) as PortfolioData[],
         testimonials: (testimonials.data ?? []) as TestimonialData[],
         professionals: (professionals.data ?? []) as ProfessionalData[],
+        products: (products.data ?? []) as ProductData[],
       };
     },
   });
