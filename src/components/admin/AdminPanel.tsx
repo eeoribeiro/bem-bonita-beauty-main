@@ -235,7 +235,7 @@ export function AdminPanel({
     try {
       const supabase = getSupabaseClient();
       const [config, photos, serviceRows, categoryRows, portfolioRows, profRows, productRows] = await Promise.all([
-        supabase.from("site_settings").select("*").eq("id", 1).single(),
+        supabase.from("site_settings").select("*").limit(1).single(),
         supabase.from("site_images").select("*").order("image_key"),
         supabase.from("services").select("*").order("sort_order"),
         supabase.from("portfolio_categories").select("*").order("sort_order"),
@@ -2362,7 +2362,13 @@ function SettingsTab({
       const uploaded = await uploadImagem(file, "site/logo");
       const updated = { ...settings, logo_url: uploaded.url };
       onChange(updated);
-      await getSupabaseClient().from("site_settings").update({ logo_url: uploaded.url }).eq("id", 1);
+      if (settings.id === undefined || settings.id === null) {
+        throw new Error("Não foi possível identificar o registro das informações do site.");
+      }
+      await getSupabaseClient()
+        .from("site_settings")
+        .update({ logo_url: uploaded.url })
+        .eq("id", settings.id);
       onSuccess("Logotipo atualizado e salvo no site!");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Falha no upload do logotipo.");
@@ -2452,7 +2458,16 @@ function SettingsTab({
     }
 
     try {
-      const { error } = await getSupabaseClient().from("site_settings").update(settings).eq("id", 1);
+      const { id, ...editableSettings } = settings;
+      if (id === undefined || id === null) {
+        onError("Não foi possível identificar o registro das informações do site.");
+        setSaving(false);
+        return;
+      }
+      const { error } = await getSupabaseClient()
+        .from("site_settings")
+        .update(editableSettings)
+        .eq("id", id);
       if (error) onError("Não foi possível salvar as informações.");
       else onSuccess("Informações atualizadas com sucesso.");
     } catch {

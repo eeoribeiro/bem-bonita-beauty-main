@@ -36,5 +36,9 @@ set
   space_description = 'Localizado no Lanna Shopping, em Ponte Nova, o Bem Bonita oferece um ambiente acolhedor e preparado para proporcionar uma experiência tranquila, personalizada e focada em você.',
   francielly_space_cta_label = 'Agendar visita pelo WhatsApp',
   updated_at = now()
-where id = 1;
-
+where id = (
+  select current_settings.id
+  from public.site_settings as current_settings
+  order by current_settings.updated_at asc nulls last
+  limit 1
+);

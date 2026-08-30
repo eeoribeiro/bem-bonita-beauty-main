@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getSupabaseClient, supabaseConfigurado } from "./supabase";
 
 export type SiteSettingsData = {
+  id?: string | number;
   salon_name: string;
   professional_name: string;
   logo_url?: string | null;
@@ -129,7 +130,7 @@ export function usePublicSiteData() {
     queryFn: async () => {
       const supabase = getSupabaseClient();
       const [settings, images, services, categories, portfolio, testimonials, professionals, products] = await Promise.all([
-        supabase.from("site_settings").select("*").eq("id", 1).maybeSingle(),
+        supabase.from("site_settings").select("*").limit(1).maybeSingle(),
         supabase.from("site_images").select("*").order("image_key"),
         supabase.from("services").select("*").eq("published", true).order("sort_order"),
         supabase.from("portfolio_categories").select("*").eq("active", true).order("sort_order"),
