@@ -55,6 +55,8 @@ import {
   initialServices,
 } from "@/lib/initial-content";
 import { getSupabaseClient, supabaseConfigurado } from "@/lib/supabase";
+import fotoFranciellyFallback from "@/assets/sobre-francielly.jpg";
+import fotoEspacoFallback from "@/assets/instagram-salao.jpg";
 import type {
   CategoryData,
   PortfolioData,
@@ -64,7 +66,7 @@ import type {
   SiteSettingsData,
 } from "@/lib/site-data";
 
-type Tab = "overview" | "photos" | "services" | "team" | "portfolio" | "settings";
+type Tab = "overview" | "photos" | "services" | "team" | "portfolio" | "francielly" | "settings";
 type Modal = "services" | "portfolio" | "team_editor" | "new_photo" | null;
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
@@ -73,7 +75,8 @@ const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "services", label: "Serviços", icon: Scissors },
   { id: "team", label: "Equipe (3 Profissionais)", icon: Users },
   { id: "portfolio", label: "Galeria", icon: Images },
-  { id: "settings", label: "Informações & Páginas", icon: Settings },
+  { id: "francielly", label: "Página da Francielly", icon: UserCheck },
+  { id: "settings", label: "Informações do Site", icon: Settings },
 ];
 
 const defaultDemoSettings: SiteSettingsData = {
@@ -470,6 +473,20 @@ export function AdminPanel({
               ) : null}
               {tab === "settings" && settings ? (
                 <SettingsTab
+                  mode="general"
+                  settings={settings}
+                  images={images}
+                  setImages={setImages}
+                  isDemo={!supabaseConfigurado || isDemo}
+                  onChange={setSettings}
+                  onReload={loadAll}
+                  onSuccess={showSuccess}
+                  onError={showError}
+                />
+              ) : null}
+              {tab === "francielly" && settings ? (
+                <SettingsTab
+                  mode="francielly"
                   settings={settings}
                   images={images}
                   setImages={setImages}
@@ -658,7 +675,7 @@ function Overview({
           </div>
 
           <div
-            onClick={() => onNavigate("settings")}
+            onClick={() => onNavigate("francielly")}
             className="group cursor-pointer rounded-2xl border border-border bg-card p-5 shadow-card transition hover:-translate-y-1 hover:border-primary"
           >
             <div className="flex items-center justify-between">
@@ -2140,6 +2157,7 @@ function PhotosTab({
 }
 
 function SettingsTab({
+  mode,
   settings,
   images,
   setImages,
@@ -2149,6 +2167,7 @@ function SettingsTab({
   onSuccess,
   onError,
 }: {
+  mode: "general" | "francielly";
   settings: SiteSettingsData;
   images: SiteImageData[];
   setImages: React.Dispatch<React.SetStateAction<SiteImageData[]>>;
@@ -2161,10 +2180,12 @@ function SettingsTab({
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFranPhoto, setUploadingFranPhoto] = useState(false);
+  const [uploadingSpacePhoto, setUploadingSpacePhoto] = useState(false);
 
   const franImage =
     images.find((img) => img.image_key === "francielly_bio" || img.image_key === "about")?.image_url ??
-    "/media/sobre-francielly.jpg";
+    fotoFranciellyFallback;
+  const spaceImage = images.find((img) => img.image_key === "space_1")?.image_url ?? fotoEspacoFallback;
 
   async function handleLogoUpload(file: File) {
     setUploadingLogo(true);
@@ -2258,8 +2279,7 @@ function SettingsTab({
     { key: "business_hours_text", label: "Horário de atendimento", multiline: true },
   ];
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
+  async function saveSettings() {
     setSaving(true);
     if (isDemo) {
       setTimeout(() => {
@@ -2279,18 +2299,55 @@ function SettingsTab({
     setSaving(false);
   }
 
+  async function handleSpacePhotoUpload(file: File) {
+    setUploadingSpacePhoto(true);
+    try {
+      if (isDemo) {
+        const fakeUrl = URL.createObjectURL(file);
+        setImages((prev) => prev.map((image) => image.image_key === "space_1" ? { ...image, image_url: fakeUrl } : image));
+        onSuccess("Foto do espaço atualizada no preview!");
+        return;
+      }
+      const previous = images.find((image) => image.image_key === "space_1");
+      const uploaded = await uploadImagem(file, "site/space_1");
+      const { error } = await getSupabaseClient().from("site_images").upsert({
+        image_key: "space_1",
+        image_url: uploaded.url,
+        storage_path: uploaded.path,
+        alt_text: "Espaço do salão Bem Bonita no Lanna Shopping",
+      }, { onConflict: "image_key" });
+      if (error) throw error;
+      await removerImagem(previous?.storage_path);
+      await onReload();
+      onSuccess("Foto do espaço atualizada com sucesso!");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Falha ao atualizar a foto do espaço.");
+    } finally {
+      setUploadingSpacePhoto(false);
+    }
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    void saveSettings();
+  }
+
   return (
     <section className="space-y-8">
       <div>
-        <p className="eyebrow">Configurações</p>
-        <h1 className="mt-2 text-3xl sm:text-4xl font-display">Informações, Logotipo &amp; Páginas</h1>
+        <p className="eyebrow">{mode === "francielly" ? "Página institucional" : "Configurações"}</p>
+        <h1 className="mt-2 text-3xl sm:text-4xl font-display">
+          {mode === "francielly" ? "Editar página da Francielly" : "Informações e identidade do site"}
+        </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Edite a marca, faça upload do logotipo, altere contatos e personalize a página exclusiva de Francielly Soares.
+          {mode === "francielly"
+            ? "Edite cada parte da página em blocos organizados. As alterações aparecem no site após salvar."
+            : "Gerencie somente a marca, os contatos e as informações gerais exibidas no site."}
         </p>
       </div>
 
       {/* 1. Seção Compacta de Logotipo */}
-      <div className="max-w-4xl rounded-2xl border border-border bg-card p-5 shadow-card">
+      {mode === "general" ? <div className="max-w-4xl rounded-2xl border border-border bg-card p-5 shadow-card">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="relative h-16 w-24 shrink-0 flex items-center justify-center rounded-xl border border-dashed border-border bg-secondary/50 p-2 overflow-hidden">
@@ -2348,10 +2405,10 @@ function SettingsTab({
             ) : null}
           </div>
         </div>
-      </div>
+      </div> : null}
 
       {/* 2. Seção Exclusiva: Página da Francielly Soares */}
-      <div className="max-w-4xl rounded-3xl border border-primary/40 bg-secondary/30 p-6 sm:p-8 shadow-card space-y-6">
+      {mode === "francielly" ? <div className="max-w-5xl rounded-3xl border border-primary/40 bg-secondary/30 p-5 sm:p-8 shadow-card space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-border/80">
           <div>
             <span className="eyebrow flex items-center gap-1.5">
@@ -2457,6 +2514,10 @@ function SettingsTab({
             <span className="text-sm font-medium">Texto do botão principal</span>
             <input value={String(settings.francielly_cta_label ?? "")} onChange={(e) => onChange({ ...settings, francielly_cta_label: e.target.value })} className="admin-input" />
           </label>
+          <label>
+            <span className="text-sm font-medium">Localização exibida sobre a foto</span>
+            <input value={String(settings.landmark ?? "")} onChange={(e) => onChange({ ...settings, landmark: e.target.value })} className="admin-input" />
+          </label>
         </div>
 
         <div className="border-t border-border pt-6">
@@ -2476,6 +2537,20 @@ function SettingsTab({
 
         <div className="border-t border-border pt-6">
           <h3 className="text-lg font-display">Bloco do espaço do salão</h3>
+          <div className="mt-4 grid gap-5 rounded-2xl border border-border bg-card p-4 sm:grid-cols-[12rem_1fr] sm:items-center">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-secondary">
+              <img src={spaceImage} alt="Prévia do espaço do salão" className="h-full w-full object-cover" />
+              {uploadingSpacePhoto ? <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-xs font-semibold text-white"><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Enviando...</div> : null}
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold">Foto do ambiente</h4>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Esta é a foto exibida no bloco “Ambiente exclusivo” da página.</p>
+              <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/20 bg-secondary px-3.5 py-2 text-xs font-semibold text-magenta transition hover:border-primary">
+                <Camera className="h-3.5 w-3.5" /> {uploadingSpacePhoto ? "Enviando..." : "Trocar foto do ambiente"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingSpacePhoto} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleSpacePhotoUpload(file); event.target.value = ""; }} />
+              </label>
+            </div>
+          </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label><span className="text-sm font-medium">Etiqueta</span><input value={String(settings.francielly_space_eyebrow ?? "")} onChange={(e) => onChange({ ...settings, francielly_space_eyebrow: e.target.value })} className="admin-input" /></label>
             <label><span className="text-sm font-medium">Título</span><input value={String(settings.space_title ?? "")} onChange={(e) => onChange({ ...settings, space_title: e.target.value })} className="admin-input" /></label>
@@ -2483,10 +2558,16 @@ function SettingsTab({
             <label><span className="text-sm font-medium">Texto do botão</span><input value={String(settings.francielly_space_cta_label ?? "")} onChange={(e) => onChange({ ...settings, francielly_space_cta_label: e.target.value })} className="admin-input" /></label>
           </div>
         </div>
-      </div>
+        <div className="sticky bottom-4 z-10 flex justify-end rounded-2xl border border-border bg-card/95 p-4 shadow-card backdrop-blur">
+          <Botao type="button" disabled={saving} onClick={() => void saveSettings()}>
+            {saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? "Salvando página..." : "Salvar página da Francielly"}
+          </Botao>
+        </div>
+      </div> : null}
 
       {/* 3. Formulário Geral de Informações do Salão e Contatos */}
-      <form
+      {mode === "general" ? <form
         onSubmit={submit}
         className="grid max-w-4xl gap-5 rounded-3xl border border-border bg-card p-6 sm:grid-cols-2 sm:p-8 shadow-card"
       >
@@ -2526,7 +2607,7 @@ function SettingsTab({
             {saving ? "Salvando..." : "Salvar todas as alterações"}
           </Botao>
         </div>
-      </form>
+      </form> : null}
     </section>
   );
 }
