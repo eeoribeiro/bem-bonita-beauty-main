@@ -22,6 +22,17 @@ export type SiteSettingsData = {
   francielly_headline?: string | null;
   francielly_bio?: string | null;
   francielly_mission?: string | null;
+  francielly_eyebrow?: string | null;
+  francielly_methodology_eyebrow?: string | null;
+  francielly_method_1_title?: string | null;
+  francielly_method_1_description?: string | null;
+  francielly_method_2_title?: string | null;
+  francielly_method_2_description?: string | null;
+  francielly_method_3_title?: string | null;
+  francielly_method_3_description?: string | null;
+  francielly_space_eyebrow?: string | null;
+  francielly_cta_label?: string | null;
+  francielly_space_cta_label?: string | null;
   space_title?: string;
   space_description?: string;
   landmark: string | null;

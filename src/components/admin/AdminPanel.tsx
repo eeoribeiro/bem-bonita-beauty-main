@@ -96,6 +96,19 @@ const defaultDemoSettings: SiteSettingsData = {
   francielly_headline: "Paixão, técnica e identidade",
   francielly_bio: "Especialista em cabelos crespos e cacheados, Francielly construiu o salão Bem Bonita a partir do propósito de transformar a relação que as mulheres têm com seus fios naturais, unindo técnica apurada, respeito à saúde capilar e acolhimento.",
   francielly_mission: "Mais do que estética: resgate da autoestima",
+  francielly_eyebrow: "Sobre a Especialista",
+  francielly_methodology_eyebrow: "Propósito",
+  francielly_method_1_title: "Corte a Seco e Curvatura Real",
+  francielly_method_1_description: "Cada corte é planejado considerando o fator encolhimento, caimento e a densidade de cada mecha, sem surpresas no comprimento final.",
+  francielly_method_2_title: "Saúde em Primeiro Lugar",
+  francielly_method_2_description: "Procedimentos realizados com avaliação prévia para preservar a integridade dos cachos.",
+  francielly_method_3_title: "Educação Home Care",
+  francielly_method_3_description: "Orientações para lavar, finalizar e manter a definição dos cabelos no dia a dia.",
+  francielly_space_eyebrow: "Ambiente Exclusivo",
+  francielly_cta_label: "Agendar horário com Francielly",
+  francielly_space_cta_label: "Agendar visita pelo WhatsApp",
+  space_title: "Um refúgio para você se cuidar",
+  space_description: "Localizado no Lanna Shopping, o espaço foi desenhado para proporcionar uma experiência intimista e acolhedora.",
   landmark: "Lanna Shopping, primeiro andar, sala 118",
   business_hours_text: "Segunda a Sábado com horário agendado",
 };
@@ -1835,10 +1848,20 @@ function PhotosTab({
     setTimeout(() => setCopiedUrl(null), 2500);
   }
 
-  function handleDeleteCustom(img: SiteImageData) {
+  async function handleDeleteCustom(img: SiteImageData) {
     if (!window.confirm("Deseja remover esta foto do histórico?")) return;
-    setImages((prev) => prev.filter((i) => i.id !== img.id));
-    onSuccess("Foto removida do histórico.");
+    try {
+      if (!isDemo) {
+        const { error } = await getSupabaseClient().from("site_images").delete().eq("id", img.id);
+        if (error) throw error;
+        await removerImagem(img.storage_path);
+      }
+      setImages((prev) => prev.filter((i) => i.id !== img.id));
+      onSuccess("Foto removida do histórico e do armazenamento.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível remover a foto.");
+      await onReload();
+    }
   }
 
   return (
@@ -2063,7 +2086,7 @@ function PhotosTab({
                 {img.image_key.startsWith("custom_") ? (
                   <button
                     type="button"
-                    onClick={() => handleDeleteCustom(img)}
+                    onClick={() => void handleDeleteCustom(img)}
                     className="text-red-300 hover:text-red-200 text-[11px]"
                   >
                     Excluir
@@ -2390,6 +2413,10 @@ function SettingsTab({
 
         {/* Textos da Francielly */}
         <div className="grid gap-4 sm:grid-cols-2">
+          <label>
+            <span className="text-sm font-medium">Etiqueta do topo</span>
+            <input value={String(settings.francielly_eyebrow ?? "")} onChange={(e) => onChange({ ...settings, francielly_eyebrow: e.target.value })} className="admin-input" />
+          </label>
           <label className="sm:col-span-1">
             <span className="text-sm font-medium">Nome da Especialista</span>
             <input
@@ -2426,6 +2453,35 @@ function SettingsTab({
               className="admin-input"
             />
           </label>
+          <label>
+            <span className="text-sm font-medium">Texto do botão principal</span>
+            <input value={String(settings.francielly_cta_label ?? "")} onChange={(e) => onChange({ ...settings, francielly_cta_label: e.target.value })} className="admin-input" />
+          </label>
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <h3 className="text-lg font-display">Metodologia e diferenciais</h3>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label><span className="text-sm font-medium">Etiqueta da seção</span><input value={String(settings.francielly_methodology_eyebrow ?? "")} onChange={(e) => onChange({ ...settings, francielly_methodology_eyebrow: e.target.value })} className="admin-input" /></label>
+            {[1, 2, 3].map((number) => {
+              const titleKey = `francielly_method_${number}_title` as keyof SiteSettingsData;
+              const descriptionKey = `francielly_method_${number}_description` as keyof SiteSettingsData;
+              return <div key={number} className="sm:col-span-2 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2">
+                <label><span className="text-sm font-medium">Título do diferencial {number}</span><input value={String(settings[titleKey] ?? "")} onChange={(e) => onChange({ ...settings, [titleKey]: e.target.value })} className="admin-input" /></label>
+                <label><span className="text-sm font-medium">Descrição do diferencial {number}</span><textarea rows={3} value={String(settings[descriptionKey] ?? "")} onChange={(e) => onChange({ ...settings, [descriptionKey]: e.target.value })} className="admin-input resize-y" /></label>
+              </div>;
+            })}
+          </div>
+        </div>
+
+        <div className="border-t border-border pt-6">
+          <h3 className="text-lg font-display">Bloco do espaço do salão</h3>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label><span className="text-sm font-medium">Etiqueta</span><input value={String(settings.francielly_space_eyebrow ?? "")} onChange={(e) => onChange({ ...settings, francielly_space_eyebrow: e.target.value })} className="admin-input" /></label>
+            <label><span className="text-sm font-medium">Título</span><input value={String(settings.space_title ?? "")} onChange={(e) => onChange({ ...settings, space_title: e.target.value })} className="admin-input" /></label>
+            <label className="sm:col-span-2"><span className="text-sm font-medium">Descrição</span><textarea rows={3} value={String(settings.space_description ?? "")} onChange={(e) => onChange({ ...settings, space_description: e.target.value })} className="admin-input resize-y" /></label>
+            <label><span className="text-sm font-medium">Texto do botão</span><input value={String(settings.francielly_space_cta_label ?? "")} onChange={(e) => onChange({ ...settings, francielly_space_cta_label: e.target.value })} className="admin-input" /></label>
+          </div>
         </div>
       </div>
 

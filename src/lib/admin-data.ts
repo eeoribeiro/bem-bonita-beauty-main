@@ -28,5 +28,6 @@ export async function uploadImagem(file: File, pasta: string) {
 
 export async function removerImagem(path: string | null | undefined) {
   if (!path) return;
-  await getSupabaseClient().storage.from("site-images").remove([path]);
+  const { error } = await getSupabaseClient().storage.from("site-images").remove([path]);
+  if (error) throw error;
 }

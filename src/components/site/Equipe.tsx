@@ -4,6 +4,12 @@ import { BotaoLink } from "./Botao";
 import { initialProfessionals } from "@/lib/initial-content";
 import { whatsappLink } from "@/lib/salao";
 import { usePublicSiteData, type ProfessionalData } from "@/lib/site-data";
+import { SafeImage } from "./SafeImage";
+import fotoFrancielly from "@/assets/sobre-francielly.jpg";
+import fotoMechas from "@/assets/resultado-mechas.jpg";
+import fotoDefinicao from "@/assets/servico-definicao.jpg";
+
+const fotosEquipeFallback = [fotoFrancielly, fotoMechas, fotoDefinicao];
 
 export function Equipe() {
   const { data } = usePublicSiteData();
@@ -37,8 +43,9 @@ export function Equipe() {
             >
               <div>
                 <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-secondary/50 border border-border/60">
-                  <img
-                    src={membro.image_url ?? "/media/sobre-francielly.jpg"}
+                  <SafeImage
+                    src={membro.image_url?.startsWith("/media/") ? (fotosEquipeFallback[index] ?? fotoFrancielly) : (membro.image_url ?? fotosEquipeFallback[index] ?? fotoFrancielly)}
+                    fallbackSrc={fotosEquipeFallback[index] ?? fotoFrancielly}
                     alt={`Foto de ${membro.name}`}
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   />

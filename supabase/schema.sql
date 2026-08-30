@@ -61,6 +61,17 @@ alter table public.site_settings add column if not exists francielly_bio text;
 alter table public.site_settings add column if not exists francielly_mission text default 'Mais do que estética: resgate da autoestima';
 alter table public.site_settings add column if not exists space_title text;
 alter table public.site_settings add column if not exists space_description text;
+alter table public.site_settings add column if not exists francielly_eyebrow text default 'Sobre a Especialista';
+alter table public.site_settings add column if not exists francielly_methodology_eyebrow text default 'Propósito';
+alter table public.site_settings add column if not exists francielly_method_1_title text default 'Corte a Seco e Curvatura Real';
+alter table public.site_settings add column if not exists francielly_method_1_description text;
+alter table public.site_settings add column if not exists francielly_method_2_title text default 'Saúde em Primeiro Lugar';
+alter table public.site_settings add column if not exists francielly_method_2_description text;
+alter table public.site_settings add column if not exists francielly_method_3_title text default 'Educação Home Care';
+alter table public.site_settings add column if not exists francielly_method_3_description text;
+alter table public.site_settings add column if not exists francielly_space_eyebrow text default 'Ambiente Exclusivo';
+alter table public.site_settings add column if not exists francielly_cta_label text;
+alter table public.site_settings add column if not exists francielly_space_cta_label text;
 
 insert into public.site_settings (id, description)
 values (1, 'Salão especialista em cabelos crespos e cacheados em Ponte Nova/MG.')
