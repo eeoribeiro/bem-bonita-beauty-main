@@ -36,28 +36,29 @@ function PaginaFrancielly() {
 
   const professionalName = settings?.professional_name || "Francielly Soares";
   const headline = settings?.francielly_headline || "Paixão, técnica e identidade";
-  const bio =
-    settings?.francielly_bio ||
-    "Especialista em cabelos crespos e cacheados, Francielly construiu o salão Bem Bonita a partir do propósito de transformar a relação que as mulheres têm com seus fios naturais, unindo técnica apurada, respeito à saúde capilar e acolhimento.";
+  const savedBio = settings?.francielly_bio?.trim();
+  const bio = savedBio && savedBio.includes(" ")
+    ? savedBio
+    : "Especialista em cabelos crespos e cacheados, Francielly Soares criou o Bem Bonita com o propósito de transformar a relação das mulheres com seus fios naturais. Seu trabalho une técnica, escuta e cuidado para valorizar cada curvatura, preservar a saúde capilar e fortalecer a autoestima.";
   const mission = settings?.francielly_mission || "Mais do que estética: resgate da autoestima";
-  const pageEyebrow = settings?.francielly_eyebrow || "Sobre a Especialista";
-  const methodologyEyebrow = settings?.francielly_methodology_eyebrow || "Propósito";
+  const pageEyebrow = settings?.francielly_eyebrow || "Sobre a especialista";
+  const methodologyEyebrow = settings?.francielly_methodology_eyebrow || "Método Bem Bonita";
   const methods = [
     {
       title: settings?.francielly_method_1_title || "Corte a Seco e Curvatura Real",
-      description: settings?.francielly_method_1_description || "Cada corte é planejado considerando o fator encolhimento, caimento e a densidade de cada mecha, sem surpresas no comprimento final.",
+      description: settings?.francielly_method_1_description || "Cada corte é planejado considerando o fator encolhimento, o caimento e a densidade de cada mecha, respeitando o formato natural dos fios.",
       icon: Scissors,
       color: "text-magenta",
     },
     {
-      title: settings?.francielly_method_2_title || "Saúde em Primeiro Lugar",
-      description: settings?.francielly_method_2_description || "Procedimentos de mechas e tratamentos executados com avaliação prévia da fibra capilar para preservar a integridade dos cachos.",
+      title: settings?.francielly_method_2_title || "Saúde Capilar em Primeiro Lugar",
+      description: settings?.francielly_method_2_description || "Mechas e tratamentos são realizados com avaliação prévia da fibra capilar para preservar a integridade, a força e a definição dos cachos.",
       icon: Award,
       color: "text-gold",
     },
     {
-      title: settings?.francielly_method_3_title || "Educação Home Care",
-      description: settings?.francielly_method_3_description || "Você não sai apenas com o cabelo lindo: aprende exatamente como lavar, finalizar e manter a definição no dia a dia.",
+      title: settings?.francielly_method_3_title || "Educação e Cuidado em Casa",
+      description: settings?.francielly_method_3_description || "Além do resultado no salão, você aprende como lavar, finalizar e manter seus cabelos definidos e saudáveis no dia a dia.",
       icon: UserCheck,
       color: "text-magenta",
     },

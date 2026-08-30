@@ -107,22 +107,22 @@ const defaultDemoSettings: SiteSettingsData = {
   about_title: "Beleza que respeita a sua essência",
   about_text: "No Bem Bonita, cada cabelo é tratado de forma única. Sob os cuidados de Francielly Soares, o salão oferece técnicas, tratamentos e produtos pensados especialmente para cabelos crespos e cacheados.",
   francielly_headline: "Paixão, técnica e identidade",
-  francielly_bio: "Especialista em cabelos crespos e cacheados, Francielly construiu o salão Bem Bonita a partir do propósito de transformar a relação que as mulheres têm com seus fios naturais, unindo técnica apurada, respeito à saúde capilar e acolhimento.",
+  francielly_bio: "Especialista em cabelos crespos e cacheados, Francielly Soares criou o Bem Bonita com o propósito de transformar a relação das mulheres com seus fios naturais. Seu trabalho une técnica, escuta e cuidado para valorizar cada curvatura, preservar a saúde capilar e fortalecer a autoestima.",
   francielly_mission: "Mais do que estética: resgate da autoestima",
-  francielly_eyebrow: "Sobre a Especialista",
-  francielly_methodology_eyebrow: "Propósito",
+  francielly_eyebrow: "Sobre a especialista",
+  francielly_methodology_eyebrow: "Método Bem Bonita",
   francielly_method_1_title: "Corte a Seco e Curvatura Real",
-  francielly_method_1_description: "Cada corte é planejado considerando o fator encolhimento, caimento e a densidade de cada mecha, sem surpresas no comprimento final.",
-  francielly_method_2_title: "Saúde em Primeiro Lugar",
-  francielly_method_2_description: "Procedimentos realizados com avaliação prévia para preservar a integridade dos cachos.",
-  francielly_method_3_title: "Educação Home Care",
-  francielly_method_3_description: "Orientações para lavar, finalizar e manter a definição dos cabelos no dia a dia.",
-  francielly_space_eyebrow: "Ambiente Exclusivo",
+  francielly_method_1_description: "Cada corte é planejado considerando o fator encolhimento, o caimento e a densidade de cada mecha, respeitando o formato natural dos fios.",
+  francielly_method_2_title: "Saúde Capilar em Primeiro Lugar",
+  francielly_method_2_description: "Mechas e tratamentos são realizados com avaliação prévia da fibra capilar para preservar a integridade, a força e a definição dos cachos.",
+  francielly_method_3_title: "Educação e Cuidado em Casa",
+  francielly_method_3_description: "Além do resultado no salão, você aprende como lavar, finalizar e manter seus cabelos definidos e saudáveis no dia a dia.",
+  francielly_space_eyebrow: "Ambiente exclusivo",
   francielly_cta_label: "Agendar horário com Francielly",
   francielly_space_cta_label: "Agendar visita pelo WhatsApp",
   space_title: "Um refúgio para você se cuidar",
-  space_description: "Localizado no Lanna Shopping, o espaço foi desenhado para proporcionar uma experiência intimista e acolhedora.",
-  landmark: "Lanna Shopping, primeiro andar, sala 118",
+  space_description: "Localizado no Lanna Shopping, em Ponte Nova, o Bem Bonita oferece um ambiente acolhedor e preparado para proporcionar uma experiência tranquila, personalizada e focada em você.",
+  landmark: "Lanna Shopping — Sala 118, Ponte Nova/MG",
   business_hours_text: "Segunda a Sábado com horário agendado",
 };
 
@@ -253,7 +253,10 @@ export function AdminPanel({
           "Não foi possível carregar o painel. Execute a versão mais recente do arquivo SQL no Supabase.",
         );
       } else {
-        setSettings(config.data as SiteSettingsData);
+        // Mantém os campos novos preenchidos mesmo antes de uma migração antiga
+        // do Supabase ser atualizada. Os valores vindos do banco continuam tendo
+        // prioridade e permanecem totalmente editáveis pelo painel.
+        setSettings({ ...defaultDemoSettings, ...(config.data as SiteSettingsData) });
         setImages((photos.data ?? []) as SiteImageData[]);
         setServices((serviceRows.data ?? []) as ServiceData[]);
         const savedProfessionals = (profRows.data ?? []) as ProfessionalData[];
