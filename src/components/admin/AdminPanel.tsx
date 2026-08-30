@@ -46,6 +46,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminModal } from "./AdminModal";
 import { ImageField } from "./ImageField";
 import { Botao } from "@/components/site/Botao";
+import { SafeImage } from "@/components/site/SafeImage";
 import { removerImagem, uploadImagem } from "@/lib/admin-data";
 import {
   initialContentMarker,
@@ -57,6 +58,9 @@ import {
 import { getSupabaseClient, supabaseConfigurado } from "@/lib/supabase";
 import fotoFranciellyFallback from "@/assets/sobre-francielly.jpg";
 import fotoEspacoFallback from "@/assets/instagram-salao.jpg";
+import fotoHeroFallback from "@/assets/hero-cachos.jpg";
+import fotoProdutosFallback from "@/assets/instagram-produtos.jpg";
+import fotoCachosFallback from "@/assets/instagram-cachos.jpg";
 import type {
   CategoryData,
   PortfolioData,
@@ -66,12 +70,13 @@ import type {
   SiteSettingsData,
 } from "@/lib/site-data";
 
-type Tab = "overview" | "photos" | "services" | "team" | "portfolio" | "francielly" | "settings";
+type Tab = "overview" | "photos" | "space" | "services" | "team" | "portfolio" | "francielly" | "settings";
 type Modal = "services" | "portfolio" | "team_editor" | "new_photo" | null;
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
-  { id: "photos", label: "Fotos do site & Espaço", icon: FileImage },
+  { id: "photos", label: "Fotos gerais do site", icon: FileImage },
+  { id: "space", label: "Espaço do Salão", icon: MapPin },
   { id: "services", label: "Serviços", icon: Scissors },
   { id: "team", label: "Equipe (3 Profissionais)", icon: Users },
   { id: "portfolio", label: "Galeria", icon: Images },
@@ -438,6 +443,7 @@ export function AdminPanel({
               ) : null}
               {tab === "photos" ? (
                 <PhotosTab
+                  mode="all"
                   images={images}
                   setImages={setImages}
                   isDemo={!supabaseConfigurado || isDemo}
@@ -479,6 +485,17 @@ export function AdminPanel({
                   setImages={setImages}
                   isDemo={!supabaseConfigurado || isDemo}
                   onChange={setSettings}
+                  onReload={loadAll}
+                  onSuccess={showSuccess}
+                  onError={showError}
+                />
+              ) : null}
+              {tab === "space" ? (
+                <PhotosTab
+                  mode="space"
+                  images={images}
+                  setImages={setImages}
+                  isDemo={!supabaseConfigurado || isDemo}
                   onReload={loadAll}
                   onSuccess={showSuccess}
                   onError={showError}
@@ -1721,6 +1738,7 @@ function ServicesOverviewTab({
 }
 
 function PhotosTab({
+  mode,
   images,
   setImages,
   isDemo,
@@ -1728,6 +1746,7 @@ function PhotosTab({
   onSuccess,
   onError,
 }: {
+  mode: "all" | "space";
   images: SiteImageData[];
   setImages: React.Dispatch<React.SetStateAction<SiteImageData[]>>;
   isDemo: boolean;
@@ -1740,6 +1759,9 @@ function PhotosTab({
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("space");
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const visibleHistory = mode === "space"
+    ? images.filter((image) => image.image_key.startsWith("space_") || image.image_key.startsWith("custom_space_"))
+    : images;
 
   const mainSlots = [
     {
@@ -1747,28 +1769,28 @@ function PhotosTab({
       title: "Foto Principal (Hero)",
       badge: "Início do Site",
       description: "Imagem de maior impacto visual, exibida logo na abertura do site.",
-      fallback: "/media/francielly-profissional.jpg",
+      fallback: fotoHeroFallback,
     },
     {
       key: "about",
       title: "Foto Sobre a Profissional (Home)",
       badge: "Autoridade",
       description: "Francielly Soares com as ferramentas e produtos profissionais na Home.",
-      fallback: "/media/francielly-produtos.jpg",
+      fallback: fotoFranciellyFallback,
     },
     {
       key: "francielly_bio",
       title: "Foto Oficial da Francielly (/francielly)",
       badge: "Página Francielly",
       description: "Foto principal da página de história e metodologia de Francielly Soares.",
-      fallback: "/media/sobre-francielly.jpg",
+      fallback: fotoFranciellyFallback,
     },
     {
       key: "products",
       title: "Banner da Linha de Produtos",
       badge: "Produtos",
       description: "Imagem de destaque para a seção de cosméticos e tratamentos.",
-      fallback: "/media/francielly-produtos.jpg",
+      fallback: fotoProdutosFallback,
     },
   ];
 
@@ -1778,21 +1800,21 @@ function PhotosTab({
       title: "Ambiente Principal do Salão",
       badge: "Espaço Físico",
       description: "Visão geral do espaço interno, decoração aconchegante no Lanna Shopping.",
-      fallback: "/media/instagram-salao.jpg",
+      fallback: fotoEspacoFallback,
     },
     {
       key: "space_2",
       title: "Vitrine & Recepção",
       badge: "Espaço Físico",
       description: "Exposição dos produtos e recepção dos clientes.",
-      fallback: "/media/instagram-produtos.jpg",
+      fallback: fotoProdutosFallback,
     },
     {
       key: "space_3",
       title: "Lavatório & Atendimento",
       badge: "Espaço Físico",
       description: "Cadeira de atendimento e área de tratamentos capilares.",
-      fallback: "/media/instagram-cachos.jpg",
+      fallback: fotoCachosFallback,
     },
   ];
 
@@ -1886,11 +1908,14 @@ function PhotosTab({
       {/* Topo da Aba */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <p className="eyebrow">Mídia &amp; Ambientes</p>
-          <h1 className="mt-2 text-3xl sm:text-4xl font-display">Fotos do Site, Francielly e Espaço</h1>
+          <p className="eyebrow">{mode === "space" ? "Ambiente físico" : "Mídia & Ambientes"}</p>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-display">
+            {mode === "space" ? "Fotos do Espaço do Salão" : "Fotos do Site, Francielly e Espaço"}
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            Substitua a imagem de qualquer área específica clicando diretamente no botão{" "}
-            <strong>"Trocar foto desta área"</strong> presente em cada card.
+            {mode === "space"
+              ? "Gerencie somente as fotos do salão físico exibidas no site. Cada card informa exatamente onde a imagem será usada."
+              : <>Substitua a imagem de qualquer área específica clicando diretamente no botão <strong>"Trocar foto desta área"</strong> presente em cada card.</>}
           </p>
         </div>
         <button
@@ -1903,7 +1928,7 @@ function PhotosTab({
       </div>
 
       {/* Seção 1: Fotos Principais de Destaque */}
-      <div>
+      {mode === "all" ? <div>
         <div className="flex items-center gap-3 mb-5">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary text-magenta">
             <Sparkles className="h-4 w-4" />
@@ -1940,8 +1965,9 @@ function PhotosTab({
                 <div className="mt-4">
                   {/* Prévia da Imagem */}
                   <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border/80 bg-secondary/40 shadow-inner">
-                    <img
+                    <SafeImage
                       src={item?.image_url ?? slot.fallback}
+                      fallbackSrc={slot.fallback}
                       alt={slot.title}
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
                     />
@@ -1975,7 +2001,7 @@ function PhotosTab({
             );
           })}
         </div>
-      </div>
+      </div> : null}
 
       {/* Seção 2: Fotos do Espaço do Salão Físico */}
       <div>
@@ -2017,8 +2043,9 @@ function PhotosTab({
                 <div className="mt-4">
                   {/* Prévia da Imagem */}
                   <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border/80 bg-secondary/40 shadow-inner">
-                    <img
+                    <SafeImage
                       src={item?.image_url ?? slot.fallback}
+                      fallbackSrc={slot.fallback}
                       alt={slot.title}
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
                     />
@@ -2059,19 +2086,19 @@ function PhotosTab({
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <div>
             <h2 className="text-xl font-display flex items-center gap-2">
-              <Clock className="h-5 w-5 text-magenta" /> Histórico de Fotos Cadastradas
+              <Clock className="h-5 w-5 text-magenta" /> {mode === "space" ? "Fotos extras do ambiente" : "Histórico de Fotos Cadastradas"}
             </h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Registro de todas as fotos ativas no salão. Você pode copiar o link ou consultar as imagens.
+              {mode === "space" ? "Fotos complementares do espaço físico cadastradas no painel." : "Registro de todas as fotos ativas no salão. Você pode copiar o link ou consultar as imagens."}
             </p>
           </div>
           <span className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full font-medium">
-            {images.length} foto(s)
+            {visibleHistory.length} foto(s)
           </span>
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {images.map((img) => (
+          {visibleHistory.map((img) => (
             <div
               key={img.id}
               className="group relative overflow-hidden rounded-2xl border border-border bg-background p-3 shadow-card transition hover:border-primary/60"
@@ -2128,7 +2155,7 @@ function PhotosTab({
                 className="admin-input"
               />
             </div>
-            <div>
+            {mode === "all" ? <div>
               <label className="block text-sm font-medium">Categoria</label>
               <select
                 value={newCategory}
@@ -2140,7 +2167,7 @@ function PhotosTab({
                 <option value="highlight">Foto de Destaque</option>
                 <option value="treatment">Tratamento &amp; Cuidado</option>
               </select>
-            </div>
+            </div> : null}
             <div>
               <label className="block text-sm font-medium mb-2">Selecione o arquivo de imagem</label>
               <ImageField
@@ -2539,7 +2566,7 @@ function SettingsTab({
           <h3 className="text-lg font-display">Bloco do espaço do salão</h3>
           <div className="mt-4 grid gap-5 rounded-2xl border border-border bg-card p-4 sm:grid-cols-[12rem_1fr] sm:items-center">
             <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-secondary">
-              <img src={spaceImage} alt="Prévia do espaço do salão" className="h-full w-full object-cover" />
+              <SafeImage src={spaceImage} fallbackSrc={fotoEspacoFallback} alt="Prévia do espaço do salão" className="h-full w-full object-cover" />
               {uploadingSpacePhoto ? <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-xs font-semibold text-white"><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Enviando...</div> : null}
             </div>
             <div>
