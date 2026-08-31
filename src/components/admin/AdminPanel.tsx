@@ -1123,7 +1123,7 @@ function TeamManagerTab({
                       }}
                       aria-label="Mover para a esquerda/cima"
                       title="Mover para cima"
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80 disabled:opacity-30"
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80 disabled:opacity-30"
                     >
                       <ArrowUp className="h-3 w-3" />
                     </button>
@@ -1136,7 +1136,7 @@ function TeamManagerTab({
                       }}
                       aria-label="Mover para a direita/baixo"
                       title="Mover para baixo"
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80 disabled:opacity-30"
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80 disabled:opacity-30"
                     >
                       <ArrowDown className="h-3 w-3" />
                     </button>
@@ -1146,7 +1146,7 @@ function TeamManagerTab({
                     <button
                       type="button"
                       onClick={() => onOpenEdit(item)}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-semibold text-magenta hover:bg-secondary/80 transition"
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-secondary px-4 py-2 text-xs font-semibold text-magenta hover:bg-secondary/80 transition"
                     >
                       <Pencil className="h-3.5 w-3.5" /> Editar
                     </button>
@@ -1155,7 +1155,7 @@ function TeamManagerTab({
                       onClick={() => void remove(item)}
                       aria-label={`Excluir ${item.name}`}
                       title="Excluir profissional"
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-red-950/40 text-red-300 hover:bg-red-950/70 transition"
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-red-950/40 text-red-300 hover:bg-red-950/70 transition"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -1166,9 +1166,10 @@ function TeamManagerTab({
           })}
 
           {/* Card de Atalho para Adicionar Nova Profissional */}
-          <div
+          <button
+            type="button"
             onClick={onOpenAdd}
-            className="group cursor-pointer rounded-3xl border-2 border-dashed border-border/80 bg-secondary/20 p-8 shadow-card transition-all duration-300 hover:border-primary hover:bg-secondary/40 flex flex-col items-center justify-center text-center min-h-[320px]"
+            className="group w-full cursor-pointer rounded-3xl border-2 border-dashed border-border/80 bg-secondary/20 p-8 text-foreground shadow-card transition-all duration-300 hover:border-primary hover:bg-secondary/40 flex flex-col items-center justify-center text-center min-h-[320px]"
           >
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-magenta group-hover:scale-110 transition duration-300 shadow-soft">
               <UserPlus className="h-7 w-7" />
@@ -1182,7 +1183,7 @@ function TeamManagerTab({
             <span className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-magenta px-4 py-2 text-xs font-semibold text-white shadow-soft">
               <Plus className="h-3.5 w-3.5" /> Abrir formulário
             </span>
-          </div>
+          </button>
         </div>
       </div>
     </section>
@@ -1241,7 +1242,9 @@ function ProfessionalEditorModal({
     try {
       const saved = window.localStorage.getItem("bem-bonita-role-suggestions");
       if (saved) return JSON.parse(saved);
-    } catch {}
+    } catch {
+      // O armazenamento local pode estar indisponível em navegação privada.
+    }
     return defaultRoleSuggestions;
   });
 
@@ -1256,7 +1259,9 @@ function ProfessionalEditorModal({
       setRoleSuggestions(updated);
       try {
         window.localStorage.setItem("bem-bonita-role-suggestions", JSON.stringify(updated));
-      } catch {}
+      } catch {
+        // A sugestão continua válida durante a sessão mesmo sem persistência local.
+      }
     }
     setForm((prev) => ({ ...prev, role: trimmed }));
     setNewRoleInput("");
@@ -1269,7 +1274,9 @@ function ProfessionalEditorModal({
     setRoleSuggestions(updated);
     try {
       window.localStorage.setItem("bem-bonita-role-suggestions", JSON.stringify(updated));
-    } catch {}
+    } catch {
+      // A remoção continua válida durante a sessão mesmo sem persistência local.
+    }
   }
 
   async function handleSelectImage(file: File) {
@@ -1846,7 +1853,12 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
       }
       onSuccess("Produto salvo e atualizado no site.");
       setEditing(null);
-    } catch { onError("Não foi possível salvar. Execute o SQL atualizado do projeto no Supabase."); }
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "";
+      onError(detail.includes("products")
+        ? "A tabela de produtos ainda não existe. Execute supabase/admin-functional-repair.sql no Supabase."
+        : "Não foi possível salvar o produto. Tente novamente.");
+    }
     finally { setSavingProduct(false); }
   }
 
@@ -1858,7 +1870,7 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
       if (error) throw error;
       await onReload();
       onSuccess("Catálogo atual salvo no Supabase.");
-    } catch { onError("Execute o SQL atualizado no Supabase antes de salvar os produtos."); }
+    } catch { onError("A tabela de produtos ainda não existe. Execute supabase/admin-functional-repair.sql no Supabase antes de importar."); }
     finally { setSavingProduct(false); }
   }
 
@@ -1866,7 +1878,7 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
     if (!window.confirm(`Excluir o produto “${product.name}”?`)) return;
     if (product.id.startsWith("pending-product-")) { setProducts((current) => current.filter((item) => item.id !== product.id)); return; }
     const { error } = await getSupabaseClient().from("products").delete().eq("id", product.id);
-    if (error) onError("Não foi possível excluir o produto.");
+    if (error) onError(error.message.includes("products") ? "A tabela de produtos ainda não existe. Execute supabase/admin-functional-repair.sql no Supabase." : "Não foi possível excluir o produto.");
     else { await removerImagem(product.storage_path); await onReload(); onSuccess("Produto excluído."); }
   }
 
@@ -1876,7 +1888,7 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
       <Botao type="button" onClick={() => openEditor()}><Plus className="h-4 w-4" /> Adicionar produto</Botao>
     </div>
     {pending && !isDemo ? <div className="flex flex-col gap-4 rounded-2xl border border-gold/40 bg-gold/10 p-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold">O catálogo atual ainda está salvo apenas no site</p><p className="mt-1 text-xs text-muted-foreground">Importe os cinco produtos para começar a gerenciá-los pelo painel.</p></div><Botao type="button" disabled={savingProduct} onClick={() => void importProducts()}><Save className="h-4 w-4" /> Salvar catálogo no Supabase</Botao></div> : null}
-    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{products.map((product) => <article key={product.id} className="rounded-3xl border border-border bg-card p-5 shadow-card"><div className="aspect-square overflow-hidden rounded-2xl bg-secondary"><SafeImage src={product.image_url ?? fotoProdutosFallback} fallbackSrc={fotoProdutosFallback} alt={product.name} className="h-full w-full object-cover" /></div><div className="mt-4"><div className="flex items-start justify-between gap-2"><h2 className="font-display text-lg">{product.name}</h2><span className={`rounded-full px-2 py-1 text-[10px] ${product.published ? "bg-emerald-500/15 text-emerald-300" : "bg-secondary text-muted-foreground"}`}>{product.published ? "Ativo" : "Oculto"}</span></div><p className="mt-1 text-xs text-muted-foreground">{product.subtitle}</p><div className="mt-4 flex gap-2"><button type="button" onClick={() => openEditor(product)} className="flex-1 rounded-xl bg-secondary px-3 py-2 text-xs font-semibold text-magenta">Editar</button><button type="button" onClick={() => void removeProduct(product)} className="rounded-xl border border-red-500/30 px-3 py-2 text-xs text-red-300">Excluir</button></div></div></article>)}</div>
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{products.map((product) => <article key={product.id} className="rounded-3xl border border-border bg-card p-5 shadow-card"><div className="aspect-square overflow-hidden rounded-2xl bg-secondary"><SafeImage src={product.image_url ?? fotoProdutosFallback} fallbackSrc={fotoProdutosFallback} alt={product.name} className="h-full w-full object-cover" /></div><div className="mt-4"><div className="flex items-start justify-between gap-2"><h2 className="font-display text-lg">{product.name}</h2><span className={`rounded-full px-2 py-1 text-[10px] ${product.published ? "bg-emerald-500/15 text-emerald-300" : "bg-secondary text-muted-foreground"}`}>{product.published ? "Ativo" : "Oculto"}</span></div><p className="mt-1 text-xs text-muted-foreground">{product.subtitle}</p><div className="mt-4 flex gap-2"><button type="button" onClick={() => openEditor(product)} className="min-h-11 flex-1 rounded-xl bg-secondary px-3 py-2 text-xs font-semibold text-magenta">Editar</button><button type="button" onClick={() => void removeProduct(product)} className="min-h-11 rounded-xl border border-red-500/30 px-4 py-2 text-xs text-red-300">Excluir</button></div></div></article>)}</div>
     {editing ? <AdminModal title={editing.id ? "Editar produto" : "Adicionar produto"} onClose={() => setEditing(null)}><form onSubmit={saveProduct} className="space-y-4"><ImageField label="Foto do produto" currentUrl={editing.image_url} uploading={uploadingProduct} onSelect={(file) => void selectProductImage(file)} /><label className="block"><span className="text-sm font-medium">Nome</span><input className="admin-input" value={editing.name} onChange={(event) => setEditing({ ...editing, name: event.target.value })} /></label><label className="block"><span className="text-sm font-medium">Subtítulo</span><input className="admin-input" value={editing.subtitle} onChange={(event) => setEditing({ ...editing, subtitle: event.target.value })} /></label><label className="block"><span className="text-sm font-medium">Tipos de cabelo / curvaturas</span><input className="admin-input" value={editing.hair_type} onChange={(event) => setEditing({ ...editing, hair_type: event.target.value })} /></label><label className="block"><span className="text-sm font-medium">Descrição</span><textarea rows={3} className="admin-input" value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} /></label><label className="block"><span className="text-sm font-medium">Benefícios — um por linha</span><textarea rows={4} className="admin-input" value={benefitsText} onChange={(event) => setBenefitsText(event.target.value)} /></label><div className="grid gap-3 sm:grid-cols-2"><label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={editing.featured} onChange={(event) => setEditing({ ...editing, featured: event.target.checked })} /> Produto em destaque</label><label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={editing.published} onChange={(event) => setEditing({ ...editing, published: event.target.checked })} /> Ativo no site</label></div><Botao type="submit" disabled={savingProduct || uploadingProduct}>{savingProduct ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar produto</Botao></form></AdminModal> : null}
   </section>;
 }
@@ -2278,7 +2290,7 @@ function PhotosTab({
       </div>
 
       {/* Modal para Adicionar Nova Foto */}
-      {false && showAddModal ? (
+      {showAddModal ? (
         <AdminModal title="Adicionar Nova Foto de Destaque / Espaço" onClose={() => setShowAddModal(false)}>
           <div className="space-y-4">
             <div>
@@ -2468,7 +2480,11 @@ function SettingsTab({
         .from("site_settings")
         .update(editableSettings)
         .eq("id", id);
-      if (error) onError("Não foi possível salvar as informações.");
+      if (error) {
+        onError(error.message.includes("column")
+          ? "O banco ainda não tem todos os campos desta página. Execute supabase/admin-functional-repair.sql no Supabase."
+          : "Não foi possível salvar as informações.");
+      }
       else onSuccess("Informações atualizadas com sucesso.");
     } catch {
       onError("Erro ao salvar informações.");
@@ -2998,7 +3014,7 @@ function ServicesManager({
           <button
             type="button"
             onClick={() => edit()}
-            className="inline-flex items-center gap-2 text-sm text-magenta font-medium hover:underline shrink-0"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm text-magenta font-medium hover:bg-secondary shrink-0"
           >
             <Plus className="h-4 w-4" /> Novo serviço
           </button>
@@ -3069,7 +3085,7 @@ function ServicesManager({
                         }}
                         aria-label="Mover para cima"
                         title="Mover para cima"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
                       >
                         <ArrowUp className="h-3.5 w-3.5" />
                       </button>
@@ -3082,7 +3098,7 @@ function ServicesManager({
                         }}
                         aria-label="Mover para baixo"
                         title="Mover para baixo"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
                       >
                         <ArrowDown className="h-3.5 w-3.5" />
                       </button>
@@ -3094,7 +3110,7 @@ function ServicesManager({
                         }}
                         aria-label={`Editar ${item.name}`}
                         title="Editar serviço"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-magenta"
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-magenta"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -3106,7 +3122,7 @@ function ServicesManager({
                         }}
                         aria-label={`Excluir ${item.name}`}
                         title="Excluir serviço"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-red-950/40 text-red-300"
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-red-950/40 text-red-300"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -3459,6 +3475,7 @@ function PortfolioManager({
                 type="button"
                 onClick={() => void removeCategory(category)}
                 aria-label={`Excluir categoria ${category.name}`}
+                className="-my-2 -mr-2 flex h-11 w-11 items-center justify-center rounded-full hover:bg-background/70"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -3494,7 +3511,7 @@ function PortfolioManager({
             <button
               type="button"
               onClick={() => edit()}
-              className="inline-flex items-center gap-2 text-sm text-magenta font-medium hover:underline shrink-0"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm text-magenta font-medium hover:bg-secondary shrink-0"
             >
               <Plus className="h-4 w-4" /> Nova foto
             </button>
@@ -3550,7 +3567,7 @@ function PortfolioManager({
                           }}
                           aria-label="Mover para cima"
                           title="Mover para cima"
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
+                          className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
                         >
                           <ArrowUp className="h-3 w-3" />
                         </button>
@@ -3563,7 +3580,7 @@ function PortfolioManager({
                           }}
                           aria-label="Mover para baixo"
                           title="Mover para baixo"
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
+                          className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
                         >
                           <ArrowDown className="h-3 w-3" />
                         </button>
@@ -3577,7 +3594,7 @@ function PortfolioManager({
                           }}
                           aria-label={`Editar ${item.title}`}
                           title="Editar foto"
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-magenta"
+                          className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-magenta"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -3589,7 +3606,7 @@ function PortfolioManager({
                           }}
                           aria-label={`Excluir ${item.title}`}
                           title="Excluir foto"
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-red-950/40 text-red-300"
+                          className="flex h-11 w-11 items-center justify-center rounded-full bg-red-950/40 text-red-300"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
