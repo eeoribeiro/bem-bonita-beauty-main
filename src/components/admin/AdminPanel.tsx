@@ -21,6 +21,7 @@ import {
   MapPin,
   Menu,
   MessageCircle,
+  MessageSquareQuote,
   Moon,
   Pencil,
   Phone,
@@ -72,9 +73,10 @@ import type {
   ServiceData,
   SiteImageData,
   SiteSettingsData,
+  TestimonialData,
 } from "@/lib/site-data";
 
-type Tab = "overview" | "photos" | "space" | "services" | "products" | "team" | "portfolio" | "francielly" | "settings";
+type Tab = "overview" | "photos" | "space" | "services" | "products" | "team" | "portfolio" | "feedbacks" | "francielly" | "settings";
 type Modal = "services" | "portfolio" | "team_editor" | "new_photo" | null;
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
@@ -83,8 +85,8 @@ const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "space", label: "Espaço do Salão", icon: MapPin },
   { id: "services", label: "Serviços", icon: Scissors },
   { id: "products", label: "Produtos", icon: ShoppingBag },
-  { id: "team", label: "Equipe", icon: Users },
   { id: "portfolio", label: "Galeria", icon: Images },
+  { id: "feedbacks", label: "Feedbacks", icon: MessageSquareQuote },
   { id: "francielly", label: "Página da Francielly", icon: UserCheck },
   { id: "settings", label: "Informações do Site", icon: Settings },
 ];
@@ -181,6 +183,7 @@ export function AdminPanel({
   const [products, setProducts] = useState<ProductData[]>([]);
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioData[]>([]);
+  const [testimonials, setTestimonials] = useState<TestimonialData[]>([]);
 
   // Profissional em edição no modal
   const [editingProf, setEditingProf] = useState<ProfessionalData | null>(null);
@@ -234,7 +237,7 @@ export function AdminPanel({
 
     try {
       const supabase = getSupabaseClient();
-      const [config, photos, serviceRows, categoryRows, portfolioRows, profRows, productRows] = await Promise.all([
+      const [config, photos, serviceRows, categoryRows, portfolioRows, profRows, productRows, testimonialRows] = await Promise.all([
         supabase.from("site_settings").select("*").limit(1).single(),
         supabase.from("site_images").select("*").order("image_key"),
         supabase.from("services").select("*").order("sort_order"),
@@ -242,6 +245,7 @@ export function AdminPanel({
         supabase.from("portfolio_items").select("*").order("sort_order"),
         supabase.from("professionals").select("*").order("sort_order"),
         supabase.from("products").select("*").order("sort_order"),
+        supabase.from("testimonials").select("*").order("created_at", { ascending: false }),
       ]);
 
       const firstError = [config, photos, serviceRows, categoryRows, portfolioRows, profRows].find(
@@ -273,6 +277,7 @@ export function AdminPanel({
           )
         );
         setPortfolio((portfolioRows.data ?? []) as PortfolioData[]);
+        setTestimonials((testimonialRows.data ?? []) as TestimonialData[]);
       }
     } catch {
       setError("Erro ao carregar dados do painel.");
@@ -418,7 +423,7 @@ export function AdminPanel({
             <div className="mb-6 rounded-2xl border border-primary/40 bg-secondary/60 p-4 text-xs text-foreground/90 flex items-center gap-3">
               <Sparkles className="h-5 w-5 text-gold shrink-0" />
               <div>
-                <strong>Modo de Demonstração Local Ativo:</strong> Você pode gerenciar as 3 profissionais da equipe, fotos do espaço e serviços em tempo real!
+                <strong>Modo de Demonstração Local Ativo:</strong> Você pode gerenciar fotos, serviços, produtos e feedbacks em tempo real.
               </div>
             </div>
           ) : null}
@@ -510,6 +515,9 @@ export function AdminPanel({
               ) : null}
               {tab === "products" ? (
                 <ProductsManagerTab products={products} setProducts={setProducts} isDemo={!supabaseConfigurado || isDemo} onReload={loadAll} onSuccess={showSuccess} onError={showError} />
+              ) : null}
+              {tab === "feedbacks" ? (
+                <FeedbacksManagerTab testimonials={testimonials} setTestimonials={setTestimonials} isDemo={!supabaseConfigurado || isDemo} onReload={loadAll} onSuccess={showSuccess} onError={showError} />
               ) : null}
               {tab === "space" ? (
                 <PhotosTab
@@ -633,7 +641,7 @@ function Overview({
               </span>
             </h1>
             <p className="mt-2 text-sm text-muted-foreground max-w-xl leading-relaxed">
-              Gerencie as profissionais do salão, fotos do espaço físico, catálogo de serviços e contatos.
+              Gerencie as fotos, os serviços, a loja de produtos, os feedbacks e os contatos do salão.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 shrink-0">
@@ -654,7 +662,7 @@ function Overview({
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
           Métricas &amp; Conteúdos Ativos
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div
             onClick={onOpenServices}
             className="group cursor-pointer rounded-2xl border border-border bg-card p-5 shadow-card transition hover:-translate-y-1 hover:border-primary"
@@ -672,25 +680,6 @@ function Overview({
             </p>
             <p className="mt-1 font-display text-3xl font-semibold">{services}</p>
             <p className="mt-2 text-xs text-muted-foreground">Todos com agendamento ativo</p>
-          </div>
-
-          <div
-            onClick={() => onNavigate("team")}
-            className="group cursor-pointer rounded-2xl border border-border bg-card p-5 shadow-card transition hover:-translate-y-1 hover:border-primary"
-          >
-            <div className="flex items-center justify-between">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-gold">
-                <Users className="h-5 w-5" />
-              </span>
-              <span className="text-xs font-medium text-gold group-hover:underline">
-                Gerenciar →
-              </span>
-            </div>
-            <p className="mt-4 text-xs uppercase tracking-wider text-muted-foreground">
-              Equipe do Salão
-            </p>
-            <p className="mt-1 font-display text-3xl font-semibold">{professionals}</p>
-            <p className="mt-2 text-xs text-muted-foreground">Fran e +2 especialistas</p>
           </div>
 
           <div
@@ -738,7 +727,7 @@ function Overview({
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
           Ações Rápidas
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <button
             type="button"
             onClick={onOpenServices}
@@ -750,20 +739,6 @@ function Overview({
             <div>
               <p className="text-sm font-medium">Novo Serviço</p>
               <p className="text-xs text-muted-foreground">Criar e inserir no final</p>
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenTeam}
-            className="flex items-center gap-3.5 rounded-2xl border border-border bg-card p-4 text-left transition hover:border-primary hover:bg-secondary/40"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-gold">
-              <UserPlus className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-sm font-medium">+ Nova Profissional</p>
-              <p className="text-xs text-muted-foreground">Adicionar à equipe</p>
             </div>
           </button>
 
@@ -1798,6 +1773,106 @@ function ServicesOverviewTab({
       </div>
     </section>
   );
+}
+
+type FeedbackDraft = TestimonialData & { storage_path?: string | null };
+
+function FeedbacksManagerTab({ testimonials, setTestimonials, isDemo, onReload, onSuccess, onError }: {
+  testimonials: TestimonialData[];
+  setTestimonials: React.Dispatch<React.SetStateAction<TestimonialData[]>>;
+  isDemo: boolean;
+  onReload: () => Promise<void>;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+}) {
+  const [editing, setEditing] = useState<FeedbackDraft | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  function openNew() {
+    setEditing({ id: "", client_name: "", testimonial: "", rating: null, service_name: null, image_url: null, published: true, created_at: new Date().toISOString(), storage_path: null });
+  }
+
+  async function selectImage(file: File) {
+    if (!editing) return;
+    setUploading(true);
+    try {
+      if (isDemo) setEditing({ ...editing, image_url: URL.createObjectURL(file), storage_path: null });
+      else {
+        const uploaded = await uploadImagem(file, "feedbacks");
+        setEditing({ ...editing, image_url: uploaded.url, storage_path: uploaded.path });
+      }
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível enviar o print.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function saveFeedback(event: FormEvent) {
+    event.preventDefault();
+    if (!editing?.client_name.trim()) { onError("Informe um título para identificar o feedback."); return; }
+    if (!editing.image_url) { onError("Selecione o print do feedback."); return; }
+    setSaving(true);
+    const payload = {
+      client_name: editing.client_name.trim(),
+      testimonial: editing.client_name.trim(),
+      rating: null,
+      service_name: null,
+      image_url: editing.image_url,
+      published: editing.published,
+    };
+    try {
+      if (isDemo) {
+        const saved = { ...editing, ...payload, id: editing.id || `feedback-${Date.now()}` };
+        setTestimonials((current) => editing.id ? current.map((item) => item.id === editing.id ? saved : item) : [saved, ...current]);
+      } else {
+        const query = editing.id
+          ? getSupabaseClient().from("testimonials").update(payload).eq("id", editing.id)
+          : getSupabaseClient().from("testimonials").insert(payload);
+        const { error } = await query;
+        if (error) throw error;
+        await onReload();
+      }
+      setEditing(null);
+      onSuccess("Feedback salvo e sincronizado com o site.");
+    } catch {
+      onError("Não foi possível salvar o feedback.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeFeedback(feedback: TestimonialData) {
+    if (!window.confirm(`Excluir o feedback “${feedback.client_name}”?`)) return;
+    if (isDemo) {
+      setTestimonials((current) => current.filter((item) => item.id !== feedback.id));
+      return;
+    }
+    const { error } = await getSupabaseClient().from("testimonials").delete().eq("id", feedback.id);
+    if (error) onError("Não foi possível excluir o feedback.");
+    else { await onReload(); onSuccess("Feedback excluído."); }
+  }
+
+  return <section className="space-y-8">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div><p className="eyebrow">Prova social</p><h1 className="mt-2 text-3xl font-display sm:text-4xl">Feedbacks em print ({testimonials.filter((item) => item.image_url).length})</h1><p className="mt-2 text-sm text-muted-foreground">Envie prints reais das mensagens das clientes. Os feedbacks ativos aparecem automaticamente na página inicial.</p></div>
+      <Botao type="button" onClick={openNew}><Plus className="h-4 w-4" /> Adicionar print</Botao>
+    </div>
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      {testimonials.filter((item) => item.image_url).map((feedback) => <article key={feedback.id} className="rounded-3xl border border-border bg-card p-4 shadow-card">
+        <div className="overflow-hidden rounded-2xl bg-secondary"><img src={feedback.image_url!} alt={`Print de ${feedback.client_name}`} className="aspect-[4/5] w-full object-contain" /></div>
+        <div className="mt-4 flex items-start justify-between gap-3"><div><h2 className="font-display text-lg">{feedback.client_name}</h2><p className={`mt-1 text-xs ${feedback.published ? "text-emerald-400" : "text-muted-foreground"}`}>{feedback.published ? "Visível no site" : "Oculto"}</p></div><div className="flex gap-2"><button type="button" onClick={() => setEditing({ ...feedback })} className="min-h-11 rounded-xl bg-secondary px-3 text-xs font-semibold text-magenta">Editar</button><button type="button" onClick={() => void removeFeedback(feedback)} className="min-h-11 rounded-xl border border-red-500/30 px-3 text-xs text-red-300">Excluir</button></div></div>
+      </article>)}
+    </div>
+    {!testimonials.some((item) => item.image_url) ? <div className="rounded-3xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">Nenhum print cadastrado. Use “Adicionar print” para publicar o primeiro feedback real.</div> : null}
+    {editing ? <AdminModal title={editing.id ? "Editar feedback" : "Adicionar feedback em print"} onClose={() => setEditing(null)}><form onSubmit={saveFeedback} className="space-y-4">
+      <ImageField label="Print da conversa ou avaliação" currentUrl={editing.image_url} uploading={uploading} onSelect={(file) => void selectImage(file)} />
+      <label className="block"><span className="text-sm font-medium">Identificação do feedback</span><input className="admin-input" value={editing.client_name} onChange={(event) => setEditing({ ...editing, client_name: event.target.value })} placeholder="Ex.: Feedback recebido pelo WhatsApp" /><span className="mt-1 block text-xs text-muted-foreground">Use apenas uma identificação autorizada; não exponha telefone ou dados pessoais no título.</span></label>
+      <label className="flex items-center gap-3 rounded-xl border border-border p-4 text-sm"><input type="checkbox" checked={editing.published} onChange={(event) => setEditing({ ...editing, published: event.target.checked })} /> Mostrar este feedback no site</label>
+      <Botao type="submit" disabled={saving || uploading}>{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar feedback</Botao>
+    </form></AdminModal> : null}
+  </section>;
 }
 
 function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess, onError }: {

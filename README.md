@@ -1,5 +1,20 @@
 # Bem Bonita Beauty
 
+## Acesso temporário durante o lançamento
+
+O site possui uma barreira de acesso aplicada no servidor. Enquanto estiver ativa, visitantes veem apenas a página de lançamento e precisam informar a senha antes que qualquer rota, inclusive `/admin`, seja renderizada.
+
+Configure estas variáveis no ambiente local e também na Vercel:
+
+```env
+SITE_ACCESS_PASSWORD=defina-uma-senha-forte
+SITE_ACCESS_TOKEN_SECRET=gere-um-segredo-longo-e-aleatorio
+```
+
+O segredo pode ser gerado com `openssl rand -hex 32`. As variáveis são usadas somente no servidor e não devem receber o prefixo `VITE_`. Depois de alterar a senha ou o segredo, os acessos já concedidos são invalidados automaticamente.
+
+Sem as duas variáveis, o site permanece fechado e mostra uma mensagem de configuração pendente. Para reabrir o site publicamente no futuro, remova a chamada a `handleSiteAccess` em `src/server.ts`; não coloque a senha em componentes React nem em variáveis `VITE_*`.
+
 Crie um site completo, elegante, moderno e responsivo para o salão “Bem Bonita”, da profissional Francielly Soares, localizado em Ponte Nova – MG.
 
 IDENTIDADE DA MARCA

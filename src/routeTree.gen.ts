@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CursosRouteImport } from './routes/cursos'
 import { Route as FranciellyRouteImport } from './routes/francielly'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as ProdutosRouteImport } from './routes/produtos'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +41,11 @@ const PrivacidadeRoute = PrivacidadeRouteImport.update({
   path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProdutosRoute = ProdutosRouteImport.update({
+  id: '/produtos',
+  path: '/produtos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/cursos': typeof CursosRoute
   '/francielly': typeof FranciellyRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/produtos': typeof ProdutosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/cursos': typeof CursosRoute
   '/francielly': typeof FranciellyRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/produtos': typeof ProdutosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,22 @@ export interface FileRoutesById {
   '/cursos': typeof CursosRoute
   '/francielly': typeof FranciellyRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/produtos': typeof ProdutosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/cursos' | '/francielly' | '/privacidade'
+  fullPaths:
+    '/' | '/admin' | '/cursos' | '/francielly' | '/privacidade' | '/produtos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/cursos' | '/francielly' | '/privacidade'
-  id: '__root__' | '/' | '/admin' | '/cursos' | '/francielly' | '/privacidade'
+  to: '/' | '/admin' | '/cursos' | '/francielly' | '/privacidade' | '/produtos'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/cursos'
+    | '/francielly'
+    | '/privacidade'
+    | '/produtos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +94,7 @@ export interface RootRouteChildren {
   CursosRoute: typeof CursosRoute
   FranciellyRoute: typeof FranciellyRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
+  ProdutosRoute: typeof ProdutosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +134,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/produtos': {
+      id: '/produtos'
+      path: '/produtos'
+      fullPath: '/produtos'
+      preLoaderRoute: typeof ProdutosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +150,7 @@ const rootRouteChildren: RootRouteChildren = {
   CursosRoute: CursosRoute,
   FranciellyRoute: FranciellyRoute,
   PrivacidadeRoute: PrivacidadeRoute,
+  ProdutosRoute: ProdutosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -79,7 +79,7 @@ const produtosLinha: ProdutoItem[] = [
   },
 ];
 
-export function Produtos() {
+export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean }) {
   const { data, isLoading } = usePublicSiteData();
   const productsImage = data?.images.find((image) => image.image_key === "products");
   const products = data?.products?.length
@@ -96,12 +96,12 @@ export function Produtos() {
     : produtosLinha;
 
   return (
-    <section id="produtos" className="bg-blush-soft py-20 lg:py-28">
+    <section id="produtos" className={`bg-blush-soft pb-20 lg:pb-28 ${paginaCompleta ? "pt-32 lg:pt-40" : "pt-20 lg:pt-28"}`}>
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div data-reveal className="reveal text-center max-w-3xl mx-auto">
           <TituloSecao
-            eyebrow="Linha Bem Bonita"
-            titulo="Cuidado profissional que acompanha sua rotina"
+            eyebrow={paginaCompleta ? "Loja Bem Bonita" : "Linha Bem Bonita"}
+            titulo={paginaCompleta ? "Produtos para cuidar dos seus cabelos" : "Cuidado profissional que acompanha sua rotina"}
             texto="Cosméticos especialmente selecionados e desenvolvidos para respeitar as necessidades reais de cabelos crespos, cacheados e ondulados."
             className="mx-auto text-center [&>span]:mx-auto"
           />

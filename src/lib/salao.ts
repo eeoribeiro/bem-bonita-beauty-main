@@ -42,7 +42,7 @@ export const MENU = [
   { label: "Sobre a Francielly", href: "/francielly" },
   { label: "Serviços", href: "/#servicos" },
   { label: "Resultados", href: "/#resultados" },
-  { label: "Produtos", href: "/#produtos" },
+  { label: "Loja", href: "/produtos" },
   { label: "Cursos", href: "/cursos" },
   { label: "Localização", href: "/#localizacao" },
 ] as const;
