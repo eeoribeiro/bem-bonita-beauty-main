@@ -47,7 +47,7 @@ export function Header() {
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-5 sm:pt-4">
       <div
-        className={`pointer-events-auto relative mx-auto grid w-full max-w-6xl origin-top grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-full border border-border/45 bg-background/72 px-4 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)] backdrop-blur-xl transition-[transform,padding,background-color,box-shadow] duration-300 ease-out sm:px-6 ${
+        className={`pointer-events-auto relative mx-auto grid w-full max-w-[64rem] origin-top grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-full border border-border/45 bg-background/72 px-4 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)] backdrop-blur-xl transition-[transform,padding,background-color,box-shadow] duration-300 ease-out sm:px-6 ${
           rolou
             ? "scale-[0.9] bg-background/84 py-2 shadow-[0_16px_44px_-18px_rgba(0,0,0,0.68)]"
             : "scale-100 py-3 sm:py-3.5"
