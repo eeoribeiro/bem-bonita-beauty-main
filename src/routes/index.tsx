@@ -8,6 +8,7 @@ import { Localizacao } from "@/components/site/Localizacao";
 import { Footer } from "@/components/site/Footer";
 import { BotaoFlutuanteWhatsApp } from "@/components/site/BotaoFlutuanteWhatsApp";
 import { Depoimentos } from "@/components/site/Depoimentos";
+import { FranciellyPreview } from "@/components/site/FranciellyPreview";
 import { Produtos } from "@/components/site/Produtos";
 import { useReveal } from "@/hooks/use-reveal";
 
@@ -79,6 +80,7 @@ function Index() {
       <Header />
       <main>
         <Hero />
+        <FranciellyPreview />
         <Agendamento />
         <Servicos />
         <Depoimentos />

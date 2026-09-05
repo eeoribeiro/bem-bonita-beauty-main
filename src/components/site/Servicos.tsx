@@ -111,7 +111,14 @@ function ServiceCard({ servico }: { servico: ServicoView }) {
 
   return (
     <article className="rounded-2xl bg-white p-6 text-[#24141d] shadow-[0_6px_18px_rgba(180,90,130,0.14)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(180,90,130,0.2)]">
-      <Icone className="h-9 w-9 text-[#c4477e]" strokeWidth={1.6} aria-hidden="true" />
+      <div className="flex items-start justify-between gap-4">
+        <Icone className="h-9 w-9 text-[#c4477e]" strokeWidth={1.6} aria-hidden="true" />
+        {servico.preco ? (
+          <span className="shrink-0 rounded-full bg-[#fde1ec] px-3 py-1 text-xs font-bold text-[#c4477e]">
+            {servico.preco}
+          </span>
+        ) : null}
+      </div>
       <h3 className="mt-5 font-sans text-lg font-bold leading-snug">{servico.nome}</h3>
       <p className="mt-3 text-sm leading-relaxed text-[#6f6067]">{servico.descricao}</p>
     </article>

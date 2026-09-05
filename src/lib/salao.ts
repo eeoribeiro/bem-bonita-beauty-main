@@ -1,6 +1,6 @@
 /**
- * Dados do salão Bem Bonita.
- * Campos entre colchetes precisam ser preenchidos pelo salão.
+ * Dados fixos do salão Bem Bonita.
+ * Conteúdos editáveis continuam vindo do /admin e do Supabase.
  */
 
 export const WHATSAPP_NUMERO = "5531996792131";
@@ -22,7 +22,6 @@ export const SALAO = {
     "https://www.google.com/maps/dir/?api=1&destination=Av.+Francisco+Vieira+Martins,+595,+Lanna+Shopping,+Ponte+Nova+MG",
 } as const;
 
-/** Monta o link do WhatsApp com mensagem pré-preenchida. */
 export function whatsappLink(mensagem: string) {
   const texto = encodeURIComponent(mensagem);
   return WHATSAPP_NUMERO
@@ -30,7 +29,6 @@ export function whatsappLink(mensagem: string) {
     : `https://wa.me/?text=${texto}`;
 }
 
-/** Usa o WhatsApp quando configurado e o Instagram oficial como alternativa. */
 export function contatoLink(mensagem: string) {
   return TEM_WHATSAPP ? whatsappLink(mensagem) : SALAO.instagramUrl;
 }
@@ -39,10 +37,9 @@ export const CONTATO_LABEL = TEM_WHATSAPP ? "Falar pelo WhatsApp" : "Falar pelo 
 
 export const MENU = [
   { label: "Início", href: "/#inicio" },
-  { label: "Sobre a Francielly", href: "/francielly" },
-  { label: "Serviços", href: "/#servicos" },
-  { label: "Resultados", href: "/#resultados" },
+  { label: "Francielly", href: "/francielly" },
+  { label: "Serviços", href: "/servicos" },
   { label: "Loja", href: "/produtos" },
-  { label: "Cursos", href: "/cursos" },
-  { label: "Localização", href: "/#localizacao" },
+  { label: "Feedbacks", href: "/feedbacks" },
+  { label: "Contato", href: "/#localizacao" },
 ] as const;

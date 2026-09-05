@@ -8,6 +8,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 const NAV_ITEMS = [
   { label: "Início", href: "/#inicio" },
+  { label: "Francielly", href: "/francielly" },
   { label: "Serviços", href: "/servicos" },
   { label: "Loja", href: "/produtos" },
   { label: "Feedbacks", href: "/feedbacks" },

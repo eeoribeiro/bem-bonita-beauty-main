@@ -5,7 +5,6 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { BotaoLink } from "@/components/site/Botao";
 import { BotaoFlutuanteWhatsApp } from "@/components/site/BotaoFlutuanteWhatsApp";
-import { Equipe } from "@/components/site/Equipe";
 import { SafeImage } from "@/components/site/SafeImage";
 import { whatsappLink } from "@/lib/salao";
 import { useReveal } from "@/hooks/use-reveal";
@@ -198,7 +197,6 @@ function PaginaFrancielly() {
         </section>
 
         {/* Seção da Equipe na Página da Francielly */}
-        <Equipe />
       </main>
 
       <Footer />
