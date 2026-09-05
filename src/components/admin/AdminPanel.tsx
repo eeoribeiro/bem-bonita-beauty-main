@@ -45,6 +45,7 @@ import {
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import { AdminModal } from "./AdminModal";
+import { ConfirmModal } from "./ConfirmModal";
 import { ImageField } from "./ImageField";
 import { Botao } from "@/components/site/Botao";
 import { SafeImage } from "@/components/site/SafeImage";
@@ -869,6 +870,7 @@ function TeamManagerTab({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [importing, setImporting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ProfessionalData | null>(null);
   const pendingProfessionals = professionals.filter((item) => item.id.startsWith("pending-prof-"));
 
   async function importProfessionals() {
@@ -954,8 +956,14 @@ function TeamManagerTab({
     await applyNewOrder(itemsCopy);
   }
 
-  async function remove(item: ProfessionalData) {
-    if (!window.confirm(`Remover a profissional “${item.name}” da equipe?`)) return;
+  function remove(item: ProfessionalData) {
+    setPendingDelete(item);
+  }
+
+  async function confirmRemove() {
+    if (!pendingDelete) return;
+    const item = pendingDelete;
+    setPendingDelete(null);
 
     if (isDemo) {
       const remaining = professionals.filter((p) => p.id !== item.id);
@@ -1161,6 +1169,15 @@ function TeamManagerTab({
           </button>
         </div>
       </div>
+      {pendingDelete ? (
+        <ConfirmModal
+          title="Remover profissional"
+          message={`Deseja remover a profissional “${pendingDelete.name}” da equipe? Esta ação não pode ser desfeita.`}
+          confirmLabel="Remover"
+          onConfirm={() => void confirmRemove()}
+          onClose={() => setPendingDelete(null)}
+        />
+      ) : null}
     </section>
   );
 }
@@ -1768,6 +1785,7 @@ function FeedbacksManagerTab({ testimonials, setTestimonials, isDemo, onReload, 
   const [editing, setEditing] = useState<FeedbackDraft | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<TestimonialData | null>(null);
 
   function openNew() {
     setEditing({ id: "", client_name: "", testimonial: "", rating: null, service_name: null, image_url: null, published: true, created_at: new Date().toISOString(), storage_path: null });
@@ -1823,8 +1841,14 @@ function FeedbacksManagerTab({ testimonials, setTestimonials, isDemo, onReload, 
     }
   }
 
-  async function removeFeedback(feedback: TestimonialData) {
-    if (!window.confirm(`Excluir o feedback “${feedback.client_name}”?`)) return;
+  function removeFeedback(feedback: TestimonialData) {
+    setPendingDelete(feedback);
+  }
+
+  async function confirmRemoveFeedback() {
+    if (!pendingDelete) return;
+    const feedback = pendingDelete;
+    setPendingDelete(null);
     if (isDemo) {
       setTestimonials((current) => current.filter((item) => item.id !== feedback.id));
       return;
@@ -1852,6 +1876,14 @@ function FeedbacksManagerTab({ testimonials, setTestimonials, isDemo, onReload, 
       <label className="flex items-center gap-3 rounded-xl border border-border p-4 text-sm"><input type="checkbox" checked={editing.published} onChange={(event) => setEditing({ ...editing, published: event.target.checked })} /> Mostrar este feedback no site</label>
       <Botao type="submit" disabled={saving || uploading}>{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar feedback</Botao>
     </form></AdminModal> : null}
+    {pendingDelete ? (
+      <ConfirmModal
+        title="Excluir feedback"
+        message={`Deseja excluir o feedback “${pendingDelete.client_name}”? Esta ação não pode ser desfeita.`}
+        onConfirm={() => void confirmRemoveFeedback()}
+        onClose={() => setPendingDelete(null)}
+      />
+    ) : null}
   </section>;
 }
 
@@ -1882,6 +1914,7 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
   const [benefitsText, setBenefitsText] = useState("");
   const [savingProduct, setSavingProduct] = useState(false);
   const [uploadingProduct, setUploadingProduct] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<ProductData | null>(null);
 
   function openEditor(product?: ProductData) {
     const value = product ?? emptyProduct();
@@ -1957,8 +1990,14 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
     }
   }
 
-  async function removeProduct(product: ProductData) {
-    if (!window.confirm(`Excluir o produto “${product.name}”?`)) return;
+  function removeProduct(product: ProductData) {
+    setPendingDelete(product);
+  }
+
+  async function confirmRemoveProduct() {
+    if (!pendingDelete) return;
+    const product = pendingDelete;
+    setPendingDelete(null);
     if (isDemo || product.id.startsWith("pending-product-")) {
       setProducts((current) => current.filter((item) => item.id !== product.id));
       onSuccess("Produto excluído.");
@@ -2024,6 +2063,14 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
       </div>
       <Botao type="submit" disabled={savingProduct || uploadingProduct}>{savingProduct ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar produto</Botao>
     </form></AdminModal> : null}
+    {pendingDelete ? (
+      <ConfirmModal
+        title="Excluir produto"
+        message={`Deseja excluir o produto “${pendingDelete.name}”? Esta ação não pode ser desfeita.`}
+        onConfirm={() => void confirmRemoveProduct()}
+        onClose={() => setPendingDelete(null)}
+      />
+    ) : null}
   </section>;
 }
 
@@ -2049,6 +2096,7 @@ function PhotosTab({
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("space");
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<SiteImageData | null>(null);
   const visibleHistory = mode === "space"
     ? images.filter((image) => image.image_key.startsWith("space_") || image.image_key.startsWith("custom_space_"))
     : images;
@@ -2170,8 +2218,14 @@ function PhotosTab({
     setTimeout(() => setCopiedUrl(null), 2500);
   }
 
-  async function handleDeleteCustom(img: SiteImageData) {
-    if (!window.confirm("Deseja remover esta foto do histórico?")) return;
+  function handleDeleteCustom(img: SiteImageData) {
+    setPendingDelete(img);
+  }
+
+  async function confirmDeleteCustom() {
+    if (!pendingDelete) return;
+    const img = pendingDelete;
+    setPendingDelete(null);
     try {
       if (!isDemo) {
         const { error } = await getSupabaseClient().from("site_images").delete().eq("id", img.id);
@@ -2459,6 +2513,14 @@ function PhotosTab({
             </div>
           </div>
         </AdminModal>
+      ) : null}
+      {pendingDelete ? (
+        <ConfirmModal
+          title="Remover foto"
+          message="Deseja remover esta foto do histórico e do armazenamento? Esta ação não pode ser desfeita."
+          onConfirm={() => void confirmDeleteCustom()}
+          onClose={() => setPendingDelete(null)}
+        />
       ) : null}
     </section>
   );
@@ -2959,6 +3021,7 @@ function ServicesManager({
   const [saving, setSaving] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ServiceData | null>(null);
 
   function edit(item?: ServiceData) {
     setEditingId(item?.id ?? null);
@@ -3101,8 +3164,14 @@ function ServicesManager({
     setSaving(false);
   }
 
-  async function remove(item: ServiceData) {
-    if (!window.confirm(`Excluir o serviço “${item.name}”?`)) return;
+  function remove(item: ServiceData) {
+    setPendingDelete(item);
+  }
+
+  async function confirmRemove() {
+    if (!pendingDelete) return;
+    const item = pendingDelete;
+    setPendingDelete(null);
 
     if (isDemo) {
       const remaining = services.filter((s) => s.id !== item.id);
@@ -3308,6 +3377,14 @@ function ServicesManager({
           {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Criar serviço (adicionar ao final)"}
         </Botao>
       </form>
+      {pendingDelete ? (
+        <ConfirmModal
+          title="Excluir serviço"
+          message={`Deseja excluir o serviço “${pendingDelete.name}”? Esta ação não pode ser desfeita.`}
+          onConfirm={() => void confirmRemove()}
+          onClose={() => setPendingDelete(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -3336,6 +3413,8 @@ function PortfolioManager({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newCategory, setNewCategory] = useState("");
+  const [pendingDeleteCategory, setPendingDeleteCategory] = useState<CategoryData | null>(null);
+  const [pendingDeleteItem, setPendingDeleteItem] = useState<PortfolioData | null>(null);
 
   // Drag & drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -3416,8 +3495,14 @@ function PortfolioManager({
     }
   }
 
-  async function removeCategory(category: CategoryData) {
-    if (!window.confirm(`Excluir a categoria “${category.name}”?`)) return;
+  function removeCategory(category: CategoryData) {
+    setPendingDeleteCategory(category);
+  }
+
+  async function confirmRemoveCategory() {
+    if (!pendingDeleteCategory) return;
+    const category = pendingDeleteCategory;
+    setPendingDeleteCategory(null);
 
     if (isDemo) {
       setCategories((prev) => prev.filter((c) => c.id !== category.id));
@@ -3554,8 +3639,14 @@ function PortfolioManager({
     setSaving(false);
   }
 
-  async function remove(item: PortfolioData) {
-    if (!window.confirm(`Excluir a foto “${item.title}”?`)) return;
+  function remove(item: PortfolioData) {
+    setPendingDeleteItem(item);
+  }
+
+  async function confirmRemoveItem() {
+    if (!pendingDeleteItem) return;
+    const item = pendingDeleteItem;
+    setPendingDeleteItem(null);
 
     if (isDemo) {
       const remaining = items.filter((p) => p.id !== item.id);
@@ -3800,6 +3891,23 @@ function PortfolioManager({
           </Botao>
         </form>
       </div>
+      {pendingDeleteCategory ? (
+        <ConfirmModal
+          title="Excluir categoria"
+          message={`Deseja excluir a categoria “${pendingDeleteCategory.name}”? Esta ação não pode ser desfeita.`}
+          confirmLabel="Excluir categoria"
+          onConfirm={() => void confirmRemoveCategory()}
+          onClose={() => setPendingDeleteCategory(null)}
+        />
+      ) : null}
+      {pendingDeleteItem ? (
+        <ConfirmModal
+          title="Excluir foto"
+          message={`Deseja excluir a foto “${pendingDeleteItem.title}”? Esta ação não pode ser desfeita.`}
+          onConfirm={() => void confirmRemoveItem()}
+          onClose={() => setPendingDeleteItem(null)}
+        />
+      ) : null}
     </div>
   );
 }
