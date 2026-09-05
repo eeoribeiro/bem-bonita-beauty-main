@@ -6,8 +6,8 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 type AccessConfig = { password: string; secret: string };
 
 function getAccessConfig(): AccessConfig | null {
-  const password = process.env.SITE_ACCESS_PASSWORD?.trim();
-  const secret = process.env.SITE_ACCESS_TOKEN_SECRET?.trim();
+  const password = process.env["SITE_ACCESS_PASSWORD"]?.trim();
+  const secret = process.env["SITE_ACCESS_TOKEN_SECRET"]?.trim();
   return password && secret ? { password, secret } : null;
 }
 

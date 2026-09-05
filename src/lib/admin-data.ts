@@ -1,14 +1,14 @@
 import { getSupabaseClient } from "./supabase";
 
 const TIPOS_PERMITIDOS = new Set(["image/jpeg", "image/png", "image/webp"]);
-const TAMANHO_MAXIMO = 5 * 1024 * 1024;
+const TAMANHO_MAXIMO = 10 * 1024 * 1024;
 
 export function validarImagem(file: File) {
   if (!TIPOS_PERMITIDOS.has(file.type)) {
     throw new Error("Envie uma imagem JPG, PNG ou WebP.");
   }
   if (file.size > TAMANHO_MAXIMO) {
-    throw new Error("A imagem deve ter no máximo 5 MB.");
+    throw new Error("A imagem deve ter no máximo 10 MB.");
   }
 }
 

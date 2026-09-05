@@ -66,10 +66,11 @@ export type ServiceData = {
   id: string;
   name: string;
   description: string;
-  benefits: string[];
-  image_url: string | null;
-  storage_path: string | null;
-  cta_label: string;
+  price_text: string;
+  benefits?: string[] | null;
+  image_url?: string | null;
+  storage_path?: string | null;
+  cta_label?: string | null;
   sort_order: number;
   published: boolean;
 };
@@ -81,6 +82,8 @@ export type ProductData = {
   hair_type: string;
   description: string;
   benefits: string[];
+  category?: string | null;
+  price_text?: string | null;
   image_url: string | null;
   storage_path: string | null;
   featured: boolean;
@@ -143,6 +146,14 @@ export function usePublicSiteData() {
         supabase.from("professionals").select("*").eq("active", true).order("sort_order"),
         supabase.from("products").select("*").eq("published", true).order("sort_order"),
       ]);
+
+      const firstError = [settings, images, services, categories, portfolio, testimonials, professionals, products].find(
+        (result) => result.error,
+      )?.error;
+
+      if (firstError) {
+        throw firstError;
+      }
 
       return {
         settings: settings.data as SiteSettingsData | null,

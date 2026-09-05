@@ -19,6 +19,7 @@ interface ProdutoItem {
   descricao: string;
   beneficios: string[];
   imagem: string;
+  preco?: string | null;
   destaque?: boolean;
 }
 const produtosLinha: ProdutoItem[] = [
@@ -80,9 +81,9 @@ const produtosLinha: ProdutoItem[] = [
 ];
 
 export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean }) {
-  const { data, isLoading } = usePublicSiteData();
+  const { data, isError, isLoading } = usePublicSiteData();
   const productsImage = data?.images.find((image) => image.image_key === "products");
-  const products = data?.products?.length
+  const products = data
     ? data.products.map((product) => ({
         id: product.id,
         nome: product.name,
@@ -91,8 +92,11 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         descricao: product.description,
         beneficios: product.benefits,
         imagem: product.image_url ?? kitImg,
+        preco: product.price_text,
         destaque: product.featured,
       }))
+    : isError
+      ? produtosLinha
     : produtosLinha;
 
   return (
@@ -169,7 +173,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {products.map((produto) => (
+            {products.length ? products.map((produto) => (
               <article
                 key={produto.id}
                 className={`group flex flex-col justify-between overflow-hidden rounded-3xl border bg-card p-6 shadow-card transition-all duration-300 hover:shadow-soft hover:border-primary/50 ${
@@ -177,12 +181,12 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                 }`}
               >
                 <div>
-                  <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-secondary/40">
+                  <div className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden">
                     <img
                       src={produto.imagem}
                       alt={produto.nome}
                       loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="h-full w-full object-contain"
                     />
                     {produto.destaque ? (
                       <span className="absolute top-3 right-3 rounded-full bg-magenta px-3 py-1 text-[11px] font-semibold text-white shadow-md">
@@ -199,6 +203,9 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                     <p className="text-xs text-muted-foreground font-medium mt-1">
                       {produto.subtitulo}
                     </p>
+                    {produto.preco ? (
+                      <p className="mt-3 text-sm font-semibold text-magenta">{produto.preco}</p>
+                    ) : null}
                     <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
                       {produto.descricao}
                     </p>
@@ -221,7 +228,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                     )}
                     target="_blank"
                     rel="noopener noreferrer"
-                    variante={produto.destaque ? "default" : "outline"}
+                    variante={produto.destaque ? "pink" : "outline"}
                     className="w-full text-xs py-2.5"
                   >
                     <ShoppingBag className="h-3.5 w-3.5" />
@@ -229,7 +236,11 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                   </BotaoLink>
                 </div>
               </article>
-            ))}
+            )) : (
+              <div className="rounded-3xl border border-dashed border-primary/30 bg-card p-8 text-center text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">
+                Os produtos serão cadastrados em breve. Chame no WhatsApp para consultar a linha disponível no salão.
+              </div>
+            )}
           </div>
         </div>
       </div>

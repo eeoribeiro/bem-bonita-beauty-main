@@ -1,25 +1,32 @@
-import { TituloSecao } from "./TituloSecao";
+import { MessageCircle } from "lucide-react";
+
 import { BotaoLink } from "./Botao";
+import { TituloSecao } from "./TituloSecao";
 import { contatoLink, SALAO } from "@/lib/salao";
 import { initialServices } from "@/lib/initial-content";
 import { usePublicSiteData } from "@/lib/site-data";
 
 export function Servicos() {
-  const { data, isLoading } = usePublicSiteData();
-  const servicosExibidos = data?.services.length
+  const { data, isError, isLoading } = usePublicSiteData();
+  const servicosExibidos = data
     ? data.services.map((service) => ({
+        id: service.id,
         nome: service.name,
         descricao: service.description,
-        imagem: service.image_url ?? initialServices[0].image_url,
-        alt: service.name,
-        benefits: service.benefits ?? [],
+        preco: service.price_text,
       }))
+    : isError
+      ? initialServices.map((service) => ({
+          id: service.name,
+          nome: service.name,
+          descricao: service.description,
+          preco: service.price_text,
+        }))
     : initialServices.map((service) => ({
+        id: service.name,
         nome: service.name,
         descricao: service.description,
-        imagem: service.image_url,
-        alt: service.name,
-        benefits: service.benefits,
+        preco: service.price_text,
       }));
 
   return (
@@ -28,58 +35,47 @@ export function Servicos() {
         <div data-reveal className="reveal">
           <TituloSecao
             eyebrow="Serviços"
-            titulo={data?.settings?.services_title ?? "Técnica dedicada a cada tipo de cacho"}
+            titulo={data?.settings?.services_title ?? "Tabela de preços Bem Bonita"}
             texto={
               data?.settings?.services_description ??
-              "Atendimentos pensados para cabelos crespos e cacheados, com avaliação individual antes de cada procedimento."
+              "Atendimentos para cuidar dos cachos, tratamentos e finalizações com clareza para você escolher o melhor momento de se cuidar."
             }
           />
         </div>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
+        <div className="mt-12 grid gap-4 lg:grid-cols-2">
           {isLoading
-            ? Array.from({ length: 4 }, (_, index) => (
-                <div
-                  key={index}
-                  className="overflow-hidden rounded-3xl border border-border/60 bg-card sm:grid sm:grid-cols-[12rem_1fr]"
-                >
-                  <div className="h-56 animate-pulse bg-secondary/70 sm:h-full sm:min-h-64" />
-                  <div className="space-y-3 p-6">
-                    <div className="h-5 w-2/3 animate-pulse rounded bg-secondary/70" />
-                    <div className="h-16 animate-pulse rounded bg-secondary/40" />
-                  </div>
+            ? Array.from({ length: 8 }, (_, index) => (
+                <div key={index} className="rounded-3xl border border-border/60 bg-card p-6 shadow-card">
+                  <div className="h-5 w-2/3 animate-pulse rounded bg-secondary/70" />
+                  <div className="mt-4 h-12 animate-pulse rounded bg-secondary/40" />
                 </div>
               ))
-            : servicosExibidos.map((servico) => (
+            : servicosExibidos.length ? servicosExibidos.map((servico, index) => (
                 <article
-                  key={servico.nome}
-                  className="group flex flex-col justify-between overflow-hidden rounded-3xl border border-border/60 bg-card shadow-card transition-shadow duration-300 hover:shadow-soft sm:grid sm:grid-cols-[12rem_1fr]"
+                  key={servico.id}
+                  className="group flex min-h-full flex-col justify-between rounded-3xl border border-border/60 bg-card p-5 shadow-card transition duration-300 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-soft sm:p-6"
                 >
-                  <div className="h-60 overflow-hidden sm:h-full sm:min-h-72">
-                    <img
-                      src={servico.imagem}
-                      width={900}
-                      height={700}
-                      loading="lazy"
-                      alt={servico.alt}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                    />
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-magenta">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <h3 className="text-xl leading-snug font-display">{servico.nome}</h3>
+                      </div>
+                      {servico.descricao ? (
+                        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                          {servico.descricao}
+                        </p>
+                      ) : null}
+                    </div>
+                    <strong className="shrink-0 rounded-full bg-secondary px-4 py-2 text-sm font-semibold text-magenta">
+                      {servico.preco}
+                    </strong>
                   </div>
-                  <div className="flex min-w-0 flex-col p-6">
-                    <h3 className="text-xl leading-snug font-display">{servico.nome}</h3>
-                    <span className="rule-gold mt-3 max-w-[3.5rem]" />
-                    <p className="mt-4 flex-1 text-sm leading-relaxed text-muted-foreground">
-                      {servico.descricao}
-                    </p>
-                    {servico.benefits && servico.benefits.length ? (
-                      <ul className="mt-4 space-y-2 text-xs text-muted-foreground">
-                        {servico.benefits.map((benefit) => (
-                          <li key={benefit} className="flex gap-2">
-                            <span className="text-gold">•</span> {benefit}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
+
+                  <div className="mt-5 border-t border-border/60 pt-4">
                     <BotaoLink
                       href={contatoLink(
                         `Olá, ${SALAO.nome}! Gostaria de agendar ou tirar dúvidas sobre o serviço: ${servico.nome}.`,
@@ -87,16 +83,21 @@ export function Servicos() {
                       target="_blank"
                       rel="noopener noreferrer"
                       variante="outline"
-                      className="mt-6 w-full"
+                      className="w-full"
                     >
+                      <MessageCircle className="h-4 w-4" />
                       Conversar sobre este serviço
                     </BotaoLink>
                   </div>
                 </article>
-              ))}
+              )) : (
+                <div className="rounded-3xl border border-dashed border-primary/30 bg-card p-8 text-center text-sm text-muted-foreground lg:col-span-2">
+                  A tabela de serviços será publicada em breve.
+                </div>
+              )}
         </div>
 
-        <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 rounded-3xl border border-primary/20 bg-card p-6 sm:p-8 shadow-card">
+        <div className="mt-12 flex flex-col items-center justify-between gap-6 rounded-3xl border border-primary/20 bg-card p-6 shadow-card sm:flex-row sm:p-8">
           <div className="max-w-2xl">
             <h4 className="text-xl font-display">Não tem certeza de qual serviço escolher?</h4>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -110,7 +111,7 @@ export function Servicos() {
             )}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:w-auto shrink-0 shadow-soft"
+            className="w-full shrink-0 shadow-soft sm:w-auto"
           >
             Agendar avaliação no WhatsApp
           </BotaoLink>

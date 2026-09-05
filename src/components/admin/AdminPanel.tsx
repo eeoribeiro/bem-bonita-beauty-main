@@ -131,6 +131,7 @@ const defaultDemoSettings: SiteSettingsData = {
 const emptyService = (): Omit<ServiceData, "id" | "sort_order"> => ({
   name: "",
   description: "",
+  price_text: "",
   benefits: [],
   image_url: null,
   storage_path: null,
@@ -248,7 +249,7 @@ export function AdminPanel({
         supabase.from("testimonials").select("*").order("created_at", { ascending: false }),
       ]);
 
-      const firstError = [config, photos, serviceRows, categoryRows, portfolioRows, profRows].find(
+      const firstError = [config, photos, serviceRows, categoryRows, portfolioRows, profRows, productRows, testimonialRows].find(
         (result) => result.error,
       )?.error;
 
@@ -267,10 +268,9 @@ export function AdminPanel({
         setProfessionals(savedProfessionals.length > 0 ? savedProfessionals : initialProfessionals.map((professional, index) => ({
           ...professional,
           id: `pending-prof-${index + 1}`,
-          image_url: [fotoFranciellyFallback, fotoMechasFallback, fotoDefinicaoFallback][index],
+          image_url: [fotoFranciellyFallback, fotoMechasFallback, fotoDefinicaoFallback][index] ?? null,
         })));
-        const savedProducts = (productRows.data ?? []) as ProductData[];
-        setProducts(savedProducts.length > 0 ? savedProducts : initialProducts);
+        setProducts((productRows.data ?? []) as ProductData[]);
         setCategories(
           ((categoryRows.data ?? []) as CategoryData[]).filter(
             (c) => c.slug !== initialContentMarker
@@ -934,7 +934,7 @@ function TeamManagerTab({
     }
 
     const itemsCopy = [...professionals];
-    const [movedItem] = itemsCopy.splice(draggedIndex, 1);
+    const movedItem = itemsCopy.splice(draggedIndex, 1)[0]!;
     itemsCopy.splice(targetIndex, 0, movedItem);
 
     setDraggedIndex(null);
@@ -949,7 +949,7 @@ function TeamManagerTab({
     if (targetIndex < 0 || targetIndex >= professionals.length) return;
 
     const itemsCopy = [...professionals];
-    const [movedItem] = itemsCopy.splice(currentIndex, 1);
+    const movedItem = itemsCopy.splice(currentIndex, 1)[0]!;
     itemsCopy.splice(targetIndex, 0, movedItem);
     await applyNewOrder(itemsCopy);
   }
@@ -1681,7 +1681,6 @@ function PortfolioOverviewTab({
   );
 }
 
-{/* Aba de Prévia de Serviços com Detalhes */}
 function ServicesOverviewTab({
   services,
   onOpenManager,
@@ -1691,73 +1690,54 @@ function ServicesOverviewTab({
 }) {
   return (
     <section className="space-y-8">
-      {/* Topo da Seção de Serviços */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <p className="eyebrow">Atendimentos</p>
-          <h1 className="mt-2 text-3xl sm:text-4xl font-display">Catálogo de Serviços</h1>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-display">Tabela de Serviços</h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            {services.length} serviços cadastrados com link direto para agendamento no WhatsApp.
+            {services.length} serviços cadastrados. Eles aparecem como lista de preços no site, sem fotos.
           </p>
         </div>
         <div className="flex flex-wrap gap-3 shrink-0">
           <Botao type="button" onClick={onOpenManager} className="shadow-card">
-            <Scissors className="h-4 w-4" /> Gerenciar &amp; Reordenar Serviços
+            <Scissors className="h-4 w-4" /> Gerenciar serviços
           </Botao>
         </div>
       </div>
 
-      {/* Grid de Cards dos Serviços */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2">
         {services.map((item, index) => (
           <div
             key={item.id}
             onClick={onOpenManager}
-            className="group cursor-pointer overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-soft flex flex-col justify-between"
+            className="group cursor-pointer rounded-3xl border border-border bg-card p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-soft"
           >
-            <div>
-              {item.image_url ? (
-                <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-secondary/40 mb-4">
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute top-2.5 left-2.5 rounded-full bg-black/60 px-2.5 py-0.5 text-[11px] font-bold text-white backdrop-blur">
-                    #{item.sort_order || index + 1}
-                  </div>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-magenta">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <h3 className="text-base font-semibold group-hover:text-magenta transition">
+                    {item.name}
+                  </h3>
                 </div>
-              ) : null}
-
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-base font-semibold group-hover:text-magenta transition">
-                  {item.name}
-                </h3>
-                <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
-                  Ativo
+                {item.description ? (
+                  <p className="mt-3 text-xs leading-relaxed text-muted-foreground line-clamp-3">
+                    {item.description}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-magenta">
+                  {item.price_text || "Sem preço"}
+                </span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${item.published ? "bg-emerald-500/15 text-emerald-300" : "bg-secondary text-muted-foreground"}`}
+                >
+                  {item.published ? "Ativo" : "Inativo"}
                 </span>
               </div>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground line-clamp-3">
-                {item.description}
-              </p>
-
-              {item.benefits?.length ? (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {item.benefits.slice(0, 2).map((b, i) => (
-                    <span
-                      key={i}
-                      className="rounded-full bg-secondary px-2.5 py-0.5 text-[10px] text-muted-foreground"
-                    >
-                      ✓ {b}
-                    </span>
-                  ))}
-                  {item.benefits.length > 2 ? (
-                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
-                      +{item.benefits.length - 2}
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
             </div>
 
             <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs">
@@ -1883,88 +1863,167 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
 }) {
-  const emptyProduct = (): ProductData => ({ id: "", name: "", subtitle: "", hair_type: "", description: "", benefits: [], image_url: null, storage_path: null, featured: false, sort_order: products.length + 1, published: true });
+  const emptyProduct = (): ProductData => ({
+    id: "",
+    name: "",
+    subtitle: "",
+    hair_type: "",
+    description: "",
+    benefits: [],
+    category: "",
+    price_text: "",
+    image_url: null,
+    storage_path: null,
+    featured: false,
+    sort_order: products.length ? Math.max(...products.map((product) => product.sort_order), 0) + 1 : 1,
+    published: true,
+  });
   const [editing, setEditing] = useState<ProductData | null>(null);
   const [benefitsText, setBenefitsText] = useState("");
   const [savingProduct, setSavingProduct] = useState(false);
   const [uploadingProduct, setUploadingProduct] = useState(false);
-  const pending = products.some((product) => product.id.startsWith("pending-product-"));
 
   function openEditor(product?: ProductData) {
     const value = product ?? emptyProduct();
     setEditing({ ...value });
-    setBenefitsText(value.benefits.join("\n"));
+    setBenefitsText((value.benefits ?? []).join("\n"));
   }
 
   async function selectProductImage(file: File) {
     if (!editing) return;
     setUploadingProduct(true);
     try {
-      if (isDemo) setEditing({ ...editing, image_url: URL.createObjectURL(file), storage_path: null });
-      else {
+      if (isDemo) {
+        const previewUrl = URL.createObjectURL(file);
+        setEditing((current) => current ? { ...current, image_url: previewUrl, storage_path: null } : current);
+      } else {
         const uploaded = await uploadImagem(file, "products");
-        setEditing({ ...editing, image_url: uploaded.url, storage_path: uploaded.path });
+        setEditing((current) => current ? { ...current, image_url: uploaded.url, storage_path: uploaded.path } : current);
+        onSuccess("Foto enviada. Agora clique em salvar produto.");
       }
-    } catch (error) { onError(error instanceof Error ? error.message : "Falha no upload da imagem."); }
-    finally { setUploadingProduct(false); }
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Falha no upload da imagem.");
+    } finally {
+      setUploadingProduct(false);
+    }
   }
 
   async function saveProduct(event: FormEvent) {
     event.preventDefault();
-    if (!editing?.name.trim() || !editing.description.trim()) { onError("Preencha o nome e a descrição do produto."); return; }
-    const payload = { ...editing, benefits: benefitsText.split("\n").map((item) => item.trim()).filter(Boolean) };
+    if (!editing?.name.trim()) {
+      onError("Preencha o nome do produto.");
+      return;
+    }
+
+    const payload = {
+      name: editing.name.trim(),
+      subtitle: editing.subtitle.trim(),
+      hair_type: editing.hair_type.trim(),
+      description: editing.description.trim(),
+      benefits: benefitsText.split("\n").map((item) => item.trim()).filter(Boolean),
+      category: editing.category?.trim() ?? "",
+      price_text: editing.price_text?.trim() ?? "",
+      image_url: editing.image_url,
+      storage_path: editing.storage_path,
+      featured: editing.featured,
+      sort_order: editing.sort_order || (products.length ? Math.max(...products.map((product) => product.sort_order), 0) + 1 : 1),
+      published: editing.published,
+    };
+
     setSavingProduct(true);
     try {
       if (isDemo) {
-        setProducts((current) => payload.id ? current.map((item) => item.id === payload.id ? payload : item) : [...current, { ...payload, id: `product-${Date.now()}` }]);
+        const saved = { ...payload, id: editing.id || `product-${Date.now()}` };
+        setProducts((current) => editing.id ? current.map((item) => item.id === editing.id ? saved : item) : [...current, saved]);
       } else {
-        const { id, ...row } = payload;
-        const query = id && !id.startsWith("pending-product-")
-          ? getSupabaseClient().from("products").update(row).eq("id", id)
-          : getSupabaseClient().from("products").insert(row);
-        const { error } = await query;
-        if (error) throw error;
+        const query = editing.id
+          ? getSupabaseClient().from("products").update(payload).eq("id", editing.id)
+          : getSupabaseClient().from("products").insert(payload);
+        const { data: savedProduct, error } = await query.select("*").single();
+        if (error || !savedProduct) throw error ?? new Error("O Supabase não retornou o produto salvo.");
+        setProducts((current) =>
+          editing.id
+            ? current.map((item) => item.id === editing.id ? (savedProduct as ProductData) : item)
+            : [...current, savedProduct as ProductData],
+        );
         await onReload();
       }
       onSuccess("Produto salvo e atualizado no site.");
       setEditing(null);
     } catch (error) {
-      const detail = error instanceof Error ? error.message : "";
-      onError(detail.includes("products")
-        ? "A tabela de produtos ainda não existe. Execute supabase/admin-functional-repair.sql no Supabase."
-        : "Não foi possível salvar o produto. Tente novamente.");
+      onError(error instanceof Error ? error.message : "Não foi possível salvar o produto. Tente novamente.");
+    } finally {
+      setSavingProduct(false);
     }
-    finally { setSavingProduct(false); }
-  }
-
-  async function importProducts() {
-    setSavingProduct(true);
-    try {
-      const rows = products.map(({ id: _id, ...product }) => product);
-      const { error } = await getSupabaseClient().from("products").insert(rows);
-      if (error) throw error;
-      await onReload();
-      onSuccess("Catálogo atual salvo no Supabase.");
-    } catch { onError("A tabela de produtos ainda não existe. Execute supabase/admin-functional-repair.sql no Supabase antes de importar."); }
-    finally { setSavingProduct(false); }
   }
 
   async function removeProduct(product: ProductData) {
     if (!window.confirm(`Excluir o produto “${product.name}”?`)) return;
-    if (product.id.startsWith("pending-product-")) { setProducts((current) => current.filter((item) => item.id !== product.id)); return; }
+    if (isDemo || product.id.startsWith("pending-product-")) {
+      setProducts((current) => current.filter((item) => item.id !== product.id));
+      onSuccess("Produto excluído.");
+      return;
+    }
     const { error } = await getSupabaseClient().from("products").delete().eq("id", product.id);
-    if (error) onError(error.message.includes("products") ? "A tabela de produtos ainda não existe. Execute supabase/admin-functional-repair.sql no Supabase." : "Não foi possível excluir o produto.");
+    if (error) onError(error.message);
     else { await removerImagem(product.storage_path); await onReload(); onSuccess("Produto excluído."); }
   }
 
   return <section className="space-y-8">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div><p className="eyebrow">Catálogo</p><h1 className="mt-2 text-3xl font-display sm:text-4xl">Produtos ({products.length})</h1><p className="mt-2 text-sm text-muted-foreground">Adicione e edite os produtos exibidos na seção “Linha Bem Bonita”.</p></div>
-      <Botao type="button" onClick={() => openEditor()}><Plus className="h-4 w-4" /> Adicionar produto</Botao>
+      <div><p className="eyebrow">Catálogo</p><h1 className="mt-2 text-3xl font-display sm:text-4xl">Produtos ({products.length})</h1><p className="mt-2 text-sm text-muted-foreground">Cadastre a loja como catálogo editável. O ecommerce completo será definido depois.</p></div>
+      <Botao type="button" onClick={() => openEditor()}><Plus className="h-4 w-4" /> Novo produto</Botao>
     </div>
-    {pending && !isDemo ? <div className="flex flex-col gap-4 rounded-2xl border border-gold/40 bg-gold/10 p-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold">O catálogo atual ainda está salvo apenas no site</p><p className="mt-1 text-xs text-muted-foreground">Importe os cinco produtos para começar a gerenciá-los pelo painel.</p></div><Botao type="button" disabled={savingProduct} onClick={() => void importProducts()}><Save className="h-4 w-4" /> Salvar catálogo no Supabase</Botao></div> : null}
-    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{products.map((product) => <article key={product.id} className="rounded-3xl border border-border bg-card p-5 shadow-card"><div className="aspect-square overflow-hidden rounded-2xl bg-secondary"><SafeImage src={product.image_url ?? fotoProdutosFallback} fallbackSrc={fotoProdutosFallback} alt={product.name} className="h-full w-full object-cover" /></div><div className="mt-4"><div className="flex items-start justify-between gap-2"><h2 className="font-display text-lg">{product.name}</h2><span className={`rounded-full px-2 py-1 text-[10px] ${product.published ? "bg-emerald-500/15 text-emerald-300" : "bg-secondary text-muted-foreground"}`}>{product.published ? "Ativo" : "Oculto"}</span></div><p className="mt-1 text-xs text-muted-foreground">{product.subtitle}</p><div className="mt-4 flex gap-2"><button type="button" onClick={() => openEditor(product)} className="min-h-11 flex-1 rounded-xl bg-secondary px-3 py-2 text-xs font-semibold text-magenta">Editar</button><button type="button" onClick={() => void removeProduct(product)} className="min-h-11 rounded-xl border border-red-500/30 px-4 py-2 text-xs text-red-300">Excluir</button></div></div></article>)}</div>
-    {editing ? <AdminModal title={editing.id ? "Editar produto" : "Adicionar produto"} onClose={() => setEditing(null)}><form onSubmit={saveProduct} className="space-y-4"><ImageField label="Foto do produto" currentUrl={editing.image_url} uploading={uploadingProduct} onSelect={(file) => void selectProductImage(file)} /><label className="block"><span className="text-sm font-medium">Nome</span><input className="admin-input" value={editing.name} onChange={(event) => setEditing({ ...editing, name: event.target.value })} /></label><label className="block"><span className="text-sm font-medium">Subtítulo</span><input className="admin-input" value={editing.subtitle} onChange={(event) => setEditing({ ...editing, subtitle: event.target.value })} /></label><label className="block"><span className="text-sm font-medium">Tipos de cabelo / curvaturas</span><input className="admin-input" value={editing.hair_type} onChange={(event) => setEditing({ ...editing, hair_type: event.target.value })} /></label><label className="block"><span className="text-sm font-medium">Descrição</span><textarea rows={3} className="admin-input" value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} /></label><label className="block"><span className="text-sm font-medium">Benefícios — um por linha</span><textarea rows={4} className="admin-input" value={benefitsText} onChange={(event) => setBenefitsText(event.target.value)} /></label><div className="grid gap-3 sm:grid-cols-2"><label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={editing.featured} onChange={(event) => setEditing({ ...editing, featured: event.target.checked })} /> Produto em destaque</label><label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={editing.published} onChange={(event) => setEditing({ ...editing, published: event.target.checked })} /> Ativo no site</label></div><Botao type="submit" disabled={savingProduct || uploadingProduct}>{savingProduct ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar produto</Botao></form></AdminModal> : null}
+    {products.length ? (
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {products.map((product) => (
+          <article key={product.id} className="rounded-3xl border border-border bg-card p-5 shadow-card">
+            <div className="flex aspect-[3/4] items-center justify-center overflow-hidden">
+              <SafeImage src={product.image_url ?? fotoProdutosFallback} fallbackSrc={fotoProdutosFallback} alt={product.name} className="h-full w-full object-contain" />
+            </div>
+            <div className="mt-4">
+              <div className="flex items-start justify-between gap-2">
+                <h2 className="font-display text-lg">{product.name}</h2>
+                <span className={`rounded-full px-2 py-1 text-[10px] ${product.published ? "bg-emerald-500/15 text-emerald-300" : "bg-secondary text-muted-foreground"}`}>{product.published ? "Ativo" : "Oculto"}</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{product.subtitle || product.hair_type}</p>
+              {product.price_text ? <p className="mt-2 text-sm font-semibold text-magenta">{product.price_text}</p> : null}
+              <div className="mt-4 flex gap-2">
+                <button type="button" onClick={() => openEditor(product)} className="min-h-11 flex-1 rounded-xl bg-secondary px-3 py-2 text-xs font-semibold text-magenta">Editar</button>
+                <button type="button" onClick={() => void removeProduct(product)} className="min-h-11 rounded-xl border border-red-500/30 px-4 py-2 text-xs text-red-300">Excluir</button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <div className="rounded-3xl border border-dashed border-border p-10 text-center">
+        <ShoppingBag className="mx-auto h-9 w-9 text-magenta" />
+        <h2 className="mt-3 font-display text-2xl">Nenhum produto cadastrado ainda</h2>
+        <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">Clique em “Novo produto” para cadastrar a primeira foto e deixar a loja pronta para a próxima etapa do ecommerce.</p>
+        <Botao type="button" onClick={() => openEditor()} className="mt-5"><Plus className="h-4 w-4" /> Novo produto</Botao>
+      </div>
+    )}
+    {editing ? <AdminModal title={editing.id ? "Editar produto" : "Novo produto"} onClose={() => setEditing(null)}><form onSubmit={saveProduct} className="space-y-4">
+      <ImageField label="Foto do produto" currentUrl={editing.image_url} uploading={uploadingProduct} onSelect={(file) => void selectProductImage(file)} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block"><span className="text-sm font-medium">Nome</span><input className="admin-input" value={editing.name} onChange={(event) => setEditing({ ...editing, name: event.target.value })} required /></label>
+        <label className="block"><span className="text-sm font-medium">Preço opcional</span><input className="admin-input" value={editing.price_text ?? ""} onChange={(event) => setEditing({ ...editing, price_text: event.target.value })} placeholder="Ex.: R$89,90" /></label>
+      </div>
+      <label className="block"><span className="text-sm font-medium">Subtítulo</span><input className="admin-input" value={editing.subtitle} onChange={(event) => setEditing({ ...editing, subtitle: event.target.value })} /></label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block"><span className="text-sm font-medium">Tipos de cabelo / curvaturas</span><input className="admin-input" value={editing.hair_type} onChange={(event) => setEditing({ ...editing, hair_type: event.target.value })} /></label>
+        <label className="block"><span className="text-sm font-medium">Categoria / linha</span><input className="admin-input" value={editing.category ?? ""} onChange={(event) => setEditing({ ...editing, category: event.target.value })} placeholder="Ex.: Cachos, Força, Reviveme" /></label>
+      </div>
+      <label className="block"><span className="text-sm font-medium">Descrição</span><textarea rows={3} className="admin-input" value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} /></label>
+      <label className="block"><span className="text-sm font-medium">Benefícios — um por linha</span><textarea rows={4} className="admin-input" value={benefitsText} onChange={(event) => setBenefitsText(event.target.value)} /></label>
+      <label className="block"><span className="text-sm font-medium">Ordem</span><input type="number" min={1} className="admin-input" value={editing.sort_order} onChange={(event) => setEditing({ ...editing, sort_order: Number(event.target.value) || 1 })} /></label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={editing.featured} onChange={(event) => setEditing({ ...editing, featured: event.target.checked })} /> Produto em destaque</label>
+        <label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm"><input type="checkbox" checked={editing.published} onChange={(event) => setEditing({ ...editing, published: event.target.checked })} /> Ativo no site</label>
+      </div>
+      <Botao type="submit" disabled={savingProduct || uploadingProduct}>{savingProduct ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar produto</Botao>
+    </form></AdminModal> : null}
   </section>;
 }
 
@@ -2897,11 +2956,7 @@ function ServicesManager({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyService());
-  const [benefits, setBenefits] = useState("");
-  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  // Drag & drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -2912,33 +2967,15 @@ function ServicesManager({
         ? {
             name: item.name,
             description: item.description,
-            benefits: item.benefits ?? [],
-            image_url: item.image_url,
-            storage_path: item.storage_path,
-            cta_label: item.cta_label,
+            price_text: item.price_text ?? "",
+            benefits: [],
+            image_url: null,
+            storage_path: null,
+            cta_label: "Conversar sobre este serviço",
             published: item.published,
           }
         : emptyService(),
     );
-    setBenefits(item?.benefits?.join("\n") ?? "");
-  }
-
-  async function selectImage(file: File) {
-    setUploading(true);
-    try {
-      if (isDemo) {
-        const fakeUrl = URL.createObjectURL(file);
-        setForm((current) => ({ ...current, image_url: fakeUrl, storage_path: null }));
-        setUploading(false);
-        return;
-      }
-      const uploaded = await uploadImagem(file, "services");
-      setForm((current) => ({ ...current, image_url: uploaded.url, storage_path: uploaded.path }));
-    } catch (error) {
-      onError(error instanceof Error ? error.message : "Falha no upload.");
-    } finally {
-      setUploading(false);
-    }
   }
 
   async function applyNewOrder(reorderedList: ServiceData[]) {
@@ -2960,8 +2997,8 @@ function ServicesManager({
       }
       await onReload();
       onSuccess("Ordem dos serviços atualizada.");
-    } catch {
-      onError("Não foi possível salvar a nova ordem.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível salvar a nova ordem.");
     }
   }
 
@@ -2984,7 +3021,7 @@ function ServicesManager({
     }
 
     const itemsCopy = [...services];
-    const [movedItem] = itemsCopy.splice(draggedIndex, 1);
+    const movedItem = itemsCopy.splice(draggedIndex, 1)[0]!;
     itemsCopy.splice(targetIndex, 0, movedItem);
 
     setDraggedIndex(null);
@@ -2999,13 +3036,21 @@ function ServicesManager({
     if (targetIndex < 0 || targetIndex >= services.length) return;
 
     const itemsCopy = [...services];
-    const [movedItem] = itemsCopy.splice(currentIndex, 1);
+    const movedItem = itemsCopy.splice(currentIndex, 1)[0]!;
     itemsCopy.splice(targetIndex, 0, movedItem);
     await applyNewOrder(itemsCopy);
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (!form.name.trim()) {
+      onError("Informe o nome do serviço.");
+      return;
+    }
+    if (!form.price_text.trim()) {
+      onError("Informe o preço do serviço.");
+      return;
+    }
     setSaving(true);
 
     const nextOrder = editingId
@@ -3013,12 +3058,15 @@ function ServicesManager({
       : (services.length ? Math.max(...services.map((s) => s.sort_order), 0) + 1 : 1);
 
     const payload = {
-      ...form,
+      name: form.name.trim(),
+      description: form.description.trim(),
+      price_text: form.price_text.trim(),
       sort_order: nextOrder,
-      benefits: benefits
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean),
+      benefits: [],
+      image_url: null,
+      storage_path: null,
+      cta_label: "Conversar sobre este serviço",
+      published: form.published,
     };
 
     if (isDemo) {
@@ -3040,15 +3088,15 @@ function ServicesManager({
       const query = editingId
         ? getSupabaseClient().from("services").update(payload).eq("id", editingId)
         : getSupabaseClient().from("services").insert(payload);
-      const { data: savedService, error } = await query.select("id, sort_order").single();
-      if (error || !savedService) onError("Não foi possível salvar o serviço.");
+      const { data: savedService, error } = await query.select("*").single();
+      if (error || !savedService) onError(error?.message ?? "Não foi possível salvar o serviço.");
       else {
         onSuccess(editingId ? "Serviço atualizado." : "Novo serviço adicionado no final da lista.");
         edit();
         await onReload();
       }
-    } catch {
-      onError("Erro ao salvar serviço.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Erro ao salvar serviço.");
     }
     setSaving(false);
   }
@@ -3067,12 +3115,11 @@ function ServicesManager({
       const { error } = await getSupabaseClient().from("services").delete().eq("id", item.id);
       if (error) onError("Não foi possível excluir o serviço.");
       else {
-        await removerImagem(item.storage_path);
         onSuccess("Serviço excluído.");
         await onReload();
       }
-    } catch {
-      onError("Erro ao excluir serviço.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Erro ao excluir serviço.");
     }
   }
 
@@ -3083,7 +3130,7 @@ function ServicesManager({
           <div>
             <h3 className="text-xl font-display">Serviços cadastrados ({services.length})</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              ✨ Arraste os cards para reorganizar a ordem no site.
+              Arraste os itens para reorganizar a ordem da tabela no site.
             </p>
           </div>
           <button
@@ -3095,6 +3142,11 @@ function ServicesManager({
           </button>
         </div>
         <div className="mt-5 space-y-3.5">
+          {!services.length ? (
+            <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              Nenhum serviço cadastrado. Use “Novo serviço” para montar a tabela de preços.
+            </div>
+          ) : null}
           {services.map((item, index) => {
             const isDragging = draggedIndex === index;
             const isOver = dragOverIndex === index;
@@ -3110,7 +3162,7 @@ function ServicesManager({
                   setDraggedIndex(null);
                   setDragOverIndex(null);
                 }}
-                className={`group relative overflow-hidden rounded-3xl border bg-background shadow-card transition-all duration-200 cursor-grab active:cursor-grabbing sm:grid sm:grid-cols-[2.5rem_9.5rem_1fr] ${
+                className={`group relative overflow-hidden rounded-3xl border bg-background shadow-card transition-all duration-200 cursor-grab active:cursor-grabbing sm:grid sm:grid-cols-[2.5rem_1fr] ${
                   isDragging ? "opacity-40 scale-[0.98] border-dashed border-magenta" : ""
                 } ${isOver ? "border-primary ring-2 ring-primary/40 -translate-y-1" : "border-border"}`}
               >
@@ -3118,17 +3170,6 @@ function ServicesManager({
                   <GripVertical className="h-5 w-5 opacity-60 group-hover:opacity-100 transition" />
                 </div>
 
-                {item.image_url ? (
-                  <img
-                    src={item.image_url}
-                    alt={`Imagem do serviço ${item.name}`}
-                    className="aspect-[4/3] h-full min-h-36 w-full object-cover sm:aspect-auto"
-                  />
-                ) : (
-                  <div className="flex aspect-[4/3] h-full min-h-36 w-full items-center justify-center bg-muted text-sm text-muted-foreground sm:aspect-auto">
-                    Sem imagem
-                  </div>
-                )}
                 <div className="flex min-w-0 flex-col p-4 sm:p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2">
@@ -3137,15 +3178,22 @@ function ServicesManager({
                       </span>
                       <p className="text-base font-medium leading-snug">{item.name}</p>
                     </div>
-                    <span
-                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${item.published ? "bg-emerald-500/15 text-emerald-300" : "bg-muted text-muted-foreground"}`}
-                    >
-                      {item.published ? "Ativo" : "Inativo"}
-                    </span>
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-magenta">
+                        {item.price_text || "Sem preço"}
+                      </span>
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${item.published ? "bg-emerald-500/15 text-emerald-300" : "bg-muted text-muted-foreground"}`}
+                      >
+                        {item.published ? "Ativo" : "Inativo"}
+                      </span>
+                    </div>
                   </div>
-                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                    {item.description}
-                  </p>
+                  {item.description ? (
+                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                      {item.description}
+                    </p>
+                  ) : null}
                   <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
                     <span className="text-[11px] text-muted-foreground">
                       Posição #{index + 1}
@@ -3230,11 +3278,6 @@ function ServicesManager({
             </span>
           )}
         </div>
-        <ImageField
-          currentUrl={form.image_url}
-          uploading={uploading === "service"}
-          onSelect={(file) => void selectImage(file)}
-        />
         <Field
           label="Nome do serviço"
           value={form.name}
@@ -3243,18 +3286,17 @@ function ServicesManager({
           required
         />
         <Field
+          label="Preço"
+          value={form.price_text}
+          onChange={(value) => setForm({ ...form, price_text: value })}
+          placeholder="Ex: R$120,00"
+          required
+        />
+        <Field
           label="Descrição"
           value={form.description}
           onChange={(value) => setForm({ ...form, description: value })}
           placeholder="Descreva o procedimento e o resultado esperado..."
-          multiline
-          required
-        />
-        <Field
-          label="Benefícios (um por linha)"
-          value={benefits}
-          onChange={setBenefits}
-          placeholder="Cachos mais soltos&#10;Brilho intenso&#10;Sem frizz"
           multiline
         />
         <Toggle
@@ -3262,7 +3304,7 @@ function ServicesManager({
           checked={form.published}
           onChange={(published) => setForm({ ...form, published })}
         />
-        <Botao type="submit" disabled={saving || Boolean(uploading)} className="w-full">
+        <Botao type="submit" disabled={saving} className="w-full">
           {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Criar serviço (adicionar ao final)"}
         </Botao>
       </form>
@@ -3441,7 +3483,7 @@ function PortfolioManager({
     }
 
     const itemsCopy = [...items];
-    const [movedItem] = itemsCopy.splice(draggedIndex, 1);
+    const movedItem = itemsCopy.splice(draggedIndex, 1)[0]!;
     itemsCopy.splice(targetIndex, 0, movedItem);
 
     setDraggedIndex(null);
@@ -3456,7 +3498,7 @@ function PortfolioManager({
     if (targetIndex < 0 || targetIndex >= items.length) return;
 
     const itemsCopy = [...items];
-    const [movedItem] = itemsCopy.splice(currentIndex, 1);
+    const movedItem = itemsCopy.splice(currentIndex, 1)[0]!;
     itemsCopy.splice(targetIndex, 0, movedItem);
     await applyNewOrder(itemsCopy);
   }

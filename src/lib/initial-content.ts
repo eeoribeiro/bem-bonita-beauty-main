@@ -1,64 +1,74 @@
-import tratamento from "@/assets/servico-tratamento.jpg";
-import definicao from "@/assets/servico-definicao.jpg";
-import mechas from "@/assets/servico-mechas.jpg";
-import penteado from "@/assets/servico-penteado.jpg";
-import corte from "@/assets/servico-corte.jpg";
-import cronograma from "@/assets/servico-cronograma.jpg";
-import consultoria from "@/assets/servico-consultoria.jpg";
-
 export const initialServices = [
   {
-    name: "Corte especializado em cachos",
+    name: "Corte e Finalização",
     description:
-      "Corte a seco, mecha a mecha, desenhado de acordo com a curvatura, fator encolhimento e volume dos seus fios.",
-    image_url: corte,
+      "É necessário que o cabelo esteja limpo, seco e finalizado. O corte é feito a seco, depois lavamos e finalizamos.",
+    price_text: "R$120,00",
     sort_order: 1,
   },
   {
-    name: "Tratamentos capilares & Terapia",
-    description:
-      "Hidratação profunda, nutrição lipídica e reconstrução com aminoácidos para devolver a força e elasticidade aos cachos.",
-    image_url: tratamento,
+    name: "Ozonioterapia + Óleo Essencial",
+    description: "Lavanda, palma rosa e laranja doce. Duração: 3 semanas.",
+    price_text: "R$270,00",
     sort_order: 2,
   },
   {
-    name: "Definição e finalização de cachos",
+    name: "Cachoterapia",
     description:
-      "Técnicas de fitagem estruturada e finalizações exclusivas que prolongam o day after e realçam a definição natural.",
-    image_url: definicao,
+      "Assidificação + Nutrição + Reconstrução + Hidratação + bimeciação. Pacote para 4 semanas.",
+    price_text: "R$370,00",
     sort_order: 3,
   },
   {
-    name: "Mechas e iluminação segura",
+    name: "Escova e Prancha",
     description:
-      "Clareamento saudável para cabelos crespos e cacheados, preservando a integridade da fibra e a curvatura dos cachos.",
-    image_url: mechas,
+      "Lavagem com shampoo de nutrição + hidratação por 7 minutos no lavatório. TP R$50,00; TS R$65,00; C R$75,00; GG R$80,00.",
+    price_text: "A partir de R$50,00",
     sort_order: 4,
   },
   {
-    name: "Cronograma capilar personalizado",
-    description:
-      "Plano de tratamento contínuo com diagnósticos periódicos, indicado para transição capilar e recuperação pós-química.",
-    image_url: cronograma,
+    name: "Soltura de Cachos",
+    description: "Pré-química + Química + Tratamento + Finalização.",
+    price_text: "R$350,00",
     sort_order: 5,
   },
   {
-    name: "Penteados e produções",
+    name: "Cronograma de Tratamento Capilar",
     description:
-      "Penteados sofisticados para festas, noivas, formaturas e eventos sociais valorizando o volume e textura natural.",
-    image_url: penteado,
+      "Detox + Assidificação + Hidronutrição + Reconstrução + Restauração. Pacote para 4 semanas.",
+    price_text: "R$370,00",
     sort_order: 6,
   },
   {
-    name: "Consultoria e avaliação capilar",
-    description:
-      "Orientação personalizada sobre curvatura, porosidade, rotina de lavagem e manutenção Home Care.",
-    image_url: consultoria,
+    name: "Lavagem + Finalização",
+    description: "",
+    price_text: "R$50,00",
     sort_order: 7,
   },
+  { name: "Cauterização Capilar", description: "", price_text: "R$180,00", sort_order: 8 },
+  {
+    name: "Permanente Afro",
+    description: "Pré-química + Relaxamento + Permanente + Tratamento + Finalização.",
+    price_text: "R$530,00",
+    sort_order: 9,
+  },
+  {
+    name: "Desprogressiva",
+    description: "6 sessões: Limpeza dos fios + Corte + Pré-química + Química + Loção onduladora.",
+    price_text: "R$900,00",
+    sort_order: 10,
+  },
+  {
+    name: "Coloração",
+    description: "Com produto do salão: R$120,00; com produto do cliente: R$80,00.",
+    price_text: "R$80,00 a R$120,00",
+    sort_order: 11,
+  },
+  { name: "Tratamento + Escova", description: "", price_text: "R$168,00", sort_order: 12 },
 ].map((service) => ({
   ...service,
   benefits: [] as string[],
+  image_url: null,
   storage_path: null,
   cta_label: "Conversar sobre este serviço",
   published: true,
