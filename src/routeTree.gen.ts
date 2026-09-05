@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CursosRouteImport } from './routes/cursos'
+import { Route as FeedbacksRouteImport } from './routes/feedbacks'
 import { Route as FranciellyRouteImport } from './routes/francielly'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ProdutosRouteImport } from './routes/produtos'
+import { Route as ServicosRouteImport } from './routes/servicos'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,6 +31,11 @@ const AdminRoute = AdminRouteImport.update({
 const CursosRoute = CursosRouteImport.update({
   id: '/cursos',
   path: '/cursos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedbacksRoute = FeedbacksRouteImport.update({
+  id: '/feedbacks',
+  path: '/feedbacks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FranciellyRoute = FranciellyRouteImport.update({
@@ -46,55 +53,85 @@ const ProdutosRoute = ProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServicosRoute = ServicosRouteImport.update({
+  id: '/servicos',
+  path: '/servicos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/cursos': typeof CursosRoute
+  '/feedbacks': typeof FeedbacksRoute
   '/francielly': typeof FranciellyRoute
   '/privacidade': typeof PrivacidadeRoute
   '/produtos': typeof ProdutosRoute
+  '/servicos': typeof ServicosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/cursos': typeof CursosRoute
+  '/feedbacks': typeof FeedbacksRoute
   '/francielly': typeof FranciellyRoute
   '/privacidade': typeof PrivacidadeRoute
   '/produtos': typeof ProdutosRoute
+  '/servicos': typeof ServicosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/cursos': typeof CursosRoute
+  '/feedbacks': typeof FeedbacksRoute
   '/francielly': typeof FranciellyRoute
   '/privacidade': typeof PrivacidadeRoute
   '/produtos': typeof ProdutosRoute
+  '/servicos': typeof ServicosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/admin' | '/cursos' | '/francielly' | '/privacidade' | '/produtos'
+    | '/'
+    | '/admin'
+    | '/cursos'
+    | '/feedbacks'
+    | '/francielly'
+    | '/privacidade'
+    | '/produtos'
+    | '/servicos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/cursos' | '/francielly' | '/privacidade' | '/produtos'
+  to:
+    | '/'
+    | '/admin'
+    | '/cursos'
+    | '/feedbacks'
+    | '/francielly'
+    | '/privacidade'
+    | '/produtos'
+    | '/servicos'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/cursos'
+    | '/feedbacks'
     | '/francielly'
     | '/privacidade'
     | '/produtos'
+    | '/servicos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   CursosRoute: typeof CursosRoute
+  FeedbacksRoute: typeof FeedbacksRoute
   FranciellyRoute: typeof FranciellyRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   ProdutosRoute: typeof ProdutosRoute
+  ServicosRoute: typeof ServicosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -120,6 +157,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CursosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/feedbacks': {
+      id: '/feedbacks'
+      path: '/feedbacks'
+      fullPath: '/feedbacks'
+      preLoaderRoute: typeof FeedbacksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/francielly': {
       id: '/francielly'
       path: '/francielly'
@@ -141,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProdutosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/servicos': {
+      id: '/servicos'
+      path: '/servicos'
+      fullPath: '/servicos'
+      preLoaderRoute: typeof ServicosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -148,9 +199,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   CursosRoute: CursosRoute,
+  FeedbacksRoute: FeedbacksRoute,
   FranciellyRoute: FranciellyRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   ProdutosRoute: ProdutosRoute,
+  ServicosRoute: ServicosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

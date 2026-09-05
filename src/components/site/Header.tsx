@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Menu, X, MessageCircle, Sun, Moon } from "lucide-react";
+import { Menu, MessageCircle, Moon, Sun, X } from "lucide-react";
 
 import { BotaoLink } from "./Botao";
 import { Logo } from "./Logo";
@@ -8,16 +8,16 @@ import { useTheme } from "@/hooks/use-theme";
 
 const NAV_ITEMS = [
   { label: "Início", href: "/#inicio" },
-  { label: "Serviços", href: "/#servicos" },
+  { label: "Serviços", href: "/servicos" },
   { label: "Loja", href: "/produtos" },
-  { label: "Feedbacks", href: "/#depoimentos" },
+  { label: "Feedbacks", href: "/feedbacks" },
   { label: "Contato", href: "/#localizacao" },
 ] as const;
 
 export function Header() {
   const [aberto, setAberto] = useState(false);
   const [rolou, setRolou] = useState(false);
-  const { theme, toggleTheme, isLight } = useTheme();
+  const { toggleTheme, isLight } = useTheme();
 
   useEffect(() => {
     const onScroll = () => setRolou(window.scrollY > 24);
@@ -90,7 +90,7 @@ export function Header() {
           <button
             type="button"
             onClick={toggleTheme}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/55 text-foreground backdrop-blur-md xl:hidden"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/55 text-foreground backdrop-blur-md xl:hidden"
             aria-label={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
           >
             {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
@@ -107,33 +107,34 @@ export function Header() {
             {aberto ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
+
         {aberto ? (
           <div
             id="menu-mobile"
             className="absolute left-0 right-0 top-[calc(100%+0.65rem)] overflow-hidden rounded-[1.75rem] border border-border/50 bg-background/92 p-3 shadow-2xl backdrop-blur-2xl xl:hidden"
           >
-          <nav className="flex flex-col" aria-label="Menu mobile">
-            {NAV_ITEMS.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                onClick={() => setAberto(false)}
-                className="rounded-2xl px-4 py-3.5 text-base font-medium text-foreground/85 transition-colors hover:bg-secondary/70 hover:text-magenta"
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
-          <BotaoLink
-            href={agendar}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 w-full"
-            onClick={() => setAberto(false)}
-          >
-            <MessageCircle className="h-4 w-4" />
-            Solicitar avaliação
-          </BotaoLink>
+            <nav className="flex flex-col" aria-label="Menu mobile">
+              {NAV_ITEMS.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setAberto(false)}
+                  className="rounded-2xl px-4 py-3.5 text-base font-medium text-foreground/85 transition-colors hover:bg-secondary/70 hover:text-magenta"
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+            <BotaoLink
+              href={agendar}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 w-full"
+              onClick={() => setAberto(false)}
+            >
+              <MessageCircle className="h-4 w-4" />
+              Solicitar avaliação
+            </BotaoLink>
           </div>
         ) : null}
       </div>

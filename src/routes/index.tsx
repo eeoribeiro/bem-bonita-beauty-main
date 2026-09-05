@@ -2,15 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { Header } from "@/components/site/Header";
 import { Hero } from "@/components/site/Hero";
-import { Sobre } from "@/components/site/Sobre";
 import { Servicos } from "@/components/site/Servicos";
-import { Resultados } from "@/components/site/Resultados";
 import { Agendamento } from "@/components/site/Agendamento";
 import { Localizacao } from "@/components/site/Localizacao";
 import { Footer } from "@/components/site/Footer";
 import { BotaoFlutuanteWhatsApp } from "@/components/site/BotaoFlutuanteWhatsApp";
-import { PerguntasFrequentes } from "@/components/site/PerguntasFrequentes";
 import { Depoimentos } from "@/components/site/Depoimentos";
+import { Produtos } from "@/components/site/Produtos";
 import { useReveal } from "@/hooks/use-reveal";
 
 const titulo = "Bem Bonita | Salão para cabelos cacheados em Ponte Nova – MG";
@@ -81,12 +79,10 @@ function Index() {
       <Header />
       <main>
         <Hero />
-        <Servicos />
         <Agendamento />
-        <Resultados />
-        <Sobre />
+        <Servicos />
         <Depoimentos />
-        <PerguntasFrequentes />
+        <Produtos />
         <Localizacao />
       </main>
       <Footer />
