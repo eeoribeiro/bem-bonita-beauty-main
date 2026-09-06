@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 type Variante = "pink" | "outline" | "gold" | "ghostLight";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-medium tracking-wide transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-center text-sm font-medium tracking-wide transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:px-6";
 
 const variantes: Record<Variante, string> = {
   pink: "bg-primary text-primary-foreground shadow-soft hover:bg-magenta hover:-translate-y-0.5",

@@ -19,8 +19,8 @@ export function FranciellyPreview() {
     fotoFranciellyFallback;
 
   return (
-    <section id="francielly-preview" className="bg-background py-20 lg:py-28">
-      <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+    <section id="francielly-preview" className="bg-background py-16 lg:py-28">
+      <div className="mx-auto grid max-w-7xl items-center gap-9 px-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10 lg:px-8">
         <div data-reveal className="reveal relative">
           <div className="aspect-[4/5] overflow-hidden rounded-[2rem] border border-border/60 shadow-soft">
             <SafeImage
@@ -53,7 +53,7 @@ export function FranciellyPreview() {
             {bio}
           </p>
           <div className="mt-8">
-            <BotaoLink href="/francielly">
+            <BotaoLink href="/francielly" className="w-full sm:w-auto">
               Conhecer a Francielly
               <ArrowRight className="h-4 w-4" />
             </BotaoLink>

@@ -13,42 +13,42 @@ export function Hero() {
   const highlight = headlineWords.splice(Math.max(0, headlineWords.length - 2)).join(" ");
 
   return (
-    <section id="inicio" className="bg-blush-soft relative overflow-hidden pt-28 lg:pt-32">
+    <section id="inicio" className="bg-blush-soft relative overflow-hidden pt-24 sm:pt-28 lg:pt-32">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-secondary/70 blur-3xl"
       />
-      <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pb-28">
+      <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 pb-16 sm:gap-12 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:pb-28">
         <div>
           <p className="eyebrow flex items-center gap-2">
             <Sparkles className="h-3.5 w-3.5 text-gold" />
             {settings?.hero_eyebrow ?? "Especialista em cachos em Ponte Nova"}
           </p>
-          <h1 className="mt-5 text-4xl leading-[1.15] sm:text-5xl lg:text-6xl">
+          <h1 className="mt-5 text-3xl leading-[1.12] sm:text-5xl lg:text-6xl">
             {headlineWords.join(" ")}{" "}
             <span className="text-gradient-pink font-display italic font-normal tracking-wide">
               {highlight}
             </span>
           </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
             {settings?.hero_description ??
               "Cortes, tratamentos, definição, mechas e penteados para valorizar a identidade dos seus cabelos."}
           </p>
 
-          <div className="mt-9 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-col gap-3 sm:mt-9 sm:flex-row sm:flex-wrap">
             <BotaoLink
               href="#agendamento"
-              className="shadow-soft"
+              className="w-full shadow-soft sm:w-auto"
             >
               <MessageCircle className="h-4 w-4" />
               Atendimento Personalizado
             </BotaoLink>
-            <BotaoLink href="#servicos" variante="outline">
+            <BotaoLink href="#servicos" variante="outline" className="w-full sm:w-auto">
               Conhecer serviços
             </BotaoLink>
           </div>
 
-          <p className="mt-10 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <p className="mt-8 flex flex-wrap items-center gap-2 text-sm text-muted-foreground sm:mt-10">
             <span className="h-1.5 w-1.5 rounded-full bg-gold" />
             Especialistas em cabelos crespos e cacheados
             <span className="text-gold">•</span>
@@ -72,10 +72,10 @@ export function Hero() {
                 heroImage?.alt_text ??
                 "Francielly Soares, profissional do salão Bem Bonita, com tesouras de cabeleireira"
               }
-              className="relative w-full rounded-[2.5rem] object-cover shadow-soft"
+              className="relative aspect-[4/5] w-full rounded-[2rem] object-cover shadow-soft sm:rounded-[2.5rem] lg:aspect-square"
             />
           )}
-          <div className="absolute -bottom-6 left-6 rounded-2xl bg-card/95 px-5 py-4 shadow-card backdrop-blur sm:left-10">
+          <div className="absolute -bottom-5 left-4 rounded-2xl bg-card/95 px-4 py-3 shadow-card backdrop-blur sm:-bottom-6 sm:left-10 sm:px-5 sm:py-4">
             <p className="font-display text-lg">{SALAO.profissional}</p>
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
               Especialista em cachos

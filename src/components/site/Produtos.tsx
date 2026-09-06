@@ -104,7 +104,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
     : [...products].sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque))).slice(0, 3);
 
   return (
-    <section id="produtos" className={`bg-blush-soft pb-20 lg:pb-28 ${paginaCompleta ? "pt-32 lg:pt-40" : "pt-20 lg:pt-28"}`}>
+    <section id="produtos" className={`bg-blush-soft pb-16 lg:pb-28 ${paginaCompleta ? "pt-28 lg:pt-40" : "pt-16 lg:pt-28"}`}>
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div data-reveal className="reveal mx-auto max-w-3xl text-center">
           <TituloSecao
@@ -168,14 +168,14 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         ) : null}
 
         <div className={paginaCompleta ? "mt-16" : "mt-12"}>
-          <div className="mb-8 flex items-center justify-between gap-4">
+          <div className="mb-7 flex flex-col gap-2 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-gold">Catálogo</p>
               <h3 className="font-display text-2xl sm:text-3xl">
                 {paginaCompleta ? "Produtos disponíveis" : "Conheça alguns produtos"}
               </h3>
             </div>
-            <span className="hidden text-xs text-muted-foreground sm:inline">
+            <span className="text-xs text-muted-foreground sm:text-right">
               Retirada no salão ou entrega sob consulta
             </span>
           </div>
@@ -185,17 +185,17 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
               produtosExibidos.map((produto) => (
                 <article
                   key={produto.id}
-                  className={`group flex flex-col justify-between overflow-hidden rounded-3xl border bg-card p-6 shadow-card transition-all duration-300 hover:border-primary/50 hover:shadow-soft ${
+                  className={`group flex flex-col justify-between overflow-hidden rounded-3xl border bg-card shadow-card transition-all duration-300 hover:border-primary/50 hover:shadow-soft ${
                     produto.destaque ? "border-primary/60 ring-1 ring-primary/30 sm:col-span-2 lg:col-span-1" : "border-border/70"
                   }`}
                 >
                   <div>
-                    <div className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden">
+                    <div className="relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden bg-secondary/25 sm:aspect-[3/4]">
                       <img
                         src={produto.imagem}
                         alt={produto.nome}
                         loading="lazy"
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-[1.03]"
                       />
                       {produto.destaque ? (
                         <span className="absolute right-3 top-3 rounded-full bg-magenta px-3 py-1 text-[11px] font-semibold text-white shadow-md">
@@ -204,16 +204,16 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                       ) : null}
                     </div>
 
-                    <div className="mt-5">
+                    <div className="p-5 sm:p-6">
                       <span className="inline-block rounded-full bg-secondary px-3 py-1 text-[11px] font-medium text-magenta">
                         {produto.curvatura}
                       </span>
                       <h4 className="mt-3 font-display text-xl leading-snug">{produto.nome}</h4>
                       <p className="mt-1 text-xs font-medium text-muted-foreground">{produto.subtitulo}</p>
                       {produto.preco ? <p className="mt-3 text-sm font-semibold text-magenta">{produto.preco}</p> : null}
-                      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{produto.descricao}</p>
+                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{produto.descricao}</p>
 
-                      <ul className="mt-4 space-y-1.5 border-t border-border/60 pt-3 text-xs text-foreground/80">
+                      <ul className="mt-4 space-y-1.5 border-t border-border/60 pt-3 text-sm text-foreground/80">
                         {produto.beneficios.map((beneficio) => (
                           <li key={beneficio} className="flex items-center gap-2">
                             <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-gold" />
@@ -224,13 +224,13 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                     </div>
                   </div>
 
-                  <div className="mt-6 border-t border-border/60 pt-4">
+                  <div className="border-t border-border/60 p-5 pt-4 sm:p-6 sm:pt-4">
                     <BotaoLink
                       href={whatsappLink(`Olá, ${SALAO.nome}! Gostaria de saber mais informações e valor do produto: ${produto.nome}.`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       variante={produto.destaque ? "pink" : "outline"}
-                      className="w-full py-2.5 text-xs"
+                      className="w-full px-4 py-3 text-xs sm:text-sm"
                     >
                       <ShoppingBag className="h-3.5 w-3.5" />
                       Consultar este produto

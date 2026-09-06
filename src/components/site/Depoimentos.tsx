@@ -29,7 +29,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
   if (!feedbacks.length) return null;
 
   return (
-    <section id="depoimentos" className={`bg-gradient-to-b from-[#fdf2f6] to-[#fce7ef] py-20 text-[#24141d] lg:py-28 ${paginaCompleta ? "pt-32 lg:pt-40" : ""}`}>
+    <section id="depoimentos" className={`bg-gradient-to-b from-[#fdf2f6] to-[#fce7ef] py-16 text-[#24141d] lg:py-28 ${paginaCompleta ? "pt-28 lg:pt-40" : ""}`}>
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div data-reveal className="reveal text-center">
           <h2 className="font-display text-3xl leading-tight sm:text-4xl md:text-[2.75rem]">
@@ -40,21 +40,21 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-6 md:grid-cols-2 lg:mt-12 lg:grid-cols-3">
           {feedbacksExibidos.map((feedback) => (
             <button
               key={feedback.id}
               type="button"
               onClick={() => setAberto(feedback)}
-              className="group rounded-[18px] bg-white p-4 text-left shadow-[0_8px_24px_rgba(200,100,140,0.18)] transition duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_14px_34px_rgba(200,100,140,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-pink-300/60"
+              className="group overflow-hidden rounded-[18px] bg-white text-left shadow-[0_8px_24px_rgba(200,100,140,0.18)] transition duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_14px_34px_rgba(200,100,140,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-pink-300/60"
               aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
             >
-              <div className="overflow-hidden rounded-xl bg-[#fff7fa]">
+              <div className="overflow-hidden bg-[#fff7fa]">
                 <img
                   src={feedback.image_url!}
                   alt={feedback.client_name ? `Print do feedback de ${feedback.client_name}` : "Print de feedback de cliente"}
                   loading="lazy"
-                  className="aspect-[4/5] w-full object-cover object-top"
+                  className="aspect-[4/5] w-full object-cover object-top transition duration-500 group-hover:scale-[1.02] sm:aspect-[3/4] lg:aspect-[4/5]"
                 />
               </div>
 

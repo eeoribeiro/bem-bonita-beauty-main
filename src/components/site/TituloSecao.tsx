@@ -33,7 +33,7 @@ export function TituloSecao({
       {texto ? (
         <p
           className={cn(
-            "mt-5 text-base leading-relaxed",
+            "mt-4 text-sm leading-relaxed sm:mt-5 sm:text-base",
             light ? "text-ink-foreground/75" : "text-muted-foreground",
           )}
         >

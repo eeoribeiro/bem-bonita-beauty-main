@@ -75,9 +75,9 @@ function PaginaFrancielly() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
-      <main className="pt-28 lg:pt-36">
+      <main className="pt-24 sm:pt-28 lg:pt-36">
         {/* Topo / Apresentação */}
-        <section className="relative overflow-hidden bg-blush-soft py-14 lg:py-20">
+        <section className="relative overflow-hidden bg-blush-soft py-12 lg:py-20">
           <div className="mx-auto max-w-7xl px-5 lg:px-8">
             <Link
               to="/"
@@ -86,30 +86,30 @@ function PaginaFrancielly() {
               <ArrowLeft className="h-4 w-4" /> Voltar ao início
             </Link>
 
-            <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12">
               <div>
                 <p className="eyebrow flex items-center gap-2">
                   <Sparkles className="h-3.5 w-3.5 text-gold" />
                   {pageEyebrow}
                 </p>
-                <h1 className="mt-4 text-4xl sm:text-6xl font-display leading-[1.15]">
+                <h1 className="mt-4 text-3xl font-display leading-[1.12] sm:text-6xl">
                   {professionalName}
-                  <span className="block mt-2 text-gradient-pink font-display italic font-normal text-3xl sm:text-5xl">
+                  <span className="mt-2 block text-gradient-pink font-display text-2xl italic font-normal sm:text-5xl">
                     {headline}
                   </span>
                 </h1>
-                <p className="mt-6 text-base sm:text-lg leading-relaxed text-muted-foreground">
+                <p className="mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
                   {bio}
                 </p>
 
-                <div className="mt-8 flex flex-wrap gap-4">
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <BotaoLink
                     href={whatsappLink(
                       `Olá, ${professionalName.split(" ")[0]}! Conheci sua história no site e gostaria de agendar uma avaliação.`,
                     )}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="shadow-soft"
+                    className="w-full shadow-soft sm:w-auto"
                   >
                     <MessageCircle className="h-4 w-4" />
                     {settings?.francielly_cta_label || `Agendar horário com ${professionalName.split(" ")[0]}`}
@@ -118,7 +118,7 @@ function PaginaFrancielly() {
               </div>
 
               <div className="relative">
-                <div className="relative aspect-[4/5] overflow-hidden rounded-[2.5rem] shadow-soft border border-border/70">
+                <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-border/70 shadow-soft sm:rounded-[2.5rem]">
                   <SafeImage
                     src={fotoPrincipal}
                     fallbackSrc={fotoFranciellyFallback}
@@ -126,7 +126,7 @@ function PaginaFrancielly() {
                     className="h-full w-full object-cover"
                   />
                 </div>
-                <div className="absolute -bottom-5 -right-3 rounded-2xl border border-border/60 bg-card/95 p-5 shadow-card backdrop-blur max-w-xs">
+                <div className="absolute -bottom-5 left-4 right-4 rounded-2xl border border-border/60 bg-card/95 p-4 shadow-card backdrop-blur sm:left-auto sm:right-[-0.75rem] sm:max-w-xs sm:p-5">
                   <p className="text-xs uppercase tracking-widest text-gold font-semibold">
                     Localização
                   </p>
@@ -140,19 +140,19 @@ function PaginaFrancielly() {
         </section>
 
         {/* Filosofia & Metodologia */}
-        <section className="py-20 lg:py-28 bg-background">
+        <section className="bg-background py-16 lg:py-28">
           <div className="mx-auto max-w-5xl px-5 lg:px-8">
             <div className="text-center max-w-2xl mx-auto">
               <p className="eyebrow mx-auto flex w-fit items-center gap-2">
                 <Heart className="h-3.5 w-3.5 text-magenta" />
                 {methodologyEyebrow}
               </p>
-              <h2 className="mt-3 text-3xl sm:text-4xl font-display">
+              <h2 className="mt-3 text-3xl font-display leading-tight sm:text-4xl">
                 {mission}
               </h2>
             </div>
 
-            <div className="mt-14 grid gap-8 md:grid-cols-3">
+            <div className="mt-10 grid gap-5 md:mt-14 md:grid-cols-3 md:gap-8">
               {methods.map((method) => {
                 const Icon = method.icon;
                 return <div key={method.title} className="rounded-3xl border border-border/70 bg-card p-6 shadow-card">
@@ -166,7 +166,7 @@ function PaginaFrancielly() {
             </div>
 
             {/* Espaço do Salão */}
-            <div className="mt-20 overflow-hidden rounded-[2.5rem] border border-border/70 bg-card p-8 shadow-card md:grid md:grid-cols-[1fr_1.1fr] md:gap-10 md:items-center">
+            <div className="mt-14 overflow-hidden rounded-[2rem] border border-border/70 bg-card p-5 shadow-card sm:p-8 md:mt-20 md:grid md:grid-cols-[1fr_1.1fr] md:items-center md:gap-10 md:rounded-[2.5rem]">
               <div className="aspect-video sm:aspect-square overflow-hidden rounded-2xl">
                 <SafeImage
                   src={fotoEspaco}

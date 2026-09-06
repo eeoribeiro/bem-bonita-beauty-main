@@ -110,11 +110,11 @@ function ServiceCard({ servico }: { servico: ServicoView }) {
   const Icone = obterIconeServico(servico.nome);
 
   return (
-    <article className="rounded-2xl bg-white p-6 text-[#24141d] shadow-[0_6px_18px_rgba(180,90,130,0.14)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(180,90,130,0.2)]">
-      <div className="flex items-start justify-between gap-4">
+    <article className="rounded-2xl bg-white p-5 text-[#24141d] shadow-[0_6px_18px_rgba(180,90,130,0.14)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(180,90,130,0.2)] sm:p-6">
+      <div className="flex items-start justify-between gap-3">
         <Icone className="h-9 w-9 text-[#c4477e]" strokeWidth={1.6} aria-hidden="true" />
         {servico.preco ? (
-          <span className="shrink-0 rounded-full bg-[#fde1ec] px-3 py-1 text-xs font-bold text-[#c4477e]">
+          <span className="shrink-0 rounded-full bg-[#fde1ec] px-3 py-1 text-[11px] font-bold text-[#c4477e] sm:text-xs">
             {servico.preco}
           </span>
         ) : null}
@@ -131,7 +131,7 @@ export function Servicos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   const servicosExibidos = paginaCompleta ? servicos : servicos.slice(0, 3);
 
   return (
-    <section id="servicos" className={`bg-gradient-to-b from-[#fff7fa] to-[#fdf2f6] py-20 text-[#24141d] lg:py-28 ${paginaCompleta ? "pt-32 lg:pt-40" : ""}`}>
+    <section id="servicos" className={`bg-gradient-to-b from-[#fff7fa] to-[#fdf2f6] py-16 text-[#24141d] lg:py-28 ${paginaCompleta ? "pt-28 lg:pt-40" : ""}`}>
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div data-reveal className="reveal mx-auto max-w-3xl text-center">
           <TituloSecao
@@ -146,7 +146,7 @@ export function Servicos({ paginaCompleta = false }: { paginaCompleta?: boolean 
           />
         </div>
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:mt-12 xl:grid-cols-4">
           {isLoading
             ? Array.from({ length: paginaCompleta ? 8 : 3 }, (_, index) => (
                 <div key={index} className="h-52 animate-pulse rounded-2xl bg-white/70 shadow-[0_6px_18px_rgba(180,90,130,0.12)]" />
