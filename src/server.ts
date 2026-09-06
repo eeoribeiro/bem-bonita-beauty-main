@@ -53,7 +53,14 @@ export default {
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalized = await normalizeCatastrophicSsrResponse(response);
+
+      // Páginas com conteúdo dinâmico: nunca deixar cache (navegador, CDN ou
+      // proxy) para garantir que atualizações apareçam sempre que houver deploy.
+      if (normalized.headers.get("content-type")?.includes("text/html")) {
+        normalized.headers.set("cache-control", "no-store, private");
+      }
+      return normalized;
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {
