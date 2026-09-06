@@ -119,7 +119,7 @@ function renderAccessPage(options: {
     form { display: flex; flex-direction: column; gap: 10px; max-width: 320px; margin: 0 auto; }
     input { width: 100%; height: 42px; border-radius: 12px; border: 1px solid rgba(255,255,255,.16); background: #171317; color: #fff8fa; padding: 0 14px; font-size: 14px; outline: none; text-align: center; }
     input:focus { border-color: #e766a2; box-shadow: 0 0 0 3px rgba(231,102,162,.15); }
-    .btn-submit { background: #df61a0; color: #fff; width: 100%; height: 42px; max-width: 100%; }
+    .btn-submit { background: #df61a0; color: #fff; width: auto; flex: 0 0 auto; align-self: center; min-width: 140px; height: 38px; padding: 0 24px; }
     .btn-submit:hover { background: #ed73ae; }
     .error-msg { margin-top: 8px; color: #ffafc9; font-size: 12px; }
     @media (max-width: 380px) {

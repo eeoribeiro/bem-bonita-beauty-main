@@ -14,9 +14,15 @@ export function Footer() {
               Salão especializado na beleza de cabelos crespos e cacheados, sob os cuidados de{" "}
               {SALAO.profissional}.
             </p>
-            <p className="mt-5 inline-flex rounded-full border border-primary/45 bg-primary/12 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-primary shadow-[0_8px_24px_rgba(232,107,177,0.18)]">
+            <a
+              href="https://www.instagram.com/webly.web/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center gap-2 rounded-full border border-primary/45 bg-primary/12 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-primary shadow-[0_8px_24px_rgba(232,107,177,0.18)] transition hover:-translate-y-0.5 hover:border-primary hover:bg-primary/20"
+            >
+              <Instagram className="h-3.5 w-3.5" />
               Desenvolvido por Webly
-            </p>
+            </a>
           </div>
 
           <nav aria-label="Links rápidos">

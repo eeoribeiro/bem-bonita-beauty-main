@@ -33,7 +33,7 @@ export function ImageField({
     <label className="block">
       <span className="text-sm font-medium">{label}</span>
       <span
-        className={`relative mt-2 flex min-h-52 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-background text-center transition hover:border-primary ${wide ? "aspect-[16/7]" : "aspect-[4/3]"}`}
+        className={`relative mt-2 flex h-44 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-background text-center transition hover:border-primary ${wide ? "h-36" : "h-44"}`}
       >
         {preview || currentUrl ? (
           <img
