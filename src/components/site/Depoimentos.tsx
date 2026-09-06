@@ -54,7 +54,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
                   src={feedback.image_url!}
                   alt={feedback.client_name ? `Print do feedback de ${feedback.client_name}` : "Print de feedback de cliente"}
                   loading="lazy"
-                  className="aspect-[4/5] w-full object-contain"
+                  className="aspect-[4/5] w-full object-cover object-top"
                 />
               </div>
 

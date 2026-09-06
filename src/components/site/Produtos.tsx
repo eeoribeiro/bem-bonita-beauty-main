@@ -195,7 +195,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                         src={produto.imagem}
                         alt={produto.nome}
                         loading="lazy"
-                        className="h-full w-full object-contain"
+                        className="h-full w-full object-cover"
                       />
                       {produto.destaque ? (
                         <span className="absolute right-3 top-3 rounded-full bg-magenta px-3 py-1 text-[11px] font-semibold text-white shadow-md">
