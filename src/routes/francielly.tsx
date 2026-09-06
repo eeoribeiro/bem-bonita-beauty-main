@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Award, Heart, MessageCircle, Scissors, Sparkles, UserCheck, Users } from "lucide-react";
+import { ArrowLeft, Award, Heart, MessageCircle, Scissors, Sparkles, UserCheck } from "lucide-react";
 
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
@@ -10,7 +10,6 @@ import { whatsappLink } from "@/lib/salao";
 import { useReveal } from "@/hooks/use-reveal";
 import { usePublicSiteData } from "@/lib/site-data";
 import fotoFranciellyFallback from "@/assets/sobre-francielly.jpg";
-import fotoEspacoFallback from "@/assets/instagram-salao.jpg";
 
 export const Route = createFileRoute("/francielly")({
   head: () => ({
@@ -66,10 +65,6 @@ function PaginaFrancielly() {
   const fotoPrincipal =
     images.find((img) => img.image_key === "francielly_bio" || img.image_key === "about")?.image_url ??
     fotoFranciellyFallback;
-
-  const fotoEspaco =
-    images.find((img) => img.image_key === "space_1")?.image_url ??
-    fotoEspacoFallback;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -165,30 +160,42 @@ function PaginaFrancielly() {
               })}
             </div>
 
-            {/* Espaço do Salão */}
+            {/* Atendimento da Francielly */}
             <div className="mt-14 overflow-hidden rounded-[2rem] border border-border/70 bg-card p-5 shadow-card sm:p-8 md:mt-20 md:grid md:grid-cols-[1fr_1.1fr] md:items-center md:gap-10 md:rounded-[2.5rem]">
               <div className="aspect-video sm:aspect-square overflow-hidden rounded-2xl">
                 <SafeImage
-                  src={fotoEspaco}
-                  fallbackSrc={fotoEspacoFallback}
-                  alt="Espaço aconchegante do salão Bem Bonita em Ponte Nova"
+                  src={fotoPrincipal}
+                  fallbackSrc={fotoFranciellyFallback}
+                  alt={`${professionalName} em atendimento especializado para cabelos cacheados e crespos`}
                   className="h-full w-full object-cover"
                 />
               </div>
               <div className="mt-6 md:mt-0 space-y-4">
-                <p className="eyebrow">{settings?.francielly_space_eyebrow || "Ambiente Exclusivo"}</p>
-                <h3 className="text-2xl sm:text-3xl font-display">{settings?.space_title || "Um refúgio para você se cuidar"}</h3>
+                <p className="eyebrow">Atendimento com identidade</p>
+                <h3 className="text-2xl sm:text-3xl font-display">Um olhar técnico para a sua curvatura</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  {settings?.space_description || "Localizado no coração de Ponte Nova, no Lanna Shopping, o espaço foi desenhado para proporcionar uma experiência intimista e atendimento focado exclusivamente em você."}
+                  Cada atendimento começa com escuta e avaliação real dos fios. Francielly observa a curvatura, a densidade, a rotina e o histórico do cabelo para indicar cortes, tratamentos e finalizações que valorizem sua beleza natural.
                 </p>
+                <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+                  {[
+                    "Diagnóstico da curvatura, densidade e necessidades do cabelo.",
+                    "Escolha do corte ou tratamento com foco em saúde capilar.",
+                    "Orientação para manter o resultado bonito no dia a dia.",
+                  ].map((item) => (
+                    <li key={item} className="flex gap-2">
+                      <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-magenta" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
                 <div className="pt-2">
                   <BotaoLink
-                    href={whatsappLink(`Olá! Gostaria de agendar uma visita ao salão Bem Bonita.`)}
+                    href={whatsappLink(`Olá, ${professionalName.split(" ")[0]}! Gostaria de agendar uma avaliação para entender melhor o meu cabelo.`)}
                     target="_blank"
                     rel="noopener noreferrer"
                     variante="outline"
                   >
-                    {settings?.francielly_space_cta_label || "Agendar visita pelo WhatsApp"}
+                    Agendar avaliação com {professionalName.split(" ")[0]}
                   </BotaoLink>
                 </div>
               </div>
