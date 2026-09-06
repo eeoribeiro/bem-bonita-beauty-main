@@ -61,7 +61,7 @@ export function Hero() {
           {isLoading ? (
             <div
               aria-label="Carregando foto principal"
-              className="relative aspect-square w-full animate-pulse rounded-[2.5rem] bg-secondary/70 shadow-soft"
+              className="relative aspect-[4/5] w-full animate-pulse rounded-[2rem] bg-secondary/70 shadow-soft sm:rounded-[2.5rem] lg:aspect-[4/3]"
             />
           ) : (
             <img
@@ -72,7 +72,7 @@ export function Hero() {
                 heroImage?.alt_text ??
                 "Francielly Soares, profissional do salão Bem Bonita, com tesouras de cabeleireira"
               }
-              className="relative aspect-[4/5] w-full rounded-[2rem] object-cover shadow-soft sm:rounded-[2.5rem] lg:aspect-square"
+              className="relative aspect-[4/5] w-full rounded-[2rem] bg-[#d6d3d8] object-contain object-center shadow-soft sm:rounded-[2.5rem] lg:aspect-[4/3]"
             />
           )}
           <div className="absolute -bottom-5 left-4 rounded-2xl bg-card/95 px-4 py-3 shadow-card backdrop-blur sm:-bottom-6 sm:left-10 sm:px-5 sm:py-4">
