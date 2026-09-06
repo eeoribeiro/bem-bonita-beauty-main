@@ -29,11 +29,11 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
   if (!feedbacks.length) return null;
 
   return (
-    <section id="depoimentos" className={`bg-blush-soft py-16 text-foreground lg:py-28 ${paginaCompleta ? "pt-28 lg:pt-40" : ""}`}>
+    <section id="depoimentos" className={`scroll-mt-28 bg-blush-soft py-16 text-foreground lg:py-28 ${paginaCompleta ? "pt-28 lg:pt-40" : ""}`}>
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div data-reveal className="reveal text-center">
           <h2 className="font-display text-3xl leading-tight sm:text-4xl md:text-[2.75rem]">
-            {paginaCompleta ? "Feedbacks das clientes Bem Bonita" : "O que nossas clientes dizem"}
+            Feedbacks
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
             Depoimentos reais recebidos pelo WhatsApp
