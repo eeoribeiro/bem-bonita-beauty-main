@@ -63,7 +63,8 @@ function PaginaFrancielly() {
   ];
 
   const fotoPrincipal =
-    images.find((img) => img.image_key === "francielly_bio" || img.image_key === "about")?.image_url ??
+    images.find((img) => img.image_key === "francielly_bio")?.image_url ??
+    images.find((img) => img.image_key === "about")?.image_url ??
     fotoFranciellyFallback;
 
   return (

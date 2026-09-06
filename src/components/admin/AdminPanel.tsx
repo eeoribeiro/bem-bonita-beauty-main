@@ -2553,7 +2553,8 @@ function SettingsTab({
   const [uploadingSpacePhoto, setUploadingSpacePhoto] = useState(false);
 
   const franImage =
-    images.find((img) => img.image_key === "francielly_bio" || img.image_key === "about")?.image_url ??
+    images.find((img) => img.image_key === "francielly_bio")?.image_url ??
+    images.find((img) => img.image_key === "about")?.image_url ??
     fotoFranciellyFallback;
   const spaceImage = images.find((img) => img.image_key === "space_1")?.image_url ?? fotoEspacoFallback;
 
@@ -2613,7 +2614,7 @@ function SettingsTab({
         return;
       }
       const uploaded = await uploadImagem(file, "site/francielly_bio");
-      await getSupabaseClient()
+      const { error } = await getSupabaseClient()
         .from("site_images")
         .upsert(
           {
@@ -2624,6 +2625,7 @@ function SettingsTab({
           },
           { onConflict: "image_key" }
         );
+      if (error) throw error;
       await onReload();
       onSuccess("Foto de Francielly atualizada com sucesso!");
     } catch (error) {
