@@ -93,7 +93,8 @@ function renderAccessPage(options: {
   <meta name="robots" content="noindex, nofollow" />
   <meta name="theme-color" content="#171317" />
   <title>Bem Bonita | Aguarde o Lançamento</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
+  <link rel="shortcut icon" href="/favicon.svg?v=2" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;1,500&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet" />
