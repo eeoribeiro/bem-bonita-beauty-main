@@ -38,110 +38,56 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
     >
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div data-reveal className="reveal text-center">
-          {paginaCompleta ? (
-            <>
-              <p className="eyebrow mx-auto flex w-fit items-center gap-2">
-                <Star className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
-                Feedbacks reais
-              </p>
-              <h2 className="mt-4 font-display text-3xl leading-tight sm:text-4xl md:text-[2.75rem]">
-                O que nossas clientes dizem
-              </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
-                Depoimentos reais recebidos pelo WhatsApp
-              </p>
-            </>
-          ) : (
-            <>
-              <h2 className="font-display text-3xl leading-tight sm:text-4xl md:text-[2.75rem]">
-                Feedbacks
-              </h2>
-              <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
-                Depoimentos reais recebidos pelo WhatsApp
-              </p>
-            </>
-          )}
+          <p className="eyebrow mx-auto flex w-fit items-center gap-2">
+            <Star className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
+            Feedbacks reais
+          </p>
+          <h2 className="mt-4 font-display text-3xl leading-tight sm:text-4xl md:text-[2.75rem]">
+            O que nossas clientes dizem
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
+            Depoimentos reais recebidos pelo WhatsApp
+          </p>
         </div>
 
-        {paginaCompleta ? (
-          <div className="mt-12 columns-1 gap-6 sm:columns-2 lg:columns-3">
-            {feedbacksExibidos.map((feedback) => (
-              <button
-                key={feedback.id}
-                type="button"
-                onClick={() => setAberto(feedback)}
-                className="group mb-6 block w-full break-inside-avoid overflow-hidden rounded-[18px] border border-border/55 bg-card text-left text-card-foreground shadow-[0_8px_24px_rgba(200,100,140,0.18)] transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_14px_34px_rgba(200,100,140,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
-                aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
-              >
-                <div className="m-2 overflow-hidden rounded-xl bg-secondary/60">
-                  <img
-                    src={feedback.image_url!}
-                    alt={
-                      feedback.client_name
-                        ? `Print do feedback de ${feedback.client_name}`
-                        : "Print de feedback de cliente"
-                    }
-                    loading="lazy"
-                    className="h-auto w-full object-cover transition duration-500 group-hover:scale-[1.02]"
-                  />
-                </div>
-                <div className="px-5 pb-5 pt-3">
-                  <div
-                    className="flex items-center gap-1 text-amber-400"
-                    aria-label="Avaliação de 5 estrelas"
-                  >
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <Star key={index} className="h-4 w-4 fill-current" aria-hidden="true" />
-                    ))}
-                  </div>
-                  <h3 className="mt-2 font-sans text-base font-bold text-card-foreground">
-                    {feedback.client_name || "Cliente Bem Bonita"}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Cliente Bem Bonita</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:mt-12 lg:grid-cols-3">
-            {feedbacksExibidos.map((feedback) => (
-              <button
-                key={feedback.id}
-                type="button"
-                onClick={() => setAberto(feedback)}
-                className="group overflow-hidden rounded-[18px] border border-border/55 bg-card text-left text-card-foreground shadow-[0_8px_24px_rgba(200,100,140,0.18)] transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_14px_34px_rgba(200,100,140,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
-                aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
-              >
-                <div className="overflow-hidden bg-secondary/60">
-                  <img
-                    src={feedback.image_url!}
-                    alt={
-                      feedback.client_name
-                        ? `Print do feedback de ${feedback.client_name}`
-                        : "Print de feedback de cliente"
-                    }
-                    loading="lazy"
-                    className="aspect-[4/5] w-full object-cover object-top transition duration-500 group-hover:scale-[1.02] sm:aspect-[3/4] lg:aspect-[4/5]"
-                  />
-                </div>
-
+        <div className="mt-12 columns-1 gap-6 sm:columns-2 lg:columns-3">
+          {feedbacksExibidos.map((feedback) => (
+            <button
+              key={feedback.id}
+              type="button"
+              onClick={() => setAberto(feedback)}
+              className="group mb-6 block w-full break-inside-avoid overflow-hidden rounded-[18px] border border-border/55 bg-card text-left text-card-foreground shadow-[0_8px_24px_rgba(200,100,140,0.18)] transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_14px_34px_rgba(200,100,140,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
+              aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
+            >
+              <div className="m-2 overflow-hidden rounded-xl bg-secondary/60">
+                <img
+                  src={feedback.image_url!}
+                  alt={
+                    feedback.client_name
+                      ? `Print do feedback de ${feedback.client_name}`
+                      : "Print de feedback de cliente"
+                  }
+                  loading="lazy"
+                  className="h-auto w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                />
+              </div>
+              <div className="px-5 pb-5 pt-3">
                 <div
-                  className="mt-4 flex items-center gap-1 text-amber-400"
+                  className="flex items-center gap-1 text-amber-400"
                   aria-label="Avaliação de 5 estrelas"
                 >
                   {Array.from({ length: 5 }).map((_, index) => (
                     <Star key={index} className="h-4 w-4 fill-current" aria-hidden="true" />
                   ))}
                 </div>
-
-                <h3 className="mt-3 font-sans text-base font-bold text-card-foreground">
+                <h3 className="mt-2 font-sans text-base font-bold text-card-foreground">
                   {feedback.client_name || "Cliente Bem Bonita"}
                 </h3>
                 <p className="mt-1 text-sm text-muted-foreground">Cliente Bem Bonita</p>
-              </button>
-            ))}
-          </div>
-        )}
+              </div>
+            </button>
+          ))}
+        </div>
 
         {paginaCompleta ? (
           <div className="mx-auto mt-14 max-w-2xl text-center lg:mt-16">
