@@ -114,8 +114,21 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
             </div>
           </div>
         ) : (
-          <div className="mt-10 flex justify-center">
-            <BotaoLink href="/feedbacks">Ver todos os feedbacks</BotaoLink>
+          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <BotaoLink
+              href={whatsappLink(
+                `Olá, ${SALAO.nome}! Vi os feedbacks no site e gostaria de agendar um horário no salão.`,
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Agendar horário no salão
+            </BotaoLink>
+            <BotaoLink href="/feedbacks" variante="outline" className="w-full sm:w-auto">
+              Ver todos os feedbacks
+            </BotaoLink>
           </div>
         )}
       </div>
