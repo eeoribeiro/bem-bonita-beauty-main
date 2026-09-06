@@ -12,7 +12,7 @@ import {
 
 import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
-import { contatoLink, SALAO } from "@/lib/salao";
+import { contatoLink, SALAO, whatsappLink } from "@/lib/salao";
 import { initialServices } from "@/lib/initial-content";
 import { usePublicSiteData } from "@/lib/site-data";
 
@@ -110,7 +110,7 @@ function ServiceCard({ servico }: { servico: ServicoView }) {
   const Icone = obterIconeServico(servico.nome);
 
   return (
-    <article className="rounded-2xl border border-border/55 bg-card p-5 text-card-foreground shadow-[0_6px_18px_rgba(180,90,130,0.14)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_12px_28px_rgba(180,90,130,0.2)] sm:p-6">
+    <article className="flex flex-col rounded-2xl border border-border/55 bg-card p-5 text-card-foreground shadow-[0_6px_18px_rgba(180,90,130,0.14)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_12px_28px_rgba(180,90,130,0.2)] sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <Icone className="h-9 w-9 text-[#c4477e]" strokeWidth={1.6} aria-hidden="true" />
         {servico.preco ? (
@@ -120,7 +120,17 @@ function ServiceCard({ servico }: { servico: ServicoView }) {
         ) : null}
       </div>
       <h3 className="mt-5 font-sans text-lg font-bold leading-snug">{servico.nome}</h3>
-      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{servico.descricao}</p>
+      <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{servico.descricao}</p>
+      <BotaoLink
+        href={whatsappLink(`Olá, ${SALAO.nome}! Gostaria de agendar o serviço: ${servico.nome}.`)}
+        target="_blank"
+        rel="noopener noreferrer"
+        variante="outline"
+        className="mt-5 w-full"
+      >
+        <MessageCircle className="h-4 w-4" />
+        Agendar pelo WhatsApp
+      </BotaoLink>
     </article>
   );
 }
