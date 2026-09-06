@@ -109,7 +109,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         <div data-reveal className="reveal mx-auto max-w-3xl text-center">
           <TituloSecao
             eyebrow={paginaCompleta ? "Loja Bem Bonita" : "Loja"}
-            titulo={paginaCompleta ? "Produtos para cuidar dos seus cabelos" : "Produtos em destaque"}
+            titulo={paginaCompleta ? "Produtos para cuidar dos seus cabelos" : "Linha Bem Bonita"}
             texto={
               paginaCompleta
                 ? "Cosméticos selecionados para respeitar as necessidades reais de cabelos crespos, cacheados e ondulados."

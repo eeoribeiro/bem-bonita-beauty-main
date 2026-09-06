@@ -14,8 +14,8 @@ export function Footer() {
               Salão especializado na beleza de cabelos crespos e cacheados, sob os cuidados de{" "}
               {SALAO.profissional}.
             </p>
-            <p className="mt-4 text-[11px] lowercase tracking-wide text-ink-foreground/45">
-              feito por webly
+            <p className="mt-5 inline-flex rounded-full border border-primary/45 bg-primary/12 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-primary shadow-[0_8px_24px_rgba(232,107,177,0.18)]">
+              Desenvolvido por Webly
             </p>
           </div>
 

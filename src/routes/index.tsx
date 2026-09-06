@@ -81,10 +81,10 @@ function Index() {
       <main>
         <Hero />
         <FranciellyPreview />
-        <Agendamento />
         <Servicos />
         <Depoimentos />
         <Produtos />
+        <Agendamento />
         <Localizacao />
       </main>
       <Footer />

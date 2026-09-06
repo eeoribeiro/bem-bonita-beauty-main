@@ -7,7 +7,7 @@ export function Logo({ tone: _tone = "dark" }: { tone?: "dark" | "light" }) {
   const logoUrl = data?.settings?.logo_url ?? logoBemBonita;
 
   return (
-    <span className="flex min-w-0 items-center select-none">
+    <span className="inline-flex min-w-0 items-center rounded-2xl bg-white/95 px-2 py-1 shadow-[0_8px_24px_rgba(36,20,29,0.08)] ring-1 ring-black/5 select-none dark:bg-white dark:ring-white/15">
       <img
         src={logoUrl}
         alt={salonName}
