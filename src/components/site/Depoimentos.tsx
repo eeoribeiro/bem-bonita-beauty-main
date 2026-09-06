@@ -29,13 +29,13 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
   if (!feedbacks.length) return null;
 
   return (
-    <section id="depoimentos" className={`bg-gradient-to-b from-[#fdf2f6] to-[#fce7ef] py-16 text-[#24141d] lg:py-28 ${paginaCompleta ? "pt-28 lg:pt-40" : ""}`}>
+    <section id="depoimentos" className={`bg-blush-soft py-16 text-foreground lg:py-28 ${paginaCompleta ? "pt-28 lg:pt-40" : ""}`}>
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div data-reveal className="reveal text-center">
           <h2 className="font-display text-3xl leading-tight sm:text-4xl md:text-[2.75rem]">
             {paginaCompleta ? "Feedbacks das clientes Bem Bonita" : "O que nossas clientes dizem"}
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-[#7a6b72] sm:text-base">
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
             Depoimentos reais recebidos pelo WhatsApp
           </p>
         </div>
@@ -46,10 +46,10 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
               key={feedback.id}
               type="button"
               onClick={() => setAberto(feedback)}
-              className="group overflow-hidden rounded-[18px] bg-white text-left shadow-[0_8px_24px_rgba(200,100,140,0.18)] transition duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_14px_34px_rgba(200,100,140,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-pink-300/60"
+              className="group overflow-hidden rounded-[18px] border border-border/55 bg-card text-left text-card-foreground shadow-[0_8px_24px_rgba(200,100,140,0.18)] transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_14px_34px_rgba(200,100,140,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
               aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
             >
-              <div className="overflow-hidden bg-[#fff7fa]">
+              <div className="overflow-hidden bg-secondary/60">
                 <img
                   src={feedback.image_url!}
                   alt={feedback.client_name ? `Print do feedback de ${feedback.client_name}` : "Print de feedback de cliente"}
@@ -64,10 +64,10 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
                 ))}
               </div>
 
-              <h3 className="mt-3 font-sans text-base font-bold text-[#24141d]">
+              <h3 className="mt-3 font-sans text-base font-bold text-card-foreground">
                 {feedback.client_name || "Cliente Bem Bonita"}
               </h3>
-              <p className="mt-1 text-sm text-[#9b8f95]">Cliente Bem Bonita</p>
+              <p className="mt-1 text-sm text-muted-foreground">Cliente Bem Bonita</p>
             </button>
           ))}
         </div>
@@ -87,7 +87,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
           onMouseDown={(event) => event.target === event.currentTarget && setAberto(null)}
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
         >
-          <div className="relative max-h-[92vh] max-w-2xl overflow-auto rounded-3xl bg-white p-3 shadow-2xl">
+          <div className="relative max-h-[92vh] max-w-2xl overflow-auto rounded-3xl bg-card p-3 shadow-2xl">
             <button
               type="button"
               onClick={() => setAberto(null)}
