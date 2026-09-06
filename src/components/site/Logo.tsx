@@ -1,21 +1,23 @@
 import { usePublicSiteData } from "@/lib/site-data";
 
-export function Logo({ tone: _tone = "dark" }: { tone?: "dark" | "light" }) {
+export function Logo({ tone = "dark" }: { tone?: "dark" | "light" }) {
   const { data } = usePublicSiteData();
   const salonName = data?.settings?.salon_name ?? "Bem Bonita";
+  const textClass = tone === "light" ? "text-ink-foreground" : "text-foreground";
+  const pink = tone === "light" ? "#ff5db8" : "#e0489a";
 
   return (
-    <span className="inline-flex min-w-0 items-center text-foreground select-none">
+    <span className={`inline-flex min-w-0 items-center ${textClass} select-none`}>
       <svg
         viewBox="0 0 900 360"
         role="img"
         aria-label={salonName}
-        className="h-10 w-auto max-w-[145px] sm:h-11 sm:max-w-[170px] lg:h-12 lg:max-w-[190px]"
+        className="h-10 w-auto max-w-[145px] drop-shadow-[0_2px_10px_rgba(232,107,177,0.18)] sm:h-11 sm:max-w-[170px] lg:h-12 lg:max-w-[190px]"
       >
         <g
           transform="translate(40,40)"
           fill="none"
-          stroke="#e0489a"
+          stroke={pink}
           strokeWidth="6"
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -25,7 +27,7 @@ export function Logo({ tone: _tone = "dark" }: { tone?: "dark" | "light" }) {
           <path d="M110 45 L120 5 L150 40 Z" />
           <path d="M195 150 C 230 140, 250 110, 240 75 C 232 48, 205 35, 185 45" />
           <path d="M95 85 C 100 78, 112 78, 116 85" strokeWidth="5" />
-          <path d="M100 100 C 103 97, 109 97, 112 100 C 109 105, 103 105, 100 100 Z" fill="#e0489a" stroke="none" />
+          <path d="M100 100 C 103 97, 109 97, 112 100 C 109 105, 103 105, 100 100 Z" fill={pink} stroke="none" />
           <path d="M70 100 L30 92" strokeWidth="3" />
           <path d="M70 108 L28 108" strokeWidth="3" />
           <path d="M70 116 L30 124" strokeWidth="3" />
@@ -44,7 +46,7 @@ export function Logo({ tone: _tone = "dark" }: { tone?: "dark" | "light" }) {
           <text x="0" y="215" fontFamily="Georgia, 'Times New Roman', serif" fontSize="96" fontWeight="700" fill="currentColor">
             Bonita
           </text>
-          <text x="4" y="255" fontFamily="Arial, Helvetica, sans-serif" fontSize="26" fontWeight="600" letterSpacing="4" fill="#e0489a">
+          <text x="4" y="255" fontFamily="Arial, Helvetica, sans-serif" fontSize="26" fontWeight="600" letterSpacing="4" fill={pink}>
             BELEZA &amp; COSMÉTICOS
           </text>
         </g>
