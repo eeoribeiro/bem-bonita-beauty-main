@@ -83,7 +83,7 @@ type Modal = "services" | "portfolio" | "team_editor" | "new_photo" | null;
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
   { id: "photos", label: "Fotos gerais do site", icon: FileImage },
-  { id: "space", label: "Espaço do Salão", icon: MapPin },
+  { id: "space", label: "Nosso Espaço", icon: MapPin },
   { id: "services", label: "Serviços", icon: Scissors },
   { id: "products", label: "Produtos", icon: ShoppingBag },
   { id: "portfolio", label: "Galeria", icon: Images },
@@ -2129,21 +2129,21 @@ function PhotosTab({
     {
       key: "space_1",
       title: "Ambiente Principal do Salão",
-      badge: "Espaço Físico",
+      badge: "Nosso Espaço",
       description: "Visão geral do espaço interno, decoração aconchegante no Lanna Shopping.",
       fallback: fotoEspacoFallback,
     },
     {
       key: "space_2",
       title: "Vitrine & Recepção",
-      badge: "Espaço Físico",
+      badge: "Nosso Espaço",
       description: "Exposição dos produtos e recepção dos clientes.",
       fallback: fotoProdutosFallback,
     },
     {
       key: "space_3",
       title: "Lavatório & Atendimento",
-      badge: "Espaço Físico",
+      badge: "Nosso Espaço",
       description: "Cadeira de atendimento e área de tratamentos capilares.",
       fallback: fotoCachosFallback,
     },
@@ -2247,7 +2247,7 @@ function PhotosTab({
         <div>
           <p className="eyebrow">{mode === "space" ? "Ambiente físico" : "Mídia & Ambientes"}</p>
           <h1 className="mt-2 text-3xl sm:text-4xl font-display">
-            {mode === "space" ? "Fotos do Espaço do Salão" : "Fotos do Site, Francielly e Espaço"}
+            {mode === "space" ? "Nosso Espaço" : "Fotos do Site, Francielly e Espaço"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
             {mode === "space"
@@ -2339,16 +2339,16 @@ function PhotosTab({
         </div>
       </div> : null}
 
-      {/* Seção 2: Fotos do Espaço do Salão Físico */}
+      {/* Seção 2: Nosso Espaço — Galeria do Salão */}
       {mode === "space" ? <div>
         <div className="flex items-center gap-3 mb-5">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary text-gold">
             <MapPin className="h-4 w-4" />
           </span>
           <div>
-            <h2 className="text-xl font-display">Fotos do Espaço do Salão Físico</h2>
+            <h2 className="text-xl font-display">Nosso Espaço</h2>
             <p className="text-xs text-muted-foreground">
-              Imagens exibidas na nova seção do salão no Lanna Shopping para encantar futuros clientes
+              Galeria de fotos do salão no Lanna Shopping para encantar futuros clientes
             </p>
           </div>
         </div>
@@ -2497,7 +2497,7 @@ function PhotosTab({
                 onChange={(e) => setNewCategory(e.target.value)}
                 className="admin-input"
               >
-                <option value="space">Espaço Físico do Salão</option>
+                <option value="space">Nosso Espaço — Galeria do Salão</option>
                 <option value="francielly">Francielly Soares</option>
                 <option value="highlight">Foto de Destaque</option>
                 <option value="treatment">Tratamento &amp; Cuidado</option>
@@ -2927,7 +2927,7 @@ function SettingsTab({
         </div>
 
         <div className="border-t border-border pt-6">
-          <h3 className="text-lg font-display">Bloco do espaço do salão</h3>
+          <h3 className="text-lg font-display">Bloco Nosso Espaço</h3>
           <div className="hidden">
             <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-secondary">
               <SafeImage src={spaceImage} fallbackSrc={fotoEspacoFallback} alt="Prévia do espaço do salão" className="h-full w-full object-cover" />
