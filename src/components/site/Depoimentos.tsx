@@ -89,32 +89,16 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
           ))}
         </div>
 
-        {paginaCompleta ? (
-          <div className="mx-auto mt-14 max-w-2xl text-center lg:mt-16">
-            <p className="eyebrow">Cuidado para os seus cachos</p>
-            <h3 className="mt-3 font-display text-2xl leading-tight sm:text-3xl">
-              Gostou do que as clientes disseram?
-            </h3>
-            <p className="mx-auto mt-3 max-w-xl text-sm text-white/62 sm:text-base">
-              Agende seu horário no salão e viva essa experiência você também. É só chamar no
-              WhatsApp.
-            </p>
-            <div className="mt-7 flex justify-center">
-              <BotaoLink
-                href={whatsappLink(
-                  `Olá, ${SALAO.nome}! Vi os feedbacks no site e gostaria de agendar um horário no salão.`,
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Agendar horário no salão
-              </BotaoLink>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <div className="mx-auto mt-14 max-w-2xl text-center lg:mt-16">
+          <p className="eyebrow">Cuidado para os seus cachos</p>
+          <h3 className="mt-3 font-display text-2xl leading-tight text-white sm:text-3xl">
+            Gostou do que as clientes disseram?
+          </h3>
+          <p className="mx-auto mt-3 max-w-xl text-sm text-white/62 sm:text-base">
+            Agende seu horário no salão e viva essa experiência você também. É só chamar no
+            WhatsApp.
+          </p>
+          <div className="mt-7 flex justify-center">
             <BotaoLink
               href={whatsappLink(
                 `Olá, ${SALAO.nome}! Vi os feedbacks no site e gostaria de agendar um horário no salão.`,
@@ -126,11 +110,8 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
               <MessageCircle className="h-4 w-4" />
               Agendar horário no salão
             </BotaoLink>
-            <BotaoLink href="/feedbacks" variante="outline" className="w-full sm:w-auto">
-              Ver todos os feedbacks
-            </BotaoLink>
           </div>
-        )}
+        </div>
       </div>
 
       {aberto ? (
