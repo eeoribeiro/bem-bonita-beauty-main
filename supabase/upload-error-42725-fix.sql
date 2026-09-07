@@ -1,4 +1,9 @@
--- Bem Bonita — correção definitiva para upload em "Nosso Espaço".
+-- Bem Bonita — correção com admin_users para upload em "Nosso Espaço".
+--
+-- Se você quer só destravar o upload imediatamente, use:
+-- supabase/upload-definitive-unlock.sql
+--
+-- Este arquivo mantém checagem de admin_users.
 --
 -- Corrige:
 -- 1) ERROR 42725: function public.is_admin() is not unique
