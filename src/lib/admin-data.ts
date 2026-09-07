@@ -83,7 +83,11 @@ function mensagemUpload(error: unknown) {
   const lowerMessage = message.toLowerCase();
 
   if (lowerMessage.includes("row-level security") || lowerMessage.includes("permission") || lowerMessage.includes("not authorized")) {
-    return "O Supabase bloqueou o envio da imagem por permissão. Rode novamente o SQL de reparo das permissões/storage.";
+    return "O Supabase bloqueou o envio da imagem por permissão. Para o Nosso Espaço, rode o SQL supabase/nosso-espaco-rebuild.sql no Supabase.";
+  }
+
+  if (lowerMessage.includes("bucket") || lowerMessage.includes("not found") || lowerMessage.includes("does not exist")) {
+    return "O bucket/tabela do Nosso Espaço ainda não existe no Supabase. Rode o SQL supabase/nosso-espaco-rebuild.sql e tente enviar novamente.";
   }
 
   if (lowerMessage.includes("exceeded") || lowerMessage.includes("too large") || lowerMessage.includes("file size")) {
@@ -93,23 +97,23 @@ function mensagemUpload(error: unknown) {
   return message || "Não foi possível enviar a imagem.";
 }
 
-export async function uploadImagem(file: File, pasta: string) {
+export async function uploadImagem(file: File, pasta: string, bucket = "site-images") {
   validarImagem(file);
   const imagem = await otimizarImagem(file);
   const extension = imagem.type === "image/svg+xml" ? "svg" : "jpg";
   const path = `${pasta}/${crypto.randomUUID()}.${extension}`;
   const supabase = getSupabaseClient();
-  const { error } = await supabase.storage.from("site-images").upload(path, imagem, {
+  const { error } = await supabase.storage.from(bucket).upload(path, imagem, {
     cacheControl: "31536000",
     contentType: imagem.type,
     upsert: false,
   });
   if (error) throw new Error(mensagemUpload(error));
-  return { path, url: supabase.storage.from("site-images").getPublicUrl(path).data.publicUrl };
+  return { path, url: supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl };
 }
 
-export async function removerImagem(path: string | null | undefined) {
+export async function removerImagem(path: string | null | undefined, bucket = "site-images") {
   if (!path) return;
-  const { error } = await getSupabaseClient().storage.from("site-images").remove([path]);
+  const { error } = await getSupabaseClient().storage.from(bucket).remove([path]);
   if (error) throw error;
 }

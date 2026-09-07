@@ -75,6 +75,7 @@ import type {
   ServiceData,
   SiteImageData,
   SiteSettingsData,
+  SpacePhotoData,
   TestimonialData,
 } from "@/lib/site-data";
 
@@ -182,6 +183,7 @@ export function AdminPanel({
   const [error, setError] = useState("");
   const [settings, setSettings] = useState<SiteSettingsData | null>(null);
   const [images, setImages] = useState<SiteImageData[]>([]);
+  const [spacePhotos, setSpacePhotos] = useState<SpacePhotoData[]>([]);
   const [services, setServices] = useState<ServiceData[]>([]);
   const [professionals, setProfessionals] = useState<ProfessionalData[]>([]);
   const [products, setProducts] = useState<ProductData[]>([]);
@@ -235,13 +237,14 @@ export function AdminPanel({
         { id: "6", image_key: "space_2", image_url: "/media/instagram-produtos.jpg", alt_text: "Produtos no salão", storage_path: null, created_at: "Ontem" },
         { id: "7", image_key: "space_3", image_url: "/media/instagram-cachos.jpg", alt_text: "Atendimento no espaço", storage_path: null, created_at: "Ontem" },
       ]);
+      setSpacePhotos([]);
       setLoading(false);
       return;
     }
 
     try {
       const supabase = getSupabaseClient();
-      const [config, photos, serviceRows, categoryRows, portfolioRows, profRows, productRows, testimonialRows] = await Promise.all([
+      const [config, photos, serviceRows, categoryRows, portfolioRows, profRows, productRows, testimonialRows, spacePhotoRows] = await Promise.all([
         supabase.from("site_settings").select("*").limit(1).single(),
         supabase.from("site_images").select("*").order("image_key"),
         supabase.from("services").select("*").order("sort_order"),
@@ -250,6 +253,7 @@ export function AdminPanel({
         supabase.from("professionals").select("*").order("sort_order"),
         supabase.from("products").select("*").order("sort_order"),
         supabase.from("testimonials").select("*").order("created_at", { ascending: false }),
+        supabase.from("space_photos").select("*").order("sort_order"),
       ]);
 
       const firstError = [config, photos, serviceRows, categoryRows, portfolioRows, profRows, productRows, testimonialRows].find(
@@ -281,6 +285,7 @@ export function AdminPanel({
         );
         setPortfolio((portfolioRows.data ?? []) as PortfolioData[]);
         setTestimonials((testimonialRows.data ?? []) as TestimonialData[]);
+        setSpacePhotos(spacePhotoRows.error ? [] : ((spacePhotoRows.data ?? []) as SpacePhotoData[]));
       }
     } catch {
       setError("Erro ao carregar dados do painel.");
@@ -527,6 +532,8 @@ export function AdminPanel({
                   mode="space"
                   images={images}
                   setImages={setImages}
+                  spacePhotos={spacePhotos}
+                  setSpacePhotos={setSpacePhotos}
                   isDemo={!supabaseConfigurado || isDemo}
                   onReload={loadAll}
                   onSuccess={showSuccess}
@@ -2080,6 +2087,8 @@ function PhotosTab({
   mode,
   images,
   setImages,
+  spacePhotos = [],
+  setSpacePhotos,
   isDemo,
   onReload,
   onSuccess,
@@ -2088,6 +2097,8 @@ function PhotosTab({
   mode: "all" | "space";
   images: SiteImageData[];
   setImages: React.Dispatch<React.SetStateAction<SiteImageData[]>>;
+  spacePhotos?: SpacePhotoData[];
+  setSpacePhotos?: React.Dispatch<React.SetStateAction<SpacePhotoData[]>>;
   isDemo: boolean;
   onReload: () => Promise<void>;
   onSuccess: (message: string) => void;
@@ -2096,12 +2107,30 @@ function PhotosTab({
   const [uploading, setUploading] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  const [newCategory, setNewCategory] = useState("space");
+  const [newCategory, setNewCategory] = useState("highlight");
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<SiteImageData | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; storage_path: string | null; title: string; source: "site" | "space" } | null>(null);
   const visibleHistory = mode === "space"
-    ? images.filter((image) => image.image_key.startsWith("custom_space_"))
-    : images;
+    ? spacePhotos.map((photo) => ({
+        id: photo.id,
+        image_url: photo.image_url,
+        alt_text: photo.alt_text || photo.title || "Foto do espaço Bem Bonita",
+        storage_path: photo.storage_path,
+        created_at: photo.created_at ?? "Recente",
+        label: photo.title || "Foto do portfólio",
+        badge: "Portfólio",
+        source: "space" as const,
+      }))
+    : images.map((image) => ({
+        id: image.id,
+        image_url: image.image_url,
+        alt_text: image.alt_text,
+        storage_path: image.storage_path,
+        created_at: image.created_at ?? "Recente",
+        label: image.alt_text || image.image_key,
+        badge: image.image_key,
+        source: "site" as const,
+      }));
 
   const mainSlots = [
     {
@@ -2191,8 +2220,50 @@ function PhotosTab({
   }
 
   async function handleCreateSpacePortfolioPhoto(file: File) {
-    const key = `custom_space_${Date.now()}`;
-    await save(key, file, "Foto do portfólio do Espaço Bem Bonita");
+    setUploading("space_portfolio");
+    try {
+      const title = newTitle.trim() || "Foto do portfólio do Espaço Bem Bonita";
+      if (isDemo) {
+        const fakeUrl = URL.createObjectURL(file);
+        setSpacePhotos?.((prev) => [
+          {
+            id: `space-${Date.now()}`,
+            title,
+            image_url: fakeUrl,
+            storage_path: null,
+            alt_text: title,
+            sort_order: prev.length ? Math.max(...prev.map((photo) => photo.sort_order), 0) + 1 : 1,
+            published: true,
+            created_at: "Agora mesmo",
+          },
+          ...prev,
+        ]);
+        onSuccess("Foto adicionada ao portfólio em tempo real!");
+        setNewTitle("");
+        return;
+      }
+
+      const uploaded = await uploadImagem(file, "space", "space-photos");
+      const sortOrder = spacePhotos.length ? Math.max(...spacePhotos.map((photo) => photo.sort_order), 0) + 1 : 1;
+      const { error } = await getSupabaseClient()
+        .from("space_photos")
+        .insert({
+          title,
+          image_url: uploaded.url,
+          storage_path: uploaded.path,
+          alt_text: title,
+          sort_order: sortOrder,
+          published: true,
+        });
+      if (error) throw error;
+      await onReload();
+      onSuccess("Foto adicionada ao portfólio do Nosso Espaço.");
+      setNewTitle("");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível enviar a imagem.");
+    } finally {
+      setUploading(null);
+    }
   }
 
   function handleCopy(url: string) {
@@ -2201,7 +2272,7 @@ function PhotosTab({
     setTimeout(() => setCopiedUrl(null), 2500);
   }
 
-  function handleDeleteCustom(img: SiteImageData) {
+  function handleDeleteCustom(img: { id: string; storage_path: string | null; title: string; source: "site" | "space" }) {
     setPendingDelete(img);
   }
 
@@ -2211,11 +2282,17 @@ function PhotosTab({
     setPendingDelete(null);
     try {
       if (!isDemo) {
-        const { error } = await getSupabaseClient().from("site_images").delete().eq("id", img.id);
+        const table = img.source === "space" ? "space_photos" : "site_images";
+        const bucket = img.source === "space" ? "space-photos" : "site-images";
+        const { error } = await getSupabaseClient().from(table).delete().eq("id", img.id);
         if (error) throw error;
-        await removerImagem(img.storage_path);
+        await removerImagem(img.storage_path, bucket);
       }
-      setImages((prev) => prev.filter((i) => i.id !== img.id));
+      if (img.source === "space") {
+        setSpacePhotos?.((prev) => prev.filter((i) => i.id !== img.id));
+      } else {
+        setImages((prev) => prev.filter((i) => i.id !== img.id));
+      }
       onSuccess("Foto removida do histórico e do armazenamento.");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Não foi possível remover a foto.");
@@ -2230,7 +2307,7 @@ function PhotosTab({
         <div>
           <p className="eyebrow">{mode === "space" ? "Portfólio do espaço" : "Mídia & Ambientes"}</p>
           <h1 className="mt-2 text-3xl sm:text-4xl font-display">
-            {mode === "space" ? "Nosso Espaço" : "Fotos do Site, Francielly e Espaço"}
+            {mode === "space" ? "Nosso Espaço" : "Fotos do Site e Francielly"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
             {mode === "space"
@@ -2264,12 +2341,12 @@ function PhotosTab({
               </p>
             </div>
             <label className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:-translate-y-0.5">
-              {uploading?.startsWith("custom_space_") ? (
+              {uploading === "space_portfolio" ? (
                 <LoaderCircle className="h-4 w-4 animate-spin" />
               ) : (
                 <Upload className="h-4 w-4" />
               )}
-              {uploading?.startsWith("custom_space_") ? "Enviando..." : "Adicionar foto ao portfólio"}
+              {uploading === "space_portfolio" ? "Enviando..." : "Adicionar foto ao portfólio"}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/svg+xml"
@@ -2401,10 +2478,10 @@ function PhotosTab({
                 />
               </div>
               <div className="mt-3">
-                <p className="text-xs font-medium truncate text-foreground">{img.alt_text || img.image_key}</p>
+                <p className="text-xs font-medium truncate text-foreground">{img.label}</p>
                 <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
                   <span>{img.created_at ?? "Recente"}</span>
-                  <span className="font-mono text-[10px] text-magenta uppercase">{img.image_key}</span>
+                  <span className="font-mono text-[10px] text-magenta uppercase">{img.badge}</span>
                 </div>
               </div>
 
@@ -2417,10 +2494,15 @@ function PhotosTab({
                   <Copy className="h-3 w-3" />
                   {copiedUrl === img.image_url ? "Copiado!" : "Copiar link"}
                 </button>
-                {img.image_key.startsWith("custom_") ? (
+                {mode === "space" || img.badge.startsWith("custom_") ? (
                   <button
                     type="button"
-                    onClick={() => void handleDeleteCustom(img)}
+                    onClick={() => void handleDeleteCustom({
+                      id: img.id,
+                      storage_path: img.storage_path,
+                      title: img.label,
+                      source: img.source,
+                    })}
                     className="text-red-300 hover:text-red-200 text-[11px]"
                   >
                     Excluir
@@ -2452,7 +2534,6 @@ function PhotosTab({
                 onChange={(e) => setNewCategory(e.target.value)}
                 className="admin-input"
               >
-                <option value="space">Nosso Espaço — Galeria do Salão</option>
                 <option value="francielly">Francielly Soares</option>
                 <option value="highlight">Foto de Destaque</option>
                 <option value="treatment">Tratamento &amp; Cuidado</option>
@@ -2505,13 +2586,11 @@ function SettingsTab({
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFranPhoto, setUploadingFranPhoto] = useState(false);
-  const [uploadingSpacePhoto, setUploadingSpacePhoto] = useState(false);
 
   const franImage =
     images.find((img) => img.image_key === "francielly_bio")?.image_url ??
     images.find((img) => img.image_key === "about")?.image_url ??
     fotoFranciellyFallback;
-  const spaceImage = images.find((img) => img.image_key === "space_1")?.image_url ?? fotoEspacoFallback;
 
   async function handleLogoUpload(file: File) {
     setUploadingLogo(true);
@@ -2643,34 +2722,6 @@ function SettingsTab({
       onError("Erro ao salvar informações.");
     }
     setSaving(false);
-  }
-
-  async function handleSpacePhotoUpload(file: File) {
-    setUploadingSpacePhoto(true);
-    try {
-      if (isDemo) {
-        const fakeUrl = URL.createObjectURL(file);
-        setImages((prev) => prev.map((image) => image.image_key === "space_1" ? { ...image, image_url: fakeUrl } : image));
-        onSuccess("Foto do espaço atualizada no preview!");
-        return;
-      }
-      const previous = images.find((image) => image.image_key === "space_1");
-      const uploaded = await uploadImagem(file, "site/space_1");
-      const { error } = await getSupabaseClient().from("site_images").upsert({
-        image_key: "space_1",
-        image_url: uploaded.url,
-        storage_path: uploaded.path,
-        alt_text: "Espaço do salão Bem Bonita no Lanna Shopping",
-      }, { onConflict: "image_key" });
-      if (error) throw error;
-      await removerImagem(previous?.storage_path);
-      await onReload();
-      onSuccess("Foto do espaço atualizada com sucesso!");
-    } catch (error) {
-      onError(error instanceof Error ? error.message : "Falha ao atualizar a foto do espaço.");
-    } finally {
-      setUploadingSpacePhoto(false);
-    }
   }
 
   function submit(event: FormEvent) {
@@ -2881,29 +2932,6 @@ function SettingsTab({
           </div>
         </div>
 
-        <div className="border-t border-border pt-6">
-          <h3 className="text-lg font-display">Bloco Nosso Espaço</h3>
-          <div className="hidden">
-            <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-secondary">
-              <SafeImage src={spaceImage} fallbackSrc={fotoEspacoFallback} alt="Prévia do espaço do salão" className="h-full w-full object-cover" />
-              {uploadingSpacePhoto ? <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-xs font-semibold text-white"><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Enviando...</div> : null}
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold">Foto do ambiente</h4>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Esta é a foto exibida no bloco “Ambiente exclusivo” da página.</p>
-              <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/20 bg-secondary px-3.5 py-2 text-xs font-semibold text-magenta transition hover:border-primary">
-                <Camera className="h-3.5 w-3.5" /> {uploadingSpacePhoto ? "Enviando..." : "Trocar foto do ambiente"}
-                <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingSpacePhoto} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleSpacePhotoUpload(file); event.target.value = ""; }} />
-              </label>
-            </div>
-          </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label><span className="text-sm font-medium">Etiqueta</span><input value={String(settings.francielly_space_eyebrow ?? "")} onChange={(e) => onChange({ ...settings, francielly_space_eyebrow: e.target.value })} className="admin-input" /></label>
-            <label><span className="text-sm font-medium">Título</span><input value={String(settings.space_title ?? "")} onChange={(e) => onChange({ ...settings, space_title: e.target.value })} className="admin-input" /></label>
-            <label className="sm:col-span-2"><span className="text-sm font-medium">Descrição</span><textarea rows={3} value={String(settings.space_description ?? "")} onChange={(e) => onChange({ ...settings, space_description: e.target.value })} className="admin-input resize-y" /></label>
-            <label><span className="text-sm font-medium">Texto do botão</span><input value={String(settings.francielly_space_cta_label ?? "")} onChange={(e) => onChange({ ...settings, francielly_space_cta_label: e.target.value })} className="admin-input" /></label>
-          </div>
-        </div>
         <div className="sticky bottom-4 z-10 flex justify-end rounded-2xl border border-border bg-card/95 p-4 shadow-card backdrop-blur">
           <Botao type="button" disabled={saving} onClick={() => void saveSettings()}>
             {saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

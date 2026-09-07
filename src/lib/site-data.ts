@@ -49,6 +49,17 @@ export type SiteImageData = {
   created_at?: string;
 };
 
+export type SpacePhotoData = {
+  id: string;
+  title: string;
+  image_url: string;
+  storage_path: string | null;
+  alt_text: string;
+  sort_order: number;
+  published: boolean;
+  created_at?: string;
+};
+
 export type ProfessionalData = {
   id: string;
   name: string;
@@ -135,7 +146,7 @@ export function usePublicSiteData() {
     refetchOnReconnect: "always",
     queryFn: async () => {
       const supabase = getSupabaseClient();
-      const [settings, images, services, categories, portfolio, testimonials, professionals, products] = await Promise.all([
+      const [settings, images, services, categories, portfolio, testimonials, professionals, products, spacePhotos] = await Promise.all([
         supabase.from("site_settings").select("*").limit(1).maybeSingle(),
         supabase.from("site_images").select("*").order("image_key"),
         supabase.from("services").select("*").eq("published", true).order("sort_order"),
@@ -148,6 +159,7 @@ export function usePublicSiteData() {
           .order("created_at", { ascending: false }),
         supabase.from("professionals").select("*").eq("active", true).order("sort_order"),
         supabase.from("products").select("*").eq("published", true).order("sort_order"),
+        supabase.from("space_photos").select("*").eq("published", true).order("sort_order"),
       ]);
 
       const firstError = [settings, images, services, categories, portfolio, testimonials, professionals, products].find(
@@ -167,6 +179,7 @@ export function usePublicSiteData() {
         testimonials: (testimonials.data ?? []) as TestimonialData[],
         professionals: (professionals.data ?? []) as ProfessionalData[],
         products: (products.data ?? []) as ProductData[],
+        spacePhotos: spacePhotos.error ? [] : ((spacePhotos.data ?? []) as SpacePhotoData[]),
       };
     },
   });

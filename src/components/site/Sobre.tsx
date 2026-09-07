@@ -13,12 +13,11 @@ export function Sobre() {
   const [selectedPhoto, setSelectedPhoto] = useState<FotoEspaco | null>(null);
 
   const fotosEspaco =
-    data?.images
-      .filter((image) => image.image_key.startsWith("custom_space_"))
-      .filter((image) => image.image_url && !image.image_url.startsWith("/media/"))
+    data?.spacePhotos
+      .filter((image) => image.image_url)
       .map((image) => ({
         url: image.image_url,
-        titulo: image.alt_text || "Foto do espaço Bem Bonita",
+        titulo: image.alt_text || image.title || "Foto do espaço Bem Bonita",
       }))
       .filter((foto, index, lista) => lista.findIndex((item) => item.url === foto.url) === index) ?? [];
 

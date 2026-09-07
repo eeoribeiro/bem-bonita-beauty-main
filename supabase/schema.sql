@@ -166,6 +166,18 @@ create table if not exists public.site_images (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.space_photos (
+  id uuid primary key default gen_random_uuid(),
+  title text not null default 'Foto do espaço Bem Bonita',
+  image_url text not null,
+  storage_path text,
+  alt_text text not null default 'Foto do espaço Bem Bonita',
+  sort_order integer not null default 0,
+  published boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 -- 7. Depoimentos de Clientes
 create table if not exists public.testimonials (
   id uuid primary key default gen_random_uuid(),
@@ -242,6 +254,10 @@ drop trigger if exists site_images_updated_at on public.site_images;
 create trigger site_images_updated_at before update on public.site_images
 for each row execute function public.set_updated_at();
 
+drop trigger if exists space_photos_updated_at on public.space_photos;
+create trigger space_photos_updated_at before update on public.space_photos
+for each row execute function public.set_updated_at();
+
 drop trigger if exists testimonials_updated_at on public.testimonials;
 create trigger testimonials_updated_at before update on public.testimonials
 for each row execute function public.set_updated_at();
@@ -263,6 +279,7 @@ alter table public.products enable row level security;
 alter table public.portfolio_items enable row level security;
 alter table public.portfolio_categories enable row level security;
 alter table public.site_images enable row level security;
+alter table public.space_photos enable row level security;
 alter table public.testimonials enable row level security;
 alter table public.business_hours enable row level security;
 alter table public.contact_requests enable row level security;
@@ -321,6 +338,13 @@ drop policy if exists "Admins manage site images" on public.site_images;
 create policy "Admins manage site images" on public.site_images
 for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists "Public reads space photos" on public.space_photos;
+create policy "Public reads space photos" on public.space_photos
+for select to anon, authenticated using (published = true);
+drop policy if exists "Authenticated manages space photos" on public.space_photos;
+create policy "Authenticated manages space photos" on public.space_photos
+for all to authenticated using (true) with check (true);
+
 drop policy if exists "Public reads published testimonials" on public.testimonials;
 create policy "Public reads published testimonials" on public.testimonials
 for select to anon, authenticated using (published or public.is_admin());
@@ -343,9 +367,9 @@ create policy "Admins manage contact requests" on public.contact_requests
 for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 grant usage on schema public to anon, authenticated;
-grant select on public.site_settings, public.professionals, public.site_images, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours to anon, authenticated;
+grant select on public.site_settings, public.professionals, public.site_images, public.space_photos, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours to anon, authenticated;
 grant insert on public.contact_requests to anon, authenticated;
-grant select, insert, update, delete on public.admin_users, public.site_settings, public.professionals, public.site_images, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours, public.contact_requests to authenticated;
+grant select, insert, update, delete on public.admin_users, public.site_settings, public.professionals, public.site_images, public.space_photos, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours, public.contact_requests to authenticated;
 
 -- Índices
 create index if not exists professionals_sort_order_idx on public.professionals (active, sort_order);
@@ -356,12 +380,26 @@ create unique index if not exists portfolio_unique_sort_order_idx on public.port
 create index if not exists portfolio_categories_order_idx on public.portfolio_categories (active, sort_order);
 create index if not exists testimonials_public_date_idx on public.testimonials (published, created_at desc);
 create index if not exists contact_requests_status_date_idx on public.contact_requests (status, created_at desc);
+create index if not exists space_photos_public_order_idx on public.space_photos (published, sort_order);
 
 -- Storage bucket para upload de fotos
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'site-images',
   'site-images',
+  true,
+  15728640,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'space-photos',
+  'space-photos',
   true,
   15728640,
   array['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
@@ -386,3 +424,19 @@ for update to authenticated using (bucket_id = 'site-images' and public.is_admin
 drop policy if exists "Admins delete site image files" on storage.objects;
 create policy "Admins delete site image files" on storage.objects
 for delete to authenticated using (bucket_id = 'site-images' and public.is_admin());
+
+drop policy if exists "Public reads space photo files" on storage.objects;
+create policy "Public reads space photo files" on storage.objects
+for select to anon, authenticated using (bucket_id = 'space-photos');
+
+drop policy if exists "Authenticated uploads space photo files" on storage.objects;
+create policy "Authenticated uploads space photo files" on storage.objects
+for insert to authenticated with check (bucket_id = 'space-photos');
+
+drop policy if exists "Authenticated updates space photo files" on storage.objects;
+create policy "Authenticated updates space photo files" on storage.objects
+for update to authenticated using (bucket_id = 'space-photos') with check (bucket_id = 'space-photos');
+
+drop policy if exists "Authenticated deletes space photo files" on storage.objects;
+create policy "Authenticated deletes space photo files" on storage.objects
+for delete to authenticated using (bucket_id = 'space-photos');
