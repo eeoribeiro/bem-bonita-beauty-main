@@ -25,6 +25,13 @@ create table if not exists public.site_images (
   updated_at timestamptz not null default now()
 );
 
+-- Garante que o usuário logado no painel atual seja administrador.
+insert into public.admin_users (user_id)
+select id
+from auth.users
+where email = 'arthur0108@gmail.com'
+on conflict (user_id) do nothing;
+
 -- Função com nome único para fugir da is_admin() duplicada.
 create or replace function public.is_bem_bonita_admin()
 returns boolean
