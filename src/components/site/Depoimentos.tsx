@@ -32,12 +32,12 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
   return (
     <section
       id="depoimentos"
-      className={`scroll-mt-28 bg-[radial-gradient(circle_at_top,rgba(82,32,58,0.72),transparent_38%),linear-gradient(180deg,#171217_0%,#25131d_52%,#321421_100%)] py-16 text-white lg:py-28 ${
-        paginaCompleta ? "pt-28 lg:pt-40" : ""
+      className={`scroll-mt-24 bg-[radial-gradient(circle_at_top,rgba(82,32,58,0.72),transparent_38%),linear-gradient(180deg,#171217_0%,#25131d_52%,#321421_100%)] py-14 text-white lg:py-24 ${
+        paginaCompleta ? "pt-24 lg:pt-32" : ""
       }`}
     >
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
-        <div data-reveal className="reveal text-center">
+        <div className="text-center">
           <p className="eyebrow mx-auto flex w-fit items-center gap-2">
             <Star className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
             Feedbacks reais
@@ -50,7 +50,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
           </p>
         </div>
 
-        <div className="mt-12 columns-1 gap-6 sm:columns-2 lg:columns-3">
+        <div className="mt-10 columns-1 gap-6 sm:columns-2 lg:columns-3">
           {feedbacksExibidos.map((feedback) => (
             <button
               key={feedback.id}
