@@ -2100,7 +2100,7 @@ function PhotosTab({
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<SiteImageData | null>(null);
   const visibleHistory = mode === "space"
-    ? images.filter((image) => image.image_key.startsWith("space_") || image.image_key.startsWith("custom_space_"))
+    ? images.filter((image) => image.image_key.startsWith("custom_space_"))
     : images;
 
   const mainSlots = [
@@ -2124,30 +2124,6 @@ function PhotosTab({
       badge: "Produtos",
       description: "Imagem de destaque para a seção de cosméticos e tratamentos.",
       fallback: fotoProdutosFallback,
-    },
-  ];
-
-  const spaceSlots = [
-    {
-      key: "space_1",
-      title: "Ambiente Principal do Salão",
-      badge: "Nosso Espaço",
-      description: "Visão geral do espaço interno, decoração aconchegante no Lanna Shopping.",
-      fallback: fotoEspacoFallback,
-    },
-    {
-      key: "space_2",
-      title: "Vitrine & Recepção",
-      badge: "Nosso Espaço",
-      description: "Exposição dos produtos e recepção dos clientes.",
-      fallback: fotoProdutosFallback,
-    },
-    {
-      key: "space_3",
-      title: "Lavatório & Atendimento",
-      badge: "Nosso Espaço",
-      description: "Cadeira de atendimento e área de tratamentos capilares.",
-      fallback: fotoCachosFallback,
     },
   ];
 
@@ -2252,23 +2228,25 @@ function PhotosTab({
       {/* Topo da Aba */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <p className="eyebrow">{mode === "space" ? "Ambiente físico" : "Mídia & Ambientes"}</p>
+          <p className="eyebrow">{mode === "space" ? "Portfólio do espaço" : "Mídia & Ambientes"}</p>
           <h1 className="mt-2 text-3xl sm:text-4xl font-display">
             {mode === "space" ? "Nosso Espaço" : "Fotos do Site, Francielly e Espaço"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
             {mode === "space"
-              ? "Gerencie somente as fotos do salão físico exibidas no site. Cada card informa exatamente onde a imagem será usada."
+              ? "Essa aba é somente para montar o portfólio visual do espaço Bem Bonita. Adicione fotos reais do salão; elas aparecem na seção “Nosso Espaço” do site."
               : <>Substitua a imagem de qualquer área específica clicando diretamente no botão <strong>"Trocar foto desta área"</strong> presente em cada card.</>}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:-translate-y-0.5"
-        >
-          <Plus className="h-4 w-4" /> {mode === "space" ? "Adicionar foto do espaço" : "Adicionar nova foto"}
-        </button>
+        {mode === "all" ? (
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:-translate-y-0.5"
+          >
+            <Plus className="h-4 w-4" /> Adicionar nova foto
+          </button>
+        ) : null}
       </div>
 
       {mode === "space" ? (
@@ -2279,10 +2257,10 @@ function PhotosTab({
                 <Images className="h-3.5 w-3.5 text-gold" />
                 Portfólio do espaço
               </p>
-              <h2 className="mt-2 font-display text-2xl">Adicionar foto na galeria do site</h2>
+              <h2 className="mt-2 font-display text-2xl">Adicionar foto ao portfólio</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                Use esta área para publicar fotos reais do salão na seção “Nosso Espaço”. Elas
-                aparecem como portfólio no site, sem textos extras nem foto antiga de exemplo.
+                Use esta área para publicar somente fotos reais do salão. Não existem cards fixos:
+                cada imagem enviada aqui vira uma foto do portfólio no site.
               </p>
             </div>
             <label className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:-translate-y-0.5">
@@ -2294,7 +2272,7 @@ function PhotosTab({
               {uploading?.startsWith("custom_space_") ? "Enviando..." : "Adicionar foto ao portfólio"}
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/jpeg,image/png,image/webp,image/svg+xml"
                 disabled={Boolean(uploading)}
                 className="sr-only"
                 onChange={(event) => {
@@ -2383,98 +2361,31 @@ function PhotosTab({
         </div>
       </div> : null}
 
-      {/* Seção 2: Nosso Espaço — Galeria do Salão */}
-      {mode === "space" ? <div>
-        <div className="flex items-center gap-3 mb-5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary text-gold">
-            <MapPin className="h-4 w-4" />
-          </span>
-          <div>
-            <h2 className="text-xl font-display">Nosso Espaço</h2>
-            <p className="text-xs text-muted-foreground">
-              Galeria de fotos do salão no Lanna Shopping para encantar futuros clientes
-            </p>
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          {spaceSlots.map((slot, index) => {
-            const item = images.find((image) => image.image_key === slot.key);
-            const isCurrentlyUploading = uploading === slot.key;
-
-            return (
-              <div
-                key={slot.key}
-                className="group rounded-3xl border border-border bg-card p-5 shadow-card transition hover:border-primary/50 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-gold bg-secondary px-2.5 py-0.5 rounded-full">
-                      {slot.badge}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-display">{slot.title}</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground min-h-8">
-                    {slot.description}
-                  </p>
-                </div>
-
-                <div className="mt-4">
-                  {/* Prévia da Imagem */}
-                  <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-border/80 bg-secondary/40 shadow-inner">
-                    <SafeImage
-                      src={item?.image_url ?? slot.fallback}
-                      fallbackSrc={slot.fallback}
-                      alt={slot.title}
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                    />
-                    {isCurrentlyUploading ? (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/75 backdrop-blur-xs text-white text-xs font-semibold gap-2">
-                        <LoaderCircle className="h-4 w-4 animate-spin text-gold" /> Enviando...
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {/* Botão Dedicado de Troca */}
-                  <label className="mt-3.5 flex items-center justify-center gap-2 rounded-2xl bg-secondary/90 hover:bg-secondary px-4 py-2.5 text-xs font-semibold text-magenta cursor-pointer transition border border-primary/20 hover:border-primary shadow-xs">
-                    <Camera className="h-3.5 w-3.5 shrink-0" />
-                    <span>{isCurrentlyUploading ? "Atualizando..." : "Trocar foto deste espaço"}</span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      disabled={isCurrentlyUploading}
-                      className="sr-only"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          void save(slot.key, file);
-                          e.target.value = "";
-                        }
-                      }}
-                    />
-                  </label>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div> : null}
-
-      {/* Seção 3: Histórico de Imagens Enviadas */}
+      {/* Galeria do Portfólio / Histórico de Imagens Enviadas */}
       <div>
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <div>
             <h2 className="text-xl font-display flex items-center gap-2">
-              <Clock className="h-5 w-5 text-magenta" /> {mode === "space" ? "Fotos extras do ambiente" : "Histórico de Fotos Cadastradas"}
+              {mode === "space" ? <Images className="h-5 w-5 text-magenta" /> : <Clock className="h-5 w-5 text-magenta" />}
+              {mode === "space" ? "Fotos do portfólio" : "Histórico de Fotos Cadastradas"}
             </h2>
             <p className="text-xs text-muted-foreground mt-1">
-              {mode === "space" ? "Fotos complementares do espaço físico cadastradas no painel." : "Registro de todas as fotos ativas no salão. Você pode copiar o link ou consultar as imagens."}
+              {mode === "space" ? "Somente as fotos adicionadas aqui aparecem na aba “Nosso Espaço” do site." : "Registro de todas as fotos ativas no salão. Você pode copiar o link ou consultar as imagens."}
             </p>
           </div>
           <span className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full font-medium">
             {visibleHistory.length} foto(s)
           </span>
         </div>
+
+        {!visibleHistory.length && mode === "space" ? (
+          <div className="mt-6 rounded-[2rem] border border-dashed border-primary/35 bg-card p-8 text-center shadow-card">
+            <p className="font-display text-2xl">Nenhuma foto no portfólio ainda</p>
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
+              Clique em “Adicionar foto ao portfólio” para começar a montar a galeria do espaço Bem Bonita.
+            </p>
+          </div>
+        ) : null}
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {visibleHistory.map((img) => (

@@ -1,6 +1,9 @@
--- Bem Bonita — Reparo seguro para upload de imagens.
--- Execute no SQL Editor do Supabase se aparecer "Não foi possível enviar a imagem".
--- Este script não apaga fotos nem dados existentes.
+-- Bem Bonita — correção do erro:
+-- ERROR 42725: function public.is_admin() is not unique
+--
+-- Execute este arquivo no SQL Editor do Supabase.
+-- Ele não apaga fotos nem dados. Ele cria uma função de admin com nome único
+-- e recria as permissões necessárias para upload/salvamento de imagens.
 
 create or replace function public.is_bem_bonita_admin()
 returns boolean

@@ -14,7 +14,7 @@ export function Sobre() {
 
   const fotosEspaco =
     data?.images
-      .filter((image) => image.image_key.startsWith("space_") || image.image_key.startsWith("custom_space_"))
+      .filter((image) => image.image_key.startsWith("custom_space_"))
       .filter((image) => image.image_url && !image.image_url.startsWith("/media/"))
       .map((image) => ({
         url: image.image_url,
