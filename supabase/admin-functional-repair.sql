@@ -130,5 +130,18 @@ on public.services (published, sort_order);
 create index if not exists services_featured_sort_idx
 on public.services (featured desc, sort_order asc);
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'site-images',
+  'site-images',
+  true,
+  15728640,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
 -- Atualiza o cache de esquema usado pela API do Supabase.
 notify pgrst, 'reload schema';

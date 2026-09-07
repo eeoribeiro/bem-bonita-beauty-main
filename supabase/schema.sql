@@ -363,7 +363,7 @@ values (
   'site-images',
   'site-images',
   true,
-  5242880,
+  15728640,
   array['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
 )
 on conflict (id) do update set
