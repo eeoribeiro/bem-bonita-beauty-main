@@ -82,7 +82,7 @@ const produtosLinha: ProdutoItem[] = [
 ];
 
 export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean }) {
-  const { data, isError, isLoading } = usePublicSiteData();
+  const { data, isError, isFetching, isLoading } = usePublicSiteData();
   const productsImage = data?.images.find((image) => image.image_key === "products");
   const products = data
     ? data.products.map((product) => ({
@@ -92,13 +92,13 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         curvatura: product.hair_type,
         descricao: product.description,
         beneficios: product.benefits,
-        imagem: product.image_url ?? kitImg,
+        imagem: product.image_url ?? "",
         preco: product.price_text,
         destaque: product.featured,
       }))
     : isError
       ? produtosLinha
-      : produtosLinha;
+      : [];
   const produtosExibidos = paginaCompleta
     ? products
     : [...products].sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque))).slice(0, 3);
@@ -122,7 +122,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         {paginaCompleta ? (
           <div className="mt-14 overflow-hidden rounded-3xl border border-border/70 bg-card p-6 shadow-card sm:p-10 lg:grid lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-12">
             <div className="relative">
-              {isLoading ? (
+              {isLoading || isFetching ? (
                 <div className="aspect-square w-full animate-pulse rounded-2xl bg-secondary/70 shadow-soft" />
               ) : (
                 <img
@@ -181,8 +181,24 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {produtosExibidos.length ? (
-              produtosExibidos.map((produto) => (
+            {isLoading || isFetching ? (
+              Array.from({ length: paginaCompleta ? 6 : 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card"
+                  aria-label="Carregando produto"
+                >
+                  <div className="aspect-[4/5] w-full animate-pulse bg-secondary/70 sm:aspect-[3/4]" />
+                  <div className="space-y-3 p-5 sm:p-6">
+                    <div className="h-5 w-28 animate-pulse rounded-full bg-secondary/80" />
+                    <div className="h-7 w-3/4 animate-pulse rounded bg-secondary/80" />
+                    <div className="h-4 w-full animate-pulse rounded bg-secondary/70" />
+                    <div className="h-4 w-2/3 animate-pulse rounded bg-secondary/70" />
+                  </div>
+                </div>
+              ))
+            ) : produtosExibidos.length ? (
+              produtosExibidos.map((produto, index) => (
                 <article
                   key={produto.id}
                   className={`group flex flex-col justify-between overflow-hidden rounded-3xl border bg-card shadow-card transition-all duration-300 hover:border-primary/50 hover:shadow-soft ${
@@ -192,9 +208,11 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                   <div>
                     <div className="relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden bg-secondary/25 sm:aspect-[3/4]">
                       <img
-                        src={produto.imagem}
+                        src={produto.imagem || kitImg}
                         alt={produto.nome}
-                        loading="lazy"
+                        loading={index < 3 ? "eager" : "lazy"}
+                        fetchPriority={index < 3 ? "high" : "auto"}
+                        decoding="async"
                         className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-[1.03]"
                       />
                       {produto.destaque ? (

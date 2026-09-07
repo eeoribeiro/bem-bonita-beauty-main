@@ -1,165 +1,115 @@
-import { Coffee, MapPin, Maximize2, Scissors, Sparkles } from "lucide-react";
+import { Maximize2, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 
-import { BotaoLink } from "./Botao";
-import { contatoLink, SALAO } from "@/lib/salao";
 import { usePublicSiteData } from "@/lib/site-data";
 
-import salaoEspaco from "@/assets/instagram-salao.jpg";
-import produtosEspaco from "@/assets/instagram-produtos.jpg";
-import cachosEspaco from "@/assets/instagram-cachos.jpg";
-
-const diferenciais = [
-  {
-    icone: Scissors,
-    titulo: "Atendimento Especializado",
-    texto: "Metodologia exclusiva de corte a seco e diagnóstico capilar individualizado.",
-  },
-  {
-    icone: Sparkles,
-    titulo: "Saúde & Definição",
-    texto: "Produtos livres de petrolatos pesados com foco em nutrição e day after.",
-  },
-  {
-    icone: Coffee,
-    titulo: "Ambiente Acolhedor",
-    texto: "Espaço intimista, café fresco e música relaxante para o seu momento de autocuidado.",
-  },
-  {
-    icone: MapPin,
-    titulo: "Fácil Acesso",
-    texto: "Localização central no Lanna Shopping, com total segurança e comodidade.",
-  },
-];
+type FotoEspaco = {
+  url: string;
+  titulo: string;
+};
 
 export function Sobre() {
-  const { data } = usePublicSiteData();
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const { data, isFetching, isLoading } = usePublicSiteData();
+  const [selectedPhoto, setSelectedPhoto] = useState<FotoEspaco | null>(null);
 
-  const space1 = data?.images.find((image) => image.image_key === "space_1")?.image_url ?? salaoEspaco;
-  const space2 = data?.images.find((image) => image.image_key === "space_2")?.image_url ?? produtosEspaco;
-  const space3 = data?.images.find((image) => image.image_key === "space_3")?.image_url ?? cachosEspaco;
-  const customSpacePhotos =
+  const fotosEspaco =
     data?.images
-      .filter((image) => image.image_key.startsWith("custom_space_"))
+      .filter((image) => image.image_key.startsWith("space_") || image.image_key.startsWith("custom_space_"))
+      .filter((image) => image.image_url && !image.image_url.startsWith("/media/"))
       .map((image) => ({
         url: image.image_url,
         titulo: image.alt_text || "Foto do espaço Bem Bonita",
-        legenda: "Galeria do salão Bem Bonita",
-      })) ?? [];
+      }))
+      .filter((foto, index, lista) => lista.findIndex((item) => item.url === foto.url) === index) ?? [];
 
-  const fotosEspaco = [
-    {
-      url: space1,
-      titulo: "Ambiente Principal do Salão",
-      legenda: "Estrutura aconchegante pensada para o seu conforto",
-    },
-    {
-      url: space2,
-      titulo: "Produtos & Tratamentos",
-      legenda: "Linha profissional selecionada para cachos",
-    },
-    {
-      url: space3,
-      titulo: "Resultados & Transformações",
-      legenda: "Realce da curvatura e brilho dos fios",
-    },
-    ...customSpacePhotos,
-  ].filter((foto, index, lista) => lista.findIndex((item) => item.url === foto.url) === index);
+  const carregando = isLoading || isFetching;
 
   return (
-    <section id="nosso-espaco" className="bg-background py-20 lg:py-28">
+    <section
+      id="nosso-espaco"
+      className="bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--secondary)/0.55)_100%)] py-20 lg:py-28"
+    >
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
-        <div className="rounded-[2.5rem] border border-border/80 bg-blush-soft p-6 shadow-card sm:p-10 lg:p-12">
-          <div className="text-center max-w-2xl mx-auto">
-            <p className="eyebrow mx-auto flex w-fit items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-gold" />
-              Nosso Espaço
-            </p>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-display">
-              Um refúgio exclusivo para cuidar dos seus cachos
-            </h2>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Localizado no Lanna Shopping em Ponte Nova, o salão Bem Bonita foi desenhado para
-              proporcionar uma experiência relaxante, intimista e acolhedora.
-            </p>
-          </div>
-
-          {/* Grade de Fotos do Espaço */}
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {fotosEspaco.map((foto, idx) => (
-              <div
-                key={idx}
-                onClick={() => setSelectedPhoto(foto.url)}
-                className="group relative cursor-pointer overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-soft"
-              >
-                <div className="aspect-[4/3] w-full overflow-hidden">
-                  <img
-                    src={foto.url}
-                    alt={foto.titulo}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
-                <div className="p-4">
-                  <p className="text-sm font-medium leading-snug">{foto.titulo}</p>
-                  <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{foto.legenda}</p>
-                </div>
-                <div className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition backdrop-blur">
-                  <Maximize2 className="h-4 w-4" />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Diferenciais do Espaço */}
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 border-t border-border/60 pt-8">
-            {diferenciais.map(({ icone: Icone, titulo, texto }) => (
-              <div key={titulo} className="flex gap-3.5 p-2">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-secondary text-magenta">
-                  <Icone className="h-5 w-5" />
-                </span>
-                <div>
-                  <h3 className="text-sm font-semibold">{titulo}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{texto}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-10 text-center">
-            <BotaoLink
-              href={contatoLink(
-                `Olá, ${SALAO.nome}! Gostaria de agendar uma visita e conhecer o salão no Lanna Shopping.`,
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shadow-soft"
-            >
-              Agendar visita ao salão pelo WhatsApp
-            </BotaoLink>
-          </div>
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="eyebrow mx-auto flex w-fit items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
+            Nosso Espaço
+          </p>
+          <h2 className="mt-3 font-display text-3xl leading-tight sm:text-4xl">
+            Galeria do Espaço Bem Bonita
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Um portfólio visual do salão, pensado para mostrar o ambiente, os detalhes e a
+            experiência de cuidado que as clientes encontram por aqui.
+          </p>
         </div>
+
+        {carregando ? (
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="aspect-[4/5] animate-pulse rounded-[2rem] border border-border/60 bg-secondary/70 shadow-card"
+              />
+            ))}
+          </div>
+        ) : fotosEspaco.length ? (
+          <div className="mt-12 columns-1 gap-5 sm:columns-2 lg:columns-3">
+            {fotosEspaco.map((foto, index) => (
+              <button
+                key={foto.url}
+                type="button"
+                onClick={() => setSelectedPhoto(foto)}
+                className="group relative mb-5 block w-full break-inside-avoid overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+                aria-label={`Ampliar foto do espaço: ${foto.titulo}`}
+              >
+                <img
+                  src={foto.url}
+                  alt={foto.titulo}
+                  loading={index < 3 ? "eager" : "lazy"}
+                  fetchPriority={index < 3 ? "high" : "auto"}
+                  decoding="async"
+                  className="h-auto w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                />
+                <span className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
+                  <Maximize2 className="h-4 w-4" aria-hidden="true" />
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="mx-auto mt-12 max-w-2xl rounded-[2rem] border border-dashed border-primary/35 bg-card p-8 text-center shadow-card">
+            <p className="font-display text-2xl">Nenhuma foto do espaço publicada ainda</p>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Adicione fotos na aba “Nosso Espaço” do painel administrativo para montar essa
+              galeria em formato de portfólio.
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Modal de Foto Ampliada */}
       {selectedPhoto ? (
         <div
-          onClick={() => setSelectedPhoto(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Foto do espaço ampliada"
+          onMouseDown={(event) => event.target === event.currentTarget && setSelectedPhoto(null)}
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
         >
-          <div className="relative max-h-[90vh] max-w-4xl overflow-hidden rounded-3xl bg-background p-2">
-            <img
-              src={selectedPhoto}
-              alt="Foto do Espaço do Salão Bem Bonita"
-              className="max-h-[85vh] w-auto rounded-2xl object-contain"
-            />
+          <div className="relative max-h-[92vh] max-w-5xl overflow-auto rounded-3xl bg-card p-3 shadow-2xl">
             <button
               type="button"
               onClick={() => setSelectedPhoto(null)}
-              className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black"
+              className="absolute right-5 top-5 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/70 text-white"
+              aria-label="Fechar foto ampliada"
             >
-              ✕
+              <X className="h-5 w-5" />
             </button>
+            <img
+              src={selectedPhoto.url}
+              alt={selectedPhoto.titulo}
+              className="max-h-[86vh] w-full rounded-2xl object-contain"
+            />
           </div>
         </div>
       ) : null}

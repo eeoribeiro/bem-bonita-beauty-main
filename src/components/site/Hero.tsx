@@ -5,7 +5,7 @@ import { contatoLink, SALAO } from "@/lib/salao";
 import { usePublicSiteData } from "@/lib/site-data";
 
 export function Hero() {
-  const { data, isLoading } = usePublicSiteData();
+  const { data, isFetching, isLoading } = usePublicSiteData();
   const settings = data?.settings;
   const heroImage = data?.images.find((image) => image.image_key === "hero");
   const headline = settings?.headline ?? "Seus cachos são a nossa arte";
@@ -58,7 +58,7 @@ export function Hero() {
 
         <div className="relative">
           <div className="absolute -left-4 -top-4 hidden h-28 w-28 rounded-full border border-gold/60 sm:block" />
-          {isLoading ? (
+          {isLoading || isFetching ? (
             <div
               aria-label="Carregando foto principal"
               className="relative aspect-[4/5] w-full animate-pulse rounded-[2rem] border border-border/70 bg-secondary/70 shadow-soft sm:rounded-[2.5rem]"
