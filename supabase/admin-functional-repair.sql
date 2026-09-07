@@ -41,6 +41,34 @@ create table if not exists public.products (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.services (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text not null,
+  price_text text not null default '',
+  featured boolean not null default false,
+  benefits text[] not null default '{}',
+  image_url text,
+  storage_path text,
+  cta_label text not null default 'Conversar sobre este serviço',
+  sort_order integer not null default 0,
+  published boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.services
+  add column if not exists price_text text not null default '',
+  add column if not exists featured boolean not null default false,
+  add column if not exists benefits text[] not null default '{}',
+  add column if not exists image_url text,
+  add column if not exists storage_path text,
+  add column if not exists cta_label text not null default 'Conversar sobre este serviço',
+  add column if not exists sort_order integer not null default 0,
+  add column if not exists published boolean not null default true,
+  add column if not exists created_at timestamptz not null default now(),
+  add column if not exists updated_at timestamptz not null default now();
+
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -57,7 +85,13 @@ create trigger products_updated_at
 before update on public.products
 for each row execute function public.set_updated_at();
 
+drop trigger if exists services_updated_at on public.services;
+create trigger services_updated_at
+before update on public.services
+for each row execute function public.set_updated_at();
+
 alter table public.products enable row level security;
+alter table public.services enable row level security;
 
 drop policy if exists "Public reads published products" on public.products;
 create policy "Public reads published products" on public.products
@@ -73,8 +107,28 @@ with check (public.is_admin());
 grant select on public.products to anon, authenticated;
 grant insert, update, delete on public.products to authenticated;
 
+drop policy if exists "Public reads published services" on public.services;
+create policy "Public reads published services" on public.services
+for select to anon, authenticated
+using (published or public.is_admin());
+
+drop policy if exists "Admins manage services" on public.services;
+create policy "Admins manage services" on public.services
+for all to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+grant select on public.services to anon, authenticated;
+grant insert, update, delete on public.services to authenticated;
+
 create index if not exists products_public_order_idx
 on public.products (published, sort_order);
+
+create index if not exists services_public_order_idx
+on public.services (published, sort_order);
+
+create index if not exists services_featured_sort_idx
+on public.services (featured desc, sort_order asc);
 
 -- Atualiza o cache de esquema usado pela API do Supabase.
 notify pgrst, 'reload schema';

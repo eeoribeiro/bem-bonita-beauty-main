@@ -114,6 +114,8 @@ create table if not exists public.services (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   description text not null,
+  price_text text not null default '',
+  featured boolean not null default false,
   benefits text[] not null default '{}',
   image_url text,
   storage_path text,
@@ -123,6 +125,9 @@ create table if not exists public.services (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.services add column if not exists price_text text not null default '';
+alter table public.services add column if not exists featured boolean not null default false;
 
 -- 5. Galeria de Resultados & Categorias
 create table if not exists public.portfolio_categories (

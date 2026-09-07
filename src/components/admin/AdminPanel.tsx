@@ -32,6 +32,7 @@ import {
   Settings,
   ShoppingBag,
   Sparkles,
+  Star,
   Sun,
   Tag,
   Trash2,
@@ -133,6 +134,7 @@ const emptyService = (): Omit<ServiceData, "id" | "sort_order"> => ({
   name: "",
   description: "",
   price_text: "",
+  featured: false,
   benefits: [],
   image_url: null,
   storage_path: null,
@@ -2212,6 +2214,11 @@ function PhotosTab({
     setNewTitle("");
   }
 
+  async function handleCreateSpacePortfolioPhoto(file: File) {
+    const key = `custom_space_${Date.now()}`;
+    await save(key, file, "Foto do portfólio do Espaço Bem Bonita");
+  }
+
   function handleCopy(url: string) {
     navigator.clipboard.writeText(url);
     setCopiedUrl(url);
@@ -2263,6 +2270,43 @@ function PhotosTab({
           <Plus className="h-4 w-4" /> {mode === "space" ? "Adicionar foto do espaço" : "Adicionar nova foto"}
         </button>
       </div>
+
+      {mode === "space" ? (
+        <div className="rounded-[2rem] border border-dashed border-primary/40 bg-secondary/45 p-5 shadow-card sm:p-7">
+          <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <p className="eyebrow flex items-center gap-2">
+                <Images className="h-3.5 w-3.5 text-gold" />
+                Portfólio do espaço
+              </p>
+              <h2 className="mt-2 font-display text-2xl">Adicionar foto na galeria do site</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                Use esta área para publicar fotos reais do salão na seção “Nosso Espaço”. Elas
+                aparecem como portfólio no site, sem textos extras nem foto antiga de exemplo.
+              </p>
+            </div>
+            <label className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:-translate-y-0.5">
+              {uploading?.startsWith("custom_space_") ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              {uploading?.startsWith("custom_space_") ? "Enviando..." : "Adicionar foto ao portfólio"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={Boolean(uploading)}
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void handleCreateSpacePortfolioPhoto(file);
+                  event.target.value = "";
+                }}
+              />
+            </label>
+          </div>
+        </div>
+      ) : null}
 
       {/* Seção 1: Fotos Principais de Destaque */}
       {mode === "all" ? <div>
@@ -3033,6 +3077,7 @@ function ServicesManager({
             name: item.name,
             description: item.description,
             price_text: item.price_text ?? "",
+            featured: Boolean(item.featured),
             benefits: [],
             image_url: null,
             storage_path: null,
@@ -3126,6 +3171,7 @@ function ServicesManager({
       name: form.name.trim(),
       description: form.description.trim(),
       price_text: form.price_text.trim(),
+      featured: Boolean(form.featured),
       sort_order: nextOrder,
       benefits: [],
       image_url: null,
@@ -3258,6 +3304,12 @@ function ServicesManager({
                       >
                         {item.published ? "Ativo" : "Inativo"}
                       </span>
+                      {item.featured ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">
+                          <Star className="h-3 w-3 fill-current" />
+                          Destaque
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   {item.description ? (
@@ -3374,6 +3426,11 @@ function ServicesManager({
           label="Serviço ativo e visível no site"
           checked={form.published}
           onChange={(published) => setForm({ ...form, published })}
+        />
+        <Toggle
+          label="Marcar como serviço em destaque"
+          checked={Boolean(form.featured)}
+          onChange={(featured) => setForm({ ...form, featured })}
         />
         <Botao type="submit" disabled={saving} className="w-full">
           {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Criar serviço (adicionar ao final)"}

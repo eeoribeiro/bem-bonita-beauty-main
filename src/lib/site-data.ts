@@ -67,6 +67,7 @@ export type ServiceData = {
   name: string;
   description: string;
   price_text: string;
+  featured?: boolean | null;
   benefits?: string[] | null;
   image_url?: string | null;
   storage_path?: string | null;

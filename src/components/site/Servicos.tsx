@@ -21,6 +21,7 @@ type ServicoView = {
   nome: string;
   descricao: string;
   preco?: string | null;
+  destaque?: boolean | null;
 };
 
 const servicosBase = [
@@ -58,14 +59,27 @@ const servicosBase = [
   },
 ] satisfies Array<Omit<ServicoView, "id">>;
 
-function montarServicos(dataServices?: Array<{ id: string; name: string; description: string; price_text: string }>, isError = false) {
+function montarServicos(
+  dataServices?: Array<{
+    id: string;
+    name: string;
+    description: string;
+    price_text: string;
+    featured?: boolean | null;
+    sort_order?: number;
+  }>,
+  isError = false,
+) {
   if (dataServices?.length) {
-    return dataServices.map((service) => ({
-      id: service.id,
-      nome: service.name,
-      descricao: service.description || obterDescricaoCurta(service.name),
-      preco: service.price_text,
-    }));
+    return [...dataServices]
+      .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
+      .map((service) => ({
+        id: service.id,
+        nome: service.name,
+        descricao: service.description || obterDescricaoCurta(service.name),
+        preco: service.price_text,
+        destaque: service.featured,
+      }));
   }
 
   if (isError) {
@@ -119,6 +133,12 @@ function ServiceCard({ servico }: { servico: ServicoView }) {
           </span>
         ) : null}
       </div>
+      {servico.destaque ? (
+        <span className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-primary-foreground shadow-soft">
+          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+          Destaque
+        </span>
+      ) : null}
       <h3 className="mt-5 font-sans text-lg font-bold leading-snug">{servico.nome}</h3>
       <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{servico.descricao}</p>
       <BotaoLink
