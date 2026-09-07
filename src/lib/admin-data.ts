@@ -18,7 +18,7 @@ export async function uploadImagem(file: File, pasta: string) {
   const path = `${pasta}/${crypto.randomUUID()}.${extension}`;
   const supabase = getSupabaseClient();
   const { error } = await supabase.storage.from("site-images").upload(path, file, {
-    cacheControl: "3600",
+    cacheControl: "31536000",
     contentType: file.type,
     upsert: false,
   });

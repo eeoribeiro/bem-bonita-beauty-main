@@ -69,6 +69,9 @@ export function Hero() {
                 src={heroImage?.image_url ?? "/media/francielly-profissional.jpg"}
                 width={710}
                 height={710}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
                 alt={
                   heroImage?.alt_text ??
                   "Francielly Soares, profissional do salão Bem Bonita, com tesouras de cabeleireira"
