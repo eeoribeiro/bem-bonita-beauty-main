@@ -35,7 +35,7 @@ export function Sobre() {
             Nosso Espaço
           </p>
           <h2 className="mt-3 font-display text-3xl leading-tight sm:text-4xl">
-            Galeria do Espaço Bem Bonita
+            Nosso Espaço
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
             Um portfólio visual do salão, pensado para mostrar o ambiente, os detalhes e a
