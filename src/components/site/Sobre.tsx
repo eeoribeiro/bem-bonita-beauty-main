@@ -1,23 +1,11 @@
-import {
-  Coffee,
-  HeartHandshake,
-  Leaf,
-  MapPin,
-  Maximize2,
-  Scissors,
-  ShieldCheck,
-  Sparkles,
-  UserRound,
-} from "lucide-react";
+import { Coffee, MapPin, Maximize2, Scissors, Sparkles } from "lucide-react";
 import { useState } from "react";
 
-import { TituloSecao } from "./TituloSecao";
 import { BotaoLink } from "./Botao";
 import { contatoLink, SALAO } from "@/lib/salao";
 import { usePublicSiteData } from "@/lib/site-data";
 
 import salaoEspaco from "@/assets/instagram-salao.jpg";
-import franciellyAtendimento from "@/assets/sobre-francielly.jpg";
 import produtosEspaco from "@/assets/instagram-produtos.jpg";
 import cachosEspaco from "@/assets/instagram-cachos.jpg";
 
@@ -45,24 +33,26 @@ const diferenciais = [
 ];
 
 export function Sobre() {
-  const { data, isLoading } = usePublicSiteData();
+  const { data } = usePublicSiteData();
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
-  const aboutImage = data?.images.find((image) => image.image_key === "about")?.image_url ?? franciellyAtendimento;
   const space1 = data?.images.find((image) => image.image_key === "space_1")?.image_url ?? salaoEspaco;
   const space2 = data?.images.find((image) => image.image_key === "space_2")?.image_url ?? produtosEspaco;
   const space3 = data?.images.find((image) => image.image_key === "space_3")?.image_url ?? cachosEspaco;
+  const customSpacePhotos =
+    data?.images
+      .filter((image) => image.image_key.startsWith("custom_space_"))
+      .map((image) => ({
+        url: image.image_url,
+        titulo: image.alt_text || "Foto do espaço Bem Bonita",
+        legenda: "Galeria do salão Bem Bonita",
+      })) ?? [];
 
   const fotosEspaco = [
     {
       url: space1,
       titulo: "Ambiente Principal do Salão",
       legenda: "Estrutura aconchegante pensada para o seu conforto",
-    },
-    {
-      url: aboutImage,
-      titulo: "Atendimento & Cuidado Personalizado",
-      legenda: "Francielly Soares em atendimento no espaço",
     },
     {
       url: space2,
@@ -74,53 +64,13 @@ export function Sobre() {
       titulo: "Resultados & Transformações",
       legenda: "Realce da curvatura e brilho dos fios",
     },
-  ];
+    ...customSpacePhotos,
+  ].filter((foto, index, lista) => lista.findIndex((item) => item.url === foto.url) === index);
 
   return (
-    <section id="sobre" className="bg-background py-20 lg:py-28">
-      <div className="mx-auto max-w-7xl px-5 lg:px-8 space-y-20">
-        {/* Bloco 1: Sobre a Profissional e Salão */}
-        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          <div data-reveal className="reveal relative order-2 lg:order-1">
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[2.5rem] shadow-soft border border-border/60">
-              <img
-                src={aboutImage}
-                width={640}
-                height={800}
-                loading="lazy"
-                alt="Francielly Soares no salão Bem Bonita"
-                className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
-              />
-            </div>
-            <div
-              aria-hidden
-              className="absolute -bottom-5 -right-3 hidden h-32 w-32 rounded-full border border-primary/40 lg:block"
-            />
-          </div>
-
-          <div data-reveal className="reveal order-1 lg:order-2">
-            <TituloSecao
-              eyebrow="Sobre o salão"
-              titulo={data?.settings?.about_title ?? "Beleza que respeita a sua essência"}
-              texto={
-                data?.settings?.about_text ??
-                "No Bem Bonita, cada cabelo é tratado de forma única. Sob os cuidados de Francielly Soares, o salão oferece técnicas, tratamentos e produtos pensados especialmente para cabelos crespos e cacheados. Mais do que transformar fios, queremos fortalecer a autoestima e revelar a beleza que já existe em cada cliente."
-              }
-            />
-
-            <div className="mt-8">
-              <a
-                href="/francielly"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-magenta hover:underline"
-              >
-                Conhecer a história completa e valores de Francielly Soares →
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Bloco 2: Nosso Espaço & Galeria do Salão */}
-        <div className="rounded-[2.5rem] border border-border/80 bg-blush-soft p-8 sm:p-12 shadow-card">
+    <section id="nosso-espaco" className="bg-background py-20 lg:py-28">
+      <div className="mx-auto max-w-7xl px-5 lg:px-8">
+        <div className="rounded-[2.5rem] border border-border/80 bg-blush-soft p-6 shadow-card sm:p-10 lg:p-12">
           <div className="text-center max-w-2xl mx-auto">
             <p className="eyebrow mx-auto flex w-fit items-center gap-2">
               <Sparkles className="h-3.5 w-3.5 text-gold" />
@@ -136,14 +86,14 @@ export function Sobre() {
           </div>
 
           {/* Grade de Fotos do Espaço */}
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {fotosEspaco.map((foto, idx) => (
               <div
                 key={idx}
                 onClick={() => setSelectedPhoto(foto.url)}
                 className="group relative cursor-pointer overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-soft"
               >
-                <div className="aspect-[4/3] sm:aspect-square w-full overflow-hidden">
+                <div className="aspect-[4/3] w-full overflow-hidden">
                   <img
                     src={foto.url}
                     alt={foto.titulo}

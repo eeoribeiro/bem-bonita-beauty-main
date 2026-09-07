@@ -32,7 +32,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
   return (
     <section
       id="depoimentos"
-      className={`scroll-mt-28 bg-blush-soft py-16 text-foreground lg:py-28 ${
+      className={`scroll-mt-28 bg-[radial-gradient(circle_at_top,rgba(82,32,58,0.72),transparent_38%),linear-gradient(180deg,#171217_0%,#25131d_52%,#321421_100%)] py-16 text-white lg:py-28 ${
         paginaCompleta ? "pt-28 lg:pt-40" : ""
       }`}
     >
@@ -45,7 +45,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
           <h2 className="mt-4 font-display text-3xl leading-tight sm:text-4xl md:text-[2.75rem]">
             O que nossas clientes dizem
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
+          <p className="mx-auto mt-4 max-w-2xl text-sm text-white/62 sm:text-base">
             Depoimentos reais recebidos pelo WhatsApp
           </p>
         </div>
@@ -56,10 +56,10 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
               key={feedback.id}
               type="button"
               onClick={() => setAberto(feedback)}
-              className="group mb-6 block w-full break-inside-avoid overflow-hidden rounded-[18px] border border-border/55 bg-card text-left text-card-foreground shadow-[0_8px_24px_rgba(200,100,140,0.18)] transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_14px_34px_rgba(200,100,140,0.24)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
+              className="group mb-6 block w-full break-inside-avoid overflow-hidden rounded-[18px] border border-white/10 bg-[#242027] text-left text-white shadow-[0_10px_34px_rgba(200,100,140,0.18)] transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_18px_44px_rgba(200,100,140,0.28)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
               aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
             >
-              <div className="m-2 overflow-hidden rounded-xl bg-secondary/60">
+              <div className="m-2 overflow-hidden rounded-xl bg-black/35">
                 <img
                   src={feedback.image_url!}
                   alt={
@@ -80,10 +80,10 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
                     <Star key={index} className="h-4 w-4 fill-current" aria-hidden="true" />
                   ))}
                 </div>
-                <h3 className="mt-2 font-sans text-base font-bold text-card-foreground">
+                <h3 className="mt-2 font-sans text-base font-bold text-white">
                   {feedback.client_name || "Cliente Bem Bonita"}
                 </h3>
-                <p className="mt-1 text-sm text-muted-foreground">Cliente Bem Bonita</p>
+                <p className="mt-1 text-sm text-white/58">Cliente Bem Bonita</p>
               </div>
             </button>
           ))}
@@ -95,7 +95,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
             <h3 className="mt-3 font-display text-2xl leading-tight sm:text-3xl">
               Gostou do que as clientes disseram?
             </h3>
-            <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
+            <p className="mx-auto mt-3 max-w-xl text-sm text-white/62 sm:text-base">
               Agende seu horário no salão e viva essa experiência você também. É só chamar no
               WhatsApp.
             </p>

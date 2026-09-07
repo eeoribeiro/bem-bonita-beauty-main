@@ -2258,9 +2258,9 @@ function PhotosTab({
         <button
           type="button"
           onClick={() => setShowAddModal(true)}
-          className="hidden"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:-translate-y-0.5"
         >
-          <Plus className="h-4 w-4" /> Adicionar nova foto
+          <Plus className="h-4 w-4" /> {mode === "space" ? "Adicionar foto do espaço" : "Adicionar nova foto"}
         </button>
       </div>
 
@@ -2417,7 +2417,7 @@ function PhotosTab({
       </div> : null}
 
       {/* Seção 3: Histórico de Imagens Enviadas */}
-      <div className="hidden">
+      <div>
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <div>
             <h2 className="text-xl font-display flex items-center gap-2">
@@ -2479,7 +2479,7 @@ function PhotosTab({
 
       {/* Modal para Adicionar Nova Foto */}
       {showAddModal ? (
-        <AdminModal title="Adicionar Nova Foto de Destaque / Espaço" onClose={() => setShowAddModal(false)}>
+        <AdminModal title={mode === "space" ? "Adicionar foto ao Nosso Espaço" : "Adicionar nova foto de destaque"} onClose={() => setShowAddModal(false)}>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium">Título / Identificação da Foto</label>

@@ -38,6 +38,7 @@ export const CONTATO_LABEL = TEM_WHATSAPP ? "Falar pelo WhatsApp" : "Falar pelo 
 export const MENU = [
   { label: "Início", href: "/#inicio" },
   { label: "Francielly", href: "/francielly" },
+  { label: "Nosso Espaço", href: "/#nosso-espaco" },
   { label: "Serviços", href: "/servicos" },
   { label: "Loja", href: "/produtos" },
   { label: "Feedbacks", href: "/feedbacks" },

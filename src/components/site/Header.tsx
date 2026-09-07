@@ -9,6 +9,7 @@ import { useTheme } from "@/hooks/use-theme";
 const NAV_ITEMS = [
   { label: "Início", href: "/#inicio" },
   { label: "Francielly", href: "/francielly" },
+  { label: "Nosso Espaço", href: "/#nosso-espaco" },
   { label: "Serviços", href: "/servicos" },
   { label: "Loja", href: "/produtos" },
   { label: "Feedbacks", href: "/feedbacks" },
@@ -59,7 +60,7 @@ export function Header() {
         </a>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <nav className="hidden items-center gap-6 xl:flex" aria-label="Menu principal">
+          <nav className="hidden items-center gap-4 xl:flex" aria-label="Menu principal">
             {NAV_ITEMS.map((item) => (
               <a
                 key={item.href}
@@ -82,7 +83,7 @@ export function Header() {
               href={agendar}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-5 py-2.5"
+              className="px-4 py-2.5"
             >
               Solicitar avaliação
             </BotaoLink>
