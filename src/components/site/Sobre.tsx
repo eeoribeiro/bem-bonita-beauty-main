@@ -22,6 +22,12 @@ export function Sobre() {
       .filter((foto, index, lista) => lista.findIndex((item) => item.url === foto.url) === index) ?? [];
 
   const carregando = isLoading || isFetching;
+  const portfolioGridClass =
+    fotosEspaco.length === 1
+      ? "mx-auto mt-12 grid max-w-5xl grid-cols-1"
+      : fotosEspaco.length === 2
+        ? "mx-auto mt-12 grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2"
+        : "mt-12 grid auto-rows-[16rem] grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[14rem]";
 
   return (
     <section
@@ -53,13 +59,24 @@ export function Sobre() {
             ))}
           </div>
         ) : fotosEspaco.length ? (
-          <div className="mt-12 columns-1 gap-5 sm:columns-2 lg:columns-3">
+          <div className={portfolioGridClass}>
             {fotosEspaco.map((foto, index) => (
               <button
                 key={foto.url}
                 type="button"
                 onClick={() => setSelectedPhoto(foto)}
-                className="group relative mb-5 block w-full break-inside-avoid overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+                className={[
+                  "group relative block w-full overflow-hidden rounded-[2rem] border border-white/70 bg-card p-2 shadow-[0_18px_55px_rgba(200,100,140,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 dark:border-white/10 dark:bg-white/5",
+                  fotosEspaco.length === 1
+                    ? "aspect-[16/10]"
+                    : fotosEspaco.length === 2
+                      ? "aspect-[4/5] md:aspect-[5/6]"
+                      : index === 0
+                        ? "sm:col-span-2 lg:col-span-2 lg:row-span-2"
+                        : index === 3
+                          ? "lg:col-span-2"
+                          : "",
+                ].join(" ")}
                 aria-label={`Ampliar foto do espaço: ${foto.titulo}`}
               >
                 <img
@@ -68,9 +85,10 @@ export function Sobre() {
                   loading={index < 3 ? "eager" : "lazy"}
                   fetchPriority={index < 3 ? "high" : "auto"}
                   decoding="async"
-                  className="h-auto w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                  className="h-full w-full rounded-[1.5rem] object-cover transition duration-500 group-hover:scale-[1.03]"
                 />
-                <span className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
+                <span className="absolute inset-x-2 bottom-2 h-24 rounded-b-[1.5rem] bg-gradient-to-t from-black/55 to-transparent opacity-80" />
+                <span className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
                   <Maximize2 className="h-4 w-4" aria-hidden="true" />
                 </span>
               </button>
