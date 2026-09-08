@@ -21,7 +21,7 @@ function ProdutosPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main><Produtos paginaCompleta /></main>
+      <main className="page-transition"><Produtos paginaCompleta /></main>
       <Footer />
       <BotaoFlutuanteWhatsApp />
     </div>

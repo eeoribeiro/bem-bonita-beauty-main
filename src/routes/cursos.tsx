@@ -56,7 +56,7 @@ function PaginaCursos() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
 
-      <main className="pt-28 lg:pt-36">
+      <main className="page-transition pt-28 lg:pt-36">
         {/* Banner Principal */}
         <section className="relative overflow-hidden bg-blush-soft py-16 lg:py-24">
           <div className="mx-auto max-w-7xl px-5 lg:px-8">

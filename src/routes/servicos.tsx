@@ -26,7 +26,7 @@ function ServicosPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main>
+      <main className="page-transition">
         <Servicos paginaCompleta />
       </main>
       <Footer />

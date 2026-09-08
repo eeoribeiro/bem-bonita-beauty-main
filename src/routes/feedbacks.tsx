@@ -25,7 +25,7 @@ function FeedbacksPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main>
+      <main className="page-transition">
         <Depoimentos paginaCompleta />
       </main>
       <Footer />

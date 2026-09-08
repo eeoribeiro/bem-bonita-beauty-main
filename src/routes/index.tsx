@@ -79,7 +79,7 @@ function Index() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main>
+      <main className="page-transition">
         <Hero />
         <FranciellyPreview />
         <Sobre />
