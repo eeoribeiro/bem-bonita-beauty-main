@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, CheckCircle2, GraduationCap, MessageCircle, Sparkles, Users } from "lucide-react";
 
-import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { BotaoLink } from "@/components/site/Botao";
 import { BotaoFlutuanteWhatsApp } from "@/components/site/BotaoFlutuanteWhatsApp";
@@ -54,8 +53,6 @@ function PaginaCursos() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Header />
-
       <main className="pt-28 lg:pt-36">
         {/* Banner Principal */}
         <section className="relative overflow-hidden bg-blush-soft py-16 lg:py-24">

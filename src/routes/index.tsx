@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { Header } from "@/components/site/Header";
 import { Hero } from "@/components/site/Hero";
 import { Servicos } from "@/components/site/Servicos";
 import { Agendamento } from "@/components/site/Agendamento";
@@ -78,7 +77,6 @@ function Index() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main>
         <Hero />
         <FranciellyPreview />

@@ -3,7 +3,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { BotaoFlutuanteWhatsApp } from "@/components/site/BotaoFlutuanteWhatsApp";
 import { Depoimentos } from "@/components/site/Depoimentos";
 import { Footer } from "@/components/site/Footer";
-import { Header } from "@/components/site/Header";
 import { useReveal } from "@/hooks/use-reveal";
 
 export const Route = createFileRoute("/feedbacks")({
@@ -24,7 +23,6 @@ function FeedbacksPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main>
         <Depoimentos paginaCompleta />
       </main>

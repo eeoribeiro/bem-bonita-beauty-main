@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, MessageCircle, Sparkles } from "lucide-react";
 
-import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { BotaoLink } from "@/components/site/Botao";
 import { BotaoFlutuanteWhatsApp } from "@/components/site/BotaoFlutuanteWhatsApp";
@@ -47,8 +46,6 @@ function PaginaFrancielly() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Header />
-
       <main className="pt-24 sm:pt-28 lg:pt-36">
         {/* Topo / Apresentação */}
         <section className="relative overflow-hidden bg-blush-soft py-12 lg:py-20">
