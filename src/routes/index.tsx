@@ -11,6 +11,7 @@ import { Depoimentos } from "@/components/site/Depoimentos";
 import { FranciellyPreview } from "@/components/site/FranciellyPreview";
 import { Produtos } from "@/components/site/Produtos";
 import { Sobre } from "@/components/site/Sobre";
+import { Resultados } from "@/components/site/Resultados";
 import { useReveal } from "@/hooks/use-reveal";
 
 const titulo = "Bem Bonita | Salão para cabelos cacheados em Ponte Nova – MG";
@@ -84,6 +85,7 @@ function Index() {
         <FranciellyPreview />
         <Sobre />
         <Servicos />
+        <Resultados />
         <Depoimentos />
         <Produtos />
         <Agendamento />

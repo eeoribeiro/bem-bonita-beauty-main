@@ -24,10 +24,10 @@ export function Sobre() {
   const carregando = isLoading || isFetching;
   const portfolioGridClass =
     fotosEspaco.length === 1
-      ? "mx-auto mt-12 grid max-w-5xl grid-cols-1"
+      ? "mx-auto mt-12 grid max-w-3xl grid-cols-1"
       : fotosEspaco.length === 2
         ? "mx-auto mt-12 grid max-w-6xl grid-cols-1 gap-6 md:grid-cols-2"
-        : "mt-12 grid auto-rows-[16rem] grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[14rem]";
+        : "mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3";
 
   return (
     <section
@@ -68,14 +68,10 @@ export function Sobre() {
                 className={[
                   "group relative block w-full overflow-hidden rounded-[2rem] border border-white/70 bg-card p-2 shadow-[0_18px_55px_rgba(200,100,140,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 dark:border-white/10 dark:bg-white/5",
                   fotosEspaco.length === 1
-                    ? "aspect-[16/10]"
+                    ? "aspect-[4/3]"
                     : fotosEspaco.length === 2
-                      ? "aspect-[4/5] md:aspect-[5/6]"
-                      : index === 0
-                        ? "sm:col-span-2 lg:col-span-2 lg:row-span-2"
-                        : index === 3
-                          ? "lg:col-span-2"
-                          : "",
+                      ? "aspect-[4/3]"
+                      : "aspect-[4/3]",
                 ].join(" ")}
                 aria-label={`Ampliar foto do espaço: ${foto.titulo}`}
               >

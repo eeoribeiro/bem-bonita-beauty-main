@@ -49,7 +49,7 @@ export function FranciellyPreview() {
               {headline}
             </span>
           </h2>
-          <p className="mt-6 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <p className="mt-6 max-w-2xl whitespace-pre-line rounded-[1.5rem] border border-border/50 bg-card/45 p-5 text-sm leading-[1.9] text-muted-foreground shadow-card sm:p-6 sm:text-base">
             {bio}
           </p>
           <div className="mt-8">

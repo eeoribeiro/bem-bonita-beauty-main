@@ -50,16 +50,16 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
           </p>
         </div>
 
-        <div className="mt-10 columns-1 gap-6 sm:columns-2 lg:columns-3">
+        <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {feedbacksExibidos.map((feedback) => (
             <button
               key={feedback.id}
               type="button"
               onClick={() => setAberto(feedback)}
-              className="group mb-6 block w-full break-inside-avoid overflow-hidden rounded-[18px] border border-white/10 bg-[#242027] text-left text-white shadow-[0_10px_34px_rgba(200,100,140,0.18)] transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_18px_44px_rgba(200,100,140,0.28)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
+              className="group block w-full overflow-hidden rounded-[2rem] border border-white/12 bg-white/[0.055] p-2 text-left text-white shadow-[0_18px_48px_rgba(0,0,0,0.2)] ring-1 ring-white/[0.035] transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:bg-white/[0.075] hover:shadow-[0_22px_58px_rgba(200,100,140,0.22)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
               aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
             >
-              <div className="m-2 overflow-hidden rounded-xl bg-black/35">
+              <div className="overflow-hidden rounded-[1.45rem] bg-black/35 ring-1 ring-white/10">
                 <img
                   src={feedback.image_url!}
                   alt={
@@ -71,7 +71,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
                   className="h-auto w-full object-cover transition duration-500 group-hover:scale-[1.02]"
                 />
               </div>
-              <div className="px-5 pb-5 pt-3">
+              <div className="px-5 pb-5 pt-4">
                 <div
                   className="flex items-center gap-1 text-amber-400"
                   aria-label="Avaliação de 5 estrelas"

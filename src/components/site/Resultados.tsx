@@ -166,7 +166,7 @@ export function Resultados() {
           </div>
         )}
 
-        {!isLoading && !portfolio.length ? (
+        {!isLoading ? (
           <div className="mt-16">
             <p className="eyebrow flex items-center gap-2">
               <Sparkles className="h-3.5 w-3.5 text-gold" />
