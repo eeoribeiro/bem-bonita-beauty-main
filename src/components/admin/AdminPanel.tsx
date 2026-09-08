@@ -107,6 +107,7 @@ const defaultDemoSettings: SiteSettingsData = {
   hero_description: "Cortes, tratamentos, definição, mechas e penteados para valorizar a identidade dos seus cabelos.",
   services_title: "Técnica dedicada a cada tipo de cacho",
   services_description: "Atendimentos pensados para cabelos crespos e cacheados, com avaliação individual antes de cada procedimento.",
+  services_card_style: "photo",
   portfolio_title: "Técnica que respeita cada textura",
   portfolio_description: "Trabalhos realizados no Bem Bonita, com foco em definição, movimento, mechas, cortes e penteados personalizados.",
   about_title: "Beleza que respeita a sua essência",
@@ -313,6 +314,44 @@ export function AdminPanel({
     setError(message);
   }
 
+  async function updateServicesCardStyle(style: NonNullable<SiteSettingsData["services_card_style"]>) {
+    if (!settings) {
+      showError("As configurações do site ainda não carregaram.");
+      return;
+    }
+
+    const previous = settings;
+    const updated = { ...settings, services_card_style: style };
+    setSettings(updated);
+
+    if (!supabaseConfigurado || isDemo) {
+      showSuccess("Modelo dos cards de serviços atualizado no preview.");
+      return;
+    }
+
+    try {
+      const { error: updateError } = await getSupabaseClient()
+        .from("site_settings")
+        .update({ services_card_style: style })
+        .eq("id", settings.id ?? 1);
+
+      if (updateError) {
+        setSettings(previous);
+        showError(
+          updateError.message.includes("services_card_style") || updateError.message.includes("column")
+            ? "Falta atualizar o banco: execute o arquivo supabase/services-card-style.sql no Supabase."
+            : "Não foi possível salvar o modelo dos cards agora.",
+        );
+        return;
+      }
+
+      showSuccess(style === "photo" ? "Cards com foto ativados no site." : "Cards sem foto ativados no site.");
+    } catch {
+      setSettings(previous);
+      showError("Erro ao salvar o modelo dos cards.");
+    }
+  }
+
   function navigate(next: Tab) {
     setTab(next);
     setMenuOpen(false);
@@ -478,7 +517,9 @@ export function AdminPanel({
               {tab === "services" ? (
                 <ServicesOverviewTab
                   services={services}
+                  settings={settings}
                   onOpenManager={() => setModal("services")}
+                  onChangeCardStyle={(style) => void updateServicesCardStyle(style)}
                 />
               ) : null}
               {tab === "team" ? (
@@ -1701,11 +1742,17 @@ function PortfolioOverviewTab({
 
 function ServicesOverviewTab({
   services,
+  settings,
   onOpenManager,
+  onChangeCardStyle,
 }: {
   services: ServiceData[];
+  settings: SiteSettingsData | null;
   onOpenManager: () => void;
+  onChangeCardStyle: (style: NonNullable<SiteSettingsData["services_card_style"]>) => void;
 }) {
+  const activeStyle = settings?.services_card_style === "compact" ? "compact" : "photo";
+
   return (
     <section className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1713,13 +1760,63 @@ function ServicesOverviewTab({
           <p className="eyebrow">Atendimentos</p>
           <h1 className="mt-2 text-3xl sm:text-4xl font-display">Tabela de Serviços</h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            {services.length} serviços cadastrados. Marque os destaques e adicione fotos para mudar os cards exibidos no site.
+            {services.length} serviços cadastrados. Escolha abaixo se os cards aparecem com foto ou no modelo clássico sem foto.
           </p>
         </div>
         <div className="flex flex-wrap gap-3 shrink-0">
           <Botao type="button" onClick={onOpenManager} className="shadow-card">
             <Scissors className="h-4 w-4" /> Gerenciar serviços
           </Botao>
+        </div>
+      </div>
+
+      <div className="rounded-[2rem] border border-border bg-card p-5 shadow-card">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="eyebrow">Modelo dos cards no site</p>
+            <h2 className="mt-2 font-display text-2xl">Escolha a aparência dos serviços</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              Essa opção muda todos os cards de serviços de uma vez no site público. As fotos continuam salvas para quando você quiser usar o modelo com imagem.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:w-[30rem]">
+            <button
+              type="button"
+              onClick={() => onChangeCardStyle("photo")}
+              aria-pressed={activeStyle === "photo"}
+              className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${
+                activeStyle === "photo"
+                  ? "border-primary bg-secondary text-foreground shadow-soft"
+                  : "border-border bg-background text-muted-foreground hover:border-primary/50"
+              }`}
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <ImageIcon className="h-4 w-4 text-magenta" />
+                Com foto
+              </span>
+              <span className="mt-2 block text-xs leading-relaxed">
+                Foto em cima, título e descrição embaixo.
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onChangeCardStyle("compact")}
+              aria-pressed={activeStyle === "compact"}
+              className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${
+                activeStyle === "compact"
+                  ? "border-primary bg-secondary text-foreground shadow-soft"
+                  : "border-border bg-background text-muted-foreground hover:border-primary/50"
+              }`}
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <Scissors className="h-4 w-4 text-magenta" />
+                Sem foto
+              </span>
+              <span className="mt-2 block text-xs leading-relaxed">
+                Modelo clássico com ícone, preço, título e descrição.
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 

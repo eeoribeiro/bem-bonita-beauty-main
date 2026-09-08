@@ -1,4 +1,4 @@
-import { MessageCircle, Sparkles } from "lucide-react";
+import { MessageCircle, Palette, Scissors, Sparkles, WandSparkles, Waves } from "lucide-react";
 
 import { BotaoLink } from "./Botao";
 import { SafeImage } from "./SafeImage";
@@ -15,6 +15,8 @@ type ServicoView = {
   destaque?: boolean | null;
   imagem?: string | null;
 };
+
+type ServicesCardStyle = "photo" | "compact";
 
 const servicosBase = [
   {
@@ -114,8 +116,52 @@ function obterImagemServico(nome: string) {
   return "/media/resultado-cachos-longos.jpg";
 }
 
-function ServiceCard({ servico }: { servico: ServicoView }) {
+function obterIconeServico(nome: string) {
+  const normalizado = nome.toLowerCase();
+  if (normalizado.includes("corte")) return Scissors;
+  if (normalizado.includes("colora") || normalizado.includes("mecha")) return Palette;
+  if (normalizado.includes("cacho") || normalizado.includes("permanente") || normalizado.includes("soltura")) return Waves;
+  return WandSparkles;
+}
+
+function ServiceCard({ servico, style }: { servico: ServicoView; style: ServicesCardStyle }) {
   const fallback = obterImagemServico(servico.nome);
+  const Icone = obterIconeServico(servico.nome);
+
+  if (style === "compact") {
+    return (
+      <article className="group flex min-h-[21rem] flex-col rounded-[2rem] border border-border/75 bg-card p-6 text-card-foreground shadow-[0_12px_38px_rgba(0,0,0,0.14)] transition duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-soft">
+        <div className="flex items-start justify-between gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-secondary text-magenta transition duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+            <Icone className="h-6 w-6" aria-hidden="true" />
+          </span>
+          {servico.preco ? (
+            <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-bold text-magenta">
+              {servico.preco}
+            </span>
+          ) : null}
+        </div>
+        {servico.destaque ? (
+          <span className="mt-5 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-primary-foreground shadow-soft">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            Destaque
+          </span>
+        ) : null}
+        <h3 className="mt-7 font-sans text-xl font-bold leading-snug">{servico.nome}</h3>
+        <p className="mt-4 flex-1 text-sm leading-relaxed text-muted-foreground">{servico.descricao}</p>
+        <BotaoLink
+          href={whatsappLink(`Olá, ${SALAO.nome}! Gostaria de agendar o serviço: ${servico.nome}.`)}
+          target="_blank"
+          rel="noopener noreferrer"
+          variante="outline"
+          className="mt-8 w-full"
+        >
+          <MessageCircle className="h-4 w-4" />
+          Agendar pelo WhatsApp
+        </BotaoLink>
+      </article>
+    );
+  }
 
   return (
     <article className="group flex min-h-full flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-card text-card-foreground shadow-[0_18px_50px_rgba(0,0,0,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft">
@@ -163,6 +209,7 @@ export function Servicos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   const { data, isError, isLoading } = usePublicSiteData();
   const servicos = montarServicos(data?.services, isError);
   const servicosExibidos = servicos;
+  const cardStyle: ServicesCardStyle = data?.settings?.services_card_style === "compact" ? "compact" : "photo";
 
   return (
     <section
@@ -190,7 +237,7 @@ export function Servicos({ paginaCompleta = false }: { paginaCompleta?: boolean 
             ? Array.from({ length: paginaCompleta ? 8 : 6 }, (_, index) => (
                 <div key={index} className="h-80 animate-pulse rounded-[2rem] bg-card/70 shadow-[0_6px_18px_rgba(180,90,130,0.12)]" />
               ))
-            : servicosExibidos.map((servico) => <ServiceCard key={servico.id} servico={servico} />)}
+            : servicosExibidos.map((servico) => <ServiceCard key={servico.id} servico={servico} style={cardStyle} />)}
         </div>
 
         {!paginaCompleta ? (

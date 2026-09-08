@@ -16,6 +16,7 @@ export type SiteSettingsData = {
   hero_description: string;
   services_title: string;
   services_description: string;
+  services_card_style?: "photo" | "compact" | null;
   portfolio_title: string;
   portfolio_description: string;
   about_title: string;

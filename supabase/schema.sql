@@ -41,6 +41,7 @@ create table if not exists public.site_settings (
   hero_description text not null default 'Cortes, tratamentos, definição, mechas e penteados para valorizar a identidade dos seus cabelos.',
   services_title text not null default 'Técnica dedicada a cada tipo de cacho',
   services_description text not null default 'Atendimentos pensados para cabelos crespos e cacheados, com avaliação individual antes de cada procedimento.',
+  services_card_style text not null default 'photo' check (services_card_style in ('photo', 'compact')),
   portfolio_title text not null default 'Técnica que respeita cada textura',
   portfolio_description text not null default 'Trabalhos realizados no Bem Bonita, com foco em definição, movimento, mechas, cortes e penteados personalizados.',
   about_title text not null default 'Beleza que respeita a sua essência',
@@ -56,6 +57,9 @@ create table if not exists public.site_settings (
 );
 
 alter table public.site_settings add column if not exists logo_url text;
+alter table public.site_settings add column if not exists services_card_style text not null default 'photo';
+alter table public.site_settings drop constraint if exists site_settings_services_card_style_check;
+alter table public.site_settings add constraint site_settings_services_card_style_check check (services_card_style in ('photo', 'compact'));
 alter table public.site_settings add column if not exists francielly_headline text default 'Paixão, técnica e identidade';
 alter table public.site_settings add column if not exists francielly_bio text;
 alter table public.site_settings add column if not exists francielly_mission text default 'Mais do que estética: resgate da autoestima';
