@@ -1,4 +1,4 @@
-import { ArrowUpRight, Instagram, Sparkles } from "lucide-react";
+import { ArrowUpRight, Instagram } from "lucide-react";
 import { useState } from "react";
 
 import { BotaoLink } from "./Botao";
@@ -31,24 +31,6 @@ const cachos = [
     imagem: "/media/resultado-corte-cacheado.jpg",
     alt: "Corte curto cacheado com finalização definida",
     titulo: "Corte e finalização",
-  },
-];
-
-const penteados = [
-  {
-    imagem: "/media/penteado-trancas-douradas.jpg",
-    alt: "Penteado com tranças laterais e acessórios dourados",
-    titulo: "Tranças com detalhes dourados",
-  },
-  {
-    imagem: "/media/penteado-trancas-coloridas.jpg",
-    alt: "Penteado com tranças e elásticos coloridos",
-    titulo: "Tranças criativas e coloridas",
-  },
-  {
-    imagem: "/media/penteado-trancas-rosa.jpg",
-    alt: "Penteado lateral com tranças e acessórios rosa",
-    titulo: "Tranças laterais personalizadas",
   },
 ];
 
@@ -166,37 +148,6 @@ export function Resultados() {
           </div>
         )}
 
-        {!isLoading ? (
-          <div className="mt-16">
-            <p className="eyebrow flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-gold" />
-              Penteados
-            </p>
-            <h3 className="mt-3 text-2xl sm:text-3xl">Tranças com personalidade</h3>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Composições criativas para ocasiões especiais, com acessórios e detalhes escolhidos
-              para combinar com cada estilo.
-            </p>
-            <div className="-mx-5 mt-7 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0">
-              {penteados.map((item) => (
-                <figure
-                  key={item.titulo}
-                  className="group min-w-[78vw] snap-center overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card sm:min-w-0"
-                >
-                  <img
-                    src={item.imagem}
-                    alt={item.alt}
-                    loading="lazy"
-                    className="aspect-[4/5] h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
-                  <figcaption className="px-5 py-4 text-sm font-medium text-card-foreground">
-                    {item.titulo}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
     </section>
   );

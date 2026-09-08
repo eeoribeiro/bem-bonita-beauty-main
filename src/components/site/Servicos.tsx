@@ -1,16 +1,7 @@
-import {
-  Brush,
-  Droplets,
-  MessageCircle,
-  Palette,
-  Scissors,
-  Sparkles,
-  WandSparkles,
-  Waves,
-  type LucideIcon,
-} from "lucide-react";
+import { MessageCircle, Sparkles } from "lucide-react";
 
 import { BotaoLink } from "./Botao";
+import { SafeImage } from "./SafeImage";
 import { TituloSecao } from "./TituloSecao";
 import { contatoLink, SALAO, whatsappLink } from "@/lib/salao";
 import { initialServices } from "@/lib/initial-content";
@@ -22,6 +13,7 @@ type ServicoView = {
   descricao: string;
   preco?: string | null;
   destaque?: boolean | null;
+  imagem?: string | null;
 };
 
 const servicosBase = [
@@ -66,6 +58,7 @@ function montarServicos(
     description: string;
     price_text: string;
     featured?: boolean | null;
+    image_url?: string | null;
     sort_order?: number;
   }>,
   isError = false,
@@ -79,6 +72,7 @@ function montarServicos(
         descricao: service.description || obterDescricaoCurta(service.name),
         preco: service.price_text,
         destaque: service.featured,
+        imagem: service.image_url,
       }));
   }
 
@@ -88,6 +82,7 @@ function montarServicos(
       nome: service.name,
       descricao: service.description || obterDescricaoCurta(service.name),
       preco: service.price_text,
+      imagem: service.image_url,
     }));
   }
 
@@ -109,44 +104,53 @@ function obterDescricaoCurta(nome: string) {
   return "Atendimento capilar personalizado para realçar sua beleza natural.";
 }
 
-function obterIconeServico(nome: string): LucideIcon {
+function obterImagemServico(nome: string) {
   const normalizado = nome.toLowerCase();
-  if (normalizado.includes("corte")) return Scissors;
-  if (normalizado.includes("cacho") || normalizado.includes("permanente") || normalizado.includes("soltura")) return Waves;
-  if (normalizado.includes("hidr") || normalizado.includes("nutri") || normalizado.includes("lavagem")) return Droplets;
-  if (normalizado.includes("colora") || normalizado.includes("mecha")) return Sparkles;
-  if (normalizado.includes("escova") || normalizado.includes("prancha")) return Brush;
-  if (normalizado.includes("ozon") || normalizado.includes("óleo")) return Palette;
-  return WandSparkles;
+  if (normalizado.includes("mecha") || normalizado.includes("colora")) return "/media/resultado-mechas-cachos.jpg";
+  if (normalizado.includes("penteado") || normalizado.includes("trança")) return "/media/penteado-trancas-douradas.jpg";
+  if (normalizado.includes("corte")) return "/media/resultado-corte-cacheado.jpg";
+  if (normalizado.includes("hidr") || normalizado.includes("nutri") || normalizado.includes("lavagem")) return "/media/servico-definicao.jpg";
+  if (normalizado.includes("cacho") || normalizado.includes("permanente") || normalizado.includes("soltura")) return "/media/resultado-definicao.jpg";
+  return "/media/resultado-cachos-longos.jpg";
 }
 
 function ServiceCard({ servico }: { servico: ServicoView }) {
-  const Icone = obterIconeServico(servico.nome);
+  const fallback = obterImagemServico(servico.nome);
 
   return (
-    <article className="flex flex-col rounded-2xl border border-border/55 bg-card p-5 text-card-foreground shadow-[0_6px_18px_rgba(180,90,130,0.14)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_12px_28px_rgba(180,90,130,0.2)] sm:p-6">
-      <div className="flex items-start justify-between gap-3">
-        <Icone className="h-9 w-9 text-[#c4477e]" strokeWidth={1.6} aria-hidden="true" />
+    <article className="group flex min-h-full flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-card text-card-foreground shadow-[0_18px_50px_rgba(0,0,0,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft">
+      <div className="relative aspect-[4/3] overflow-hidden bg-secondary/50">
+        <SafeImage
+          src={servico.imagem ?? fallback}
+          fallbackSrc={fallback}
+          alt={`Foto do serviço ${servico.nome}`}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.035]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
         {servico.preco ? (
-          <span className="shrink-0 rounded-full bg-secondary px-3 py-1 text-[11px] font-bold text-magenta sm:text-xs">
+          <span className="absolute right-4 top-4 rounded-full bg-black/55 px-3 py-1 text-[11px] font-bold text-white shadow-lg backdrop-blur">
             {servico.preco}
           </span>
         ) : null}
+        {servico.destaque ? (
+          <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-primary-foreground shadow-soft">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            Destaque
+          </span>
+        ) : null}
       </div>
-      {servico.destaque ? (
-        <span className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-primary-foreground shadow-soft">
-          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-          Destaque
-        </span>
-      ) : null}
-      <h3 className="mt-5 font-sans text-lg font-bold leading-snug">{servico.nome}</h3>
-      <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{servico.descricao}</p>
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
+        <h3 className="font-sans text-lg font-bold leading-snug">{servico.nome}</h3>
+        <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{servico.descricao}</p>
+      </div>
       <BotaoLink
         href={whatsappLink(`Olá, ${SALAO.nome}! Gostaria de agendar o serviço: ${servico.nome}.`)}
         target="_blank"
         rel="noopener noreferrer"
         variante="outline"
-        className="mt-5 w-full"
+        className="mx-5 mb-5 mt-auto w-[calc(100%-2.5rem)]"
       >
         <MessageCircle className="h-4 w-4" />
         Agendar pelo WhatsApp
@@ -181,10 +185,10 @@ export function Servicos({ paginaCompleta = false }: { paginaCompleta?: boolean 
           />
         </div>
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:mt-12 xl:grid-cols-4">
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:mt-12 xl:grid-cols-4">
           {isLoading
             ? Array.from({ length: paginaCompleta ? 8 : 6 }, (_, index) => (
-                <div key={index} className="h-52 animate-pulse rounded-2xl bg-card/70 shadow-[0_6px_18px_rgba(180,90,130,0.12)]" />
+                <div key={index} className="h-80 animate-pulse rounded-[2rem] bg-card/70 shadow-[0_6px_18px_rgba(180,90,130,0.12)]" />
               ))
             : servicosExibidos.map((servico) => <ServiceCard key={servico.id} servico={servico} />)}
         </div>

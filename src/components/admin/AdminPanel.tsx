@@ -1713,7 +1713,7 @@ function ServicesOverviewTab({
           <p className="eyebrow">Atendimentos</p>
           <h1 className="mt-2 text-3xl sm:text-4xl font-display">Tabela de Serviços</h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            {services.length} serviços cadastrados. Eles aparecem como lista de preços no site, sem fotos.
+            {services.length} serviços cadastrados. Marque os destaques e adicione fotos para mudar os cards exibidos no site.
           </p>
         </div>
         <div className="flex flex-wrap gap-3 shrink-0">
@@ -2971,6 +2971,7 @@ function ServicesManager({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyService());
+  const [uploadingServiceImage, setUploadingServiceImage] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -2986,13 +2987,31 @@ function ServicesManager({
             price_text: item.price_text ?? "",
             featured: Boolean(item.featured),
             benefits: [],
-            image_url: null,
-            storage_path: null,
+            image_url: item.image_url ?? null,
+            storage_path: item.storage_path ?? null,
             cta_label: "Conversar sobre este serviço",
             published: item.published,
           }
         : emptyService(),
     );
+  }
+
+  async function selectServiceImage(file: File) {
+    setUploadingServiceImage(true);
+    try {
+      if (isDemo) {
+        const previewUrl = URL.createObjectURL(file);
+        setForm((current) => ({ ...current, image_url: previewUrl, storage_path: null }));
+        return;
+      }
+
+      const uploaded = await uploadImagem(file, "services");
+      setForm((current) => ({ ...current, image_url: uploaded.url, storage_path: uploaded.path }));
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível enviar a foto do serviço.");
+    } finally {
+      setUploadingServiceImage(false);
+    }
   }
 
   async function applyNewOrder(reorderedList: ServiceData[]) {
@@ -3081,8 +3100,8 @@ function ServicesManager({
       featured: Boolean(form.featured),
       sort_order: nextOrder,
       benefits: [],
-      image_url: null,
-      storage_path: null,
+      image_url: form.image_url,
+      storage_path: form.storage_path,
       cta_label: "Conversar sobre este serviço",
       published: form.published,
     };
@@ -3194,7 +3213,21 @@ function ServicesManager({
                   <GripVertical className="h-5 w-5 opacity-60 group-hover:opacity-100 transition" />
                 </div>
 
-                <div className="flex min-w-0 flex-col p-4 sm:p-5">
+                <div className="grid min-w-0 gap-4 p-4 sm:grid-cols-[7rem_1fr] sm:p-5">
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-border bg-secondary/60">
+                    {item.image_url ? (
+                      <img
+                        src={item.image_url}
+                        alt={`Foto do serviço ${item.name}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-center text-[11px] font-medium text-muted-foreground">
+                        Sem foto
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex min-w-0 flex-col">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-[11px] font-bold text-magenta">
@@ -3281,6 +3314,7 @@ function ServicesManager({
                       </button>
                     </div>
                   </div>
+                  </div>
                 </div>
               </article>
             );
@@ -3308,6 +3342,12 @@ function ServicesManager({
             </span>
           )}
         </div>
+        <ImageField
+          label="Foto do serviço"
+          currentUrl={form.image_url}
+          uploading={uploadingServiceImage}
+          onSelect={(file) => void selectServiceImage(file)}
+        />
         <Field
           label="Nome do serviço"
           value={form.name}
@@ -3339,7 +3379,7 @@ function ServicesManager({
           checked={Boolean(form.featured)}
           onChange={(featured) => setForm({ ...form, featured })}
         />
-        <Botao type="submit" disabled={saving} className="w-full">
+        <Botao type="submit" disabled={saving || uploadingServiceImage} className="w-full">
           {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Criar serviço (adicionar ao final)"}
         </Botao>
       </form>
