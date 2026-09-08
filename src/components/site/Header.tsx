@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { label: "Francielly", href: "/francielly" },
   { label: "Nosso Espaço", href: "/#nosso-espaco" },
   { label: "Serviços", href: "/servicos" },
+  { label: "Galeria", href: "/#resultados" },
   { label: "Loja", href: "/produtos" },
   { label: "Feedbacks", href: "/feedbacks" },
   { label: "Contato", href: "/#localizacao" },

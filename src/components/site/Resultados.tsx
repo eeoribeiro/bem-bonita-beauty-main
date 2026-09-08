@@ -72,7 +72,7 @@ export function Resultados() {
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <TituloSecao
             eyebrow="Resultados reais"
-            titulo={data?.settings?.portfolio_title ?? "Técnica que respeita cada textura"}
+            titulo="Galeria de Resultados"
             texto={
               data?.settings?.portfolio_description ??
               "Trabalhos realizados no Bem Bonita, com foco em definição, movimento, mechas, cortes e penteados personalizados."
