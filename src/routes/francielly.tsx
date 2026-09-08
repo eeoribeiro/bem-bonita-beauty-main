@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Award, Heart, MessageCircle, Scissors, Sparkles, UserCheck } from "lucide-react";
+import { ArrowLeft, MessageCircle, Sparkles } from "lucide-react";
 
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/francielly")({
       {
         name: "description",
         content:
-          "Conheça a história e metodologia de Francielly Soares, fundadora do salão Bem Bonita em Ponte Nova/MG.",
+          "Conheça a história de Francielly Soares, fundadora do salão Bem Bonita em Ponte Nova/MG.",
       },
     ],
   }),
@@ -38,29 +38,7 @@ function PaginaFrancielly() {
   const bio = savedBio && savedBio.includes(" ")
     ? savedBio
     : "Especialista em cabelos crespos e cacheados, Francielly Soares criou o Bem Bonita com o propósito de transformar a relação das mulheres com seus fios naturais. Seu trabalho une técnica, escuta e cuidado para valorizar cada curvatura, preservar a saúde capilar e fortalecer a autoestima.";
-  const mission = settings?.francielly_mission || "Mais do que estética: resgate da autoestima";
   const pageEyebrow = settings?.francielly_eyebrow || "Sobre a especialista";
-  const methodologyEyebrow = settings?.francielly_methodology_eyebrow || "Método Bem Bonita";
-  const methods = [
-    {
-      title: settings?.francielly_method_1_title || "Corte a Seco e Curvatura Real",
-      description: settings?.francielly_method_1_description || "Cada corte é planejado considerando o fator encolhimento, o caimento e a densidade de cada mecha, respeitando o formato natural dos fios.",
-      icon: Scissors,
-      color: "text-magenta",
-    },
-    {
-      title: settings?.francielly_method_2_title || "Saúde Capilar em Primeiro Lugar",
-      description: settings?.francielly_method_2_description || "Mechas e tratamentos são realizados com avaliação prévia da fibra capilar para preservar a integridade, a força e a definição dos cachos.",
-      icon: Award,
-      color: "text-gold",
-    },
-    {
-      title: settings?.francielly_method_3_title || "Educação e Cuidado em Casa",
-      description: settings?.francielly_method_3_description || "Além do resultado no salão, você aprende como lavar, finalizar e manter seus cabelos definidos e saudáveis no dia a dia.",
-      icon: UserCheck,
-      color: "text-magenta",
-    },
-  ];
 
   const fotoPrincipal =
     images.find((img) => img.image_key === "francielly_bio")?.image_url ??
@@ -135,76 +113,6 @@ function PaginaFrancielly() {
           </div>
         </section>
 
-        {/* Filosofia & Metodologia */}
-        <section className="bg-background py-16 lg:py-28">
-          <div className="mx-auto max-w-5xl px-5 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto">
-              <p className="eyebrow mx-auto flex w-fit items-center gap-2">
-                <Heart className="h-3.5 w-3.5 text-magenta" />
-                {methodologyEyebrow}
-              </p>
-              <h2 className="mt-3 text-3xl font-display leading-tight sm:text-4xl">
-                {mission}
-              </h2>
-            </div>
-
-            <div className="mt-10 grid gap-5 md:mt-14 md:grid-cols-3 md:gap-8">
-              {methods.map((method) => {
-                const Icon = method.icon;
-                return <div key={method.title} className="rounded-3xl border border-border/70 bg-card p-6 shadow-card">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary ${method.color} mb-5`}>
-                    <Icon className="h-6 w-6" />
-                  </div>
-                  <h3 className="text-xl font-display">{method.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{method.description}</p>
-                </div>;
-              })}
-            </div>
-
-            {/* Atendimento da Francielly */}
-            <div className="mt-14 overflow-hidden rounded-[2rem] border border-border/70 bg-card p-5 shadow-card sm:p-8 md:mt-20 md:grid md:grid-cols-[1fr_1.1fr] md:items-center md:gap-10 md:rounded-[2.5rem]">
-              <div className="aspect-video sm:aspect-square overflow-hidden rounded-2xl">
-                <SafeImage
-                  src={fotoPrincipal}
-                  fallbackSrc={fotoFranciellyFallback}
-                  alt={`${professionalName} em atendimento especializado para cabelos cacheados e crespos`}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <div className="mt-6 md:mt-0 space-y-4">
-                <p className="eyebrow">Atendimento com identidade</p>
-                <h3 className="text-2xl sm:text-3xl font-display">Um olhar técnico para a sua curvatura</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Cada atendimento começa com escuta e avaliação real dos fios. Francielly observa a curvatura, a densidade, a rotina e o histórico do cabelo para indicar cortes, tratamentos e finalizações que valorizem sua beleza natural.
-                </p>
-                <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground">
-                  {[
-                    "Diagnóstico da curvatura, densidade e necessidades do cabelo.",
-                    "Escolha do corte ou tratamento com foco em saúde capilar.",
-                    "Orientação para manter o resultado bonito no dia a dia.",
-                  ].map((item) => (
-                    <li key={item} className="flex gap-2">
-                      <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-magenta" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="pt-2">
-                  <BotaoLink
-                    href={whatsappLink(`Olá, ${professionalName.split(" ")[0]}! Gostaria de agendar uma avaliação para entender melhor o meu cabelo.`)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    variante="outline"
-                  >
-                    Agendar avaliação com {professionalName.split(" ")[0]}
-                  </BotaoLink>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Seção da Equipe na Página da Francielly */}
       </main>
 
       <Footer />

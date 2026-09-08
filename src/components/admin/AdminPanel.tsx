@@ -113,15 +113,7 @@ const defaultDemoSettings: SiteSettingsData = {
   about_text: "No Bem Bonita, cada cabelo é tratado de forma única. Sob os cuidados de Francielly Soares, o salão oferece técnicas, tratamentos e produtos pensados especialmente para cabelos crespos e cacheados.",
   francielly_headline: "Paixão, técnica e identidade",
   francielly_bio: "Especialista em cabelos crespos e cacheados, Francielly Soares criou o Bem Bonita com o propósito de transformar a relação das mulheres com seus fios naturais. Seu trabalho une técnica, escuta e cuidado para valorizar cada curvatura, preservar a saúde capilar e fortalecer a autoestima.",
-  francielly_mission: "Mais do que estética: resgate da autoestima",
   francielly_eyebrow: "Sobre a especialista",
-  francielly_methodology_eyebrow: "Método Bem Bonita",
-  francielly_method_1_title: "Corte a Seco e Curvatura Real",
-  francielly_method_1_description: "Cada corte é planejado considerando o fator encolhimento, o caimento e a densidade de cada mecha, respeitando o formato natural dos fios.",
-  francielly_method_2_title: "Saúde Capilar em Primeiro Lugar",
-  francielly_method_2_description: "Mechas e tratamentos são realizados com avaliação prévia da fibra capilar para preservar a integridade, a força e a definição dos cachos.",
-  francielly_method_3_title: "Educação e Cuidado em Casa",
-  francielly_method_3_description: "Além do resultado no salão, você aprende como lavar, finalizar e manter seus cabelos definidos e saudáveis no dia a dia.",
   francielly_space_eyebrow: "Ambiente exclusivo",
   francielly_cta_label: "Agendar horário com Francielly",
   francielly_space_cta_label: "Agendar visita pelo WhatsApp",
@@ -2898,15 +2890,6 @@ function SettingsTab({
               className="admin-input resize-y"
             />
           </label>
-          <label className="sm:col-span-2">
-            <span className="text-sm font-medium">Propósito / Título da Missão</span>
-            <input
-              value={String(settings.francielly_mission ?? "")}
-              onChange={(e) => onChange({ ...settings, francielly_mission: e.target.value })}
-              placeholder="Ex: Mais do que estética: resgate da autoestima"
-              className="admin-input"
-            />
-          </label>
           <label>
             <span className="text-sm font-medium">Texto do botão principal</span>
             <input value={String(settings.francielly_cta_label ?? "")} onChange={(e) => onChange({ ...settings, francielly_cta_label: e.target.value })} className="admin-input" />
@@ -2915,21 +2898,6 @@ function SettingsTab({
             <span className="text-sm font-medium">Localização exibida sobre a foto</span>
             <input value={String(settings.landmark ?? "")} onChange={(e) => onChange({ ...settings, landmark: e.target.value })} className="admin-input" />
           </label>
-        </div>
-
-        <div className="border-t border-border pt-6">
-          <h3 className="text-lg font-display">Metodologia e diferenciais</h3>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label><span className="text-sm font-medium">Etiqueta da seção</span><input value={String(settings.francielly_methodology_eyebrow ?? "")} onChange={(e) => onChange({ ...settings, francielly_methodology_eyebrow: e.target.value })} className="admin-input" /></label>
-            {[1, 2, 3].map((number) => {
-              const titleKey = `francielly_method_${number}_title` as keyof SiteSettingsData;
-              const descriptionKey = `francielly_method_${number}_description` as keyof SiteSettingsData;
-              return <div key={number} className="sm:col-span-2 grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2">
-                <label><span className="text-sm font-medium">Título do diferencial {number}</span><input value={String(settings[titleKey] ?? "")} onChange={(e) => onChange({ ...settings, [titleKey]: e.target.value })} className="admin-input" /></label>
-                <label><span className="text-sm font-medium">Descrição do diferencial {number}</span><textarea rows={3} value={String(settings[descriptionKey] ?? "")} onChange={(e) => onChange({ ...settings, [descriptionKey]: e.target.value })} className="admin-input resize-y" /></label>
-              </div>;
-            })}
-          </div>
         </div>
 
         <div className="sticky bottom-4 z-10 flex justify-end rounded-2xl border border-border bg-card/95 p-4 shadow-card backdrop-blur">
