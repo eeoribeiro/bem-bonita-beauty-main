@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { BotaoFlutuanteWhatsApp } from "@/components/site/BotaoFlutuanteWhatsApp";
 import { Footer } from "@/components/site/Footer";
+import { Header } from "@/components/site/Header";
 import { Produtos } from "@/components/site/Produtos";
 import { useReveal } from "@/hooks/use-reveal";
 
@@ -19,6 +20,7 @@ function ProdutosPage() {
   useReveal();
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <main><Produtos paginaCompleta /></main>
       <Footer />
       <BotaoFlutuanteWhatsApp />
