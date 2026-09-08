@@ -100,14 +100,6 @@ function PaginaFrancielly() {
                     className="h-full w-full object-cover"
                   />
                 </div>
-                <div className="absolute -bottom-5 left-4 right-4 rounded-2xl border border-border/60 bg-card/95 p-4 shadow-card backdrop-blur sm:left-auto sm:right-[-0.75rem] sm:max-w-xs sm:p-5">
-                  <p className="text-xs uppercase tracking-widest text-gold font-semibold">
-                    Localização
-                  </p>
-                  <p className="text-sm font-medium mt-1">
-                    {settings?.landmark ?? "Lanna Shopping — Sala 118, Ponte Nova/MG"}
-                  </p>
-                </div>
               </div>
             </div>
           </div>
