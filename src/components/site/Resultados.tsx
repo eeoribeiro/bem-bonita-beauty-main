@@ -1,5 +1,5 @@
 import { ArrowUpRight, Instagram } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
@@ -35,6 +35,14 @@ const cachos = [
   },
 ];
 
+function normalizarFiltro(value?: string | null) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim()
+    .toLowerCase();
+}
+
 export function Resultados() {
   const { data, isLoading } = usePublicSiteData();
   const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
@@ -42,10 +50,61 @@ export function Resultados() {
   const portfolioCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const portfolio = data?.portfolio ?? [];
   const servicos = data?.services ?? [];
-  const itensFiltrados =
-    categoriaAtiva === "todas"
-      ? portfolio
-      : portfolio.filter((item) => item.service_id === categoriaAtiva || item.service_name === servicos.find((service) => service.id === categoriaAtiva)?.name);
+  const filtrosServico = useMemo(() => {
+    const filtros = servicos
+      .map((service) => {
+        const serviceName = normalizarFiltro(service.name);
+        const quantidade = portfolio.filter(
+          (item) => item.service_id === service.id || normalizarFiltro(item.service_name) === serviceName,
+        ).length;
+
+        return {
+          id: service.id,
+          label: service.name,
+          quantidade,
+        };
+      })
+      .filter((filter) => filter.quantidade > 0);
+
+    const nomesSemCadastro = portfolio
+      .map((item) => item.service_name?.trim())
+      .filter((name): name is string => Boolean(name))
+      .filter((name) => !servicos.some((service) => normalizarFiltro(service.name) === normalizarFiltro(name)));
+
+    for (const name of Array.from(new Set(nomesSemCadastro))) {
+      const id = `name:${normalizarFiltro(name)}`;
+      filtros.push({
+        id,
+        label: name,
+        quantidade: portfolio.filter((item) => normalizarFiltro(item.service_name) === normalizarFiltro(name)).length,
+      });
+    }
+
+    return filtros;
+  }, [portfolio, servicos]);
+
+  useEffect(() => {
+    if (categoriaAtiva === "todas") return;
+    if (!filtrosServico.some((filter) => filter.id === categoriaAtiva)) {
+      setCategoriaAtiva("todas");
+    }
+  }, [categoriaAtiva, filtrosServico]);
+
+  const itensFiltrados = useMemo(() => {
+    if (categoriaAtiva === "todas") return portfolio;
+
+    if (categoriaAtiva.startsWith("name:")) {
+      const selectedName = categoriaAtiva.replace("name:", "");
+      return portfolio.filter((item) => normalizarFiltro(item.service_name) === selectedName);
+    }
+
+    const selectedService = servicos.find((service) => service.id === categoriaAtiva);
+    const selectedName = normalizarFiltro(selectedService?.name);
+
+    return portfolio.filter(
+      (item) => item.service_id === categoriaAtiva || normalizarFiltro(item.service_name) === selectedName,
+    );
+  }, [categoriaAtiva, portfolio, servicos]);
 
   return (
     <section id="resultados" className="bg-background py-16 lg:py-24">
@@ -83,26 +142,26 @@ export function Resultados() {
           </div>
         ) : portfolio.length ? (
           <>
-            {servicos.length ? (
+            {filtrosServico.length ? (
               <div
-                className="mt-8 flex flex-wrap gap-2"
+                className="-mx-5 mt-8 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
                 aria-label="Filtrar galeria por serviço"
               >
                 <button
                   type="button"
                   onClick={() => setCategoriaAtiva("todas")}
-                  className={`rounded-full border px-4 py-2 text-sm transition ${categoriaAtiva === "todas" ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary"}`}
+                  className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${categoriaAtiva === "todas" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/40 text-muted-foreground hover:border-primary hover:text-foreground"}`}
                 >
-                  Todas
+                  Todas <span className="ml-1 opacity-70">({portfolio.length})</span>
                 </button>
-                {servicos.map((service) => (
+                {filtrosServico.map((filter) => (
                   <button
-                    key={service.id}
+                    key={filter.id}
                     type="button"
-                    onClick={() => setCategoriaAtiva(service.id)}
-                    className={`rounded-full border px-4 py-2 text-sm transition ${categoriaAtiva === service.id ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary"}`}
+                    onClick={() => setCategoriaAtiva(filter.id)}
+                    className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${categoriaAtiva === filter.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/40 text-muted-foreground hover:border-primary hover:text-foreground"}`}
                   >
-                    {service.name}
+                    {filter.label} <span className="ml-1 opacity-70">({filter.quantidade})</span>
                   </button>
                 ))}
               </div>

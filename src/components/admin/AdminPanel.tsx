@@ -3889,6 +3889,10 @@ function PortfolioManager({
       onError("Escolha uma imagem para a galeria.");
       return;
     }
+    if (services.length && !form.service_id && !form.service_name?.trim()) {
+      onError("Escolha o serviço real relacionado para essa foto. É isso que faz os filtros da galeria funcionarem.");
+      return;
+    }
 
     setSaving(true);
     const nextOrder = editingId
@@ -4065,7 +4069,7 @@ function PortfolioManager({
                     <div className="mt-2 text-xs font-medium text-muted-foreground flex items-center justify-between">
                       <span>Posição #{index + 1}</span>
                       <span className="text-[11px] uppercase tracking-wider text-magenta bg-secondary/80 px-2 py-0.5 rounded-full font-medium">
-                        {item.service_name ?? item.category}
+                        {item.service_name ?? "Sem serviço vinculado"}
                       </span>
                     </div>
                     <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
@@ -4177,7 +4181,7 @@ function PortfolioManager({
             placeholder="Ex: Cachos, Mechas, Penteado"
           />
           <label className="block text-sm font-medium">
-            Serviço real relacionado
+            Serviço real relacionado para o filtro
             <select
               value={form.service_id ?? ""}
               onChange={(event) => {
@@ -4190,7 +4194,7 @@ function PortfolioManager({
               }}
               className="admin-input"
             >
-              <option value="">Sem serviço vinculado</option>
+              <option value="">Escolha um serviço</option>
               {services.map((service) => (
                 <option key={service.id} value={service.id}>
                   {service.name}
@@ -4198,7 +4202,7 @@ function PortfolioManager({
               ))}
             </select>
             <span className="mt-1 block text-xs text-muted-foreground">
-              É daqui que saem os filtros reais da galeria no site.
+              Obrigatório para a foto aparecer dentro do filtro correto na galeria do site.
             </span>
           </label>
           <label className="block text-sm font-medium">
