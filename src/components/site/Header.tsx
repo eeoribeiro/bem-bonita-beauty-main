@@ -9,11 +9,10 @@ import { useTheme } from "@/hooks/use-theme";
 const NAV_ITEMS = [
   { label: "Início", href: "/#inicio" },
   { label: "Francielly", href: "/francielly" },
-  { label: "Nosso Espaço", href: "/#nosso-espaco" },
+  { label: "Espaço", href: "/#nosso-espaco" },
   { label: "Serviços", href: "/servicos" },
   { label: "Galeria", href: "/#resultados" },
   { label: "Loja", href: "/produtos" },
-  { label: "Feedbacks", href: "/feedbacks" },
   { label: "Contato", href: "/#localizacao" },
 ] as const;
 
@@ -50,7 +49,7 @@ export function Header() {
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-2.5 pt-2.5 sm:px-5 sm:pt-4">
       <div
-        className={`pointer-events-auto relative mx-auto grid w-full max-w-[64rem] origin-top grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[1.6rem] border border-border/45 bg-background/78 px-3 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)] backdrop-blur-xl transition-[transform,padding,background-color,box-shadow] duration-300 ease-out sm:gap-3 sm:rounded-full sm:px-6 ${
+        className={`pointer-events-auto relative mx-auto grid w-full max-w-[60rem] origin-top grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[1.6rem] border border-border/45 bg-background/82 px-3 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)] backdrop-blur-xl transition-[transform,padding,background-color,box-shadow] duration-300 ease-out sm:gap-3 sm:rounded-full sm:px-5 ${
           rolou
             ? "scale-[0.96] bg-background/88 py-2 shadow-[0_16px_44px_-18px_rgba(0,0,0,0.68)] sm:scale-[0.9]"
             : "scale-100 py-2.5 sm:py-3"
@@ -61,12 +60,12 @@ export function Header() {
         </a>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <nav className="hidden items-center gap-4 xl:flex" aria-label="Menu principal">
+          <nav className="hidden items-center gap-3 lg:flex" aria-label="Menu principal">
             {NAV_ITEMS.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
-                className="text-sm font-medium text-foreground/80 transition-colors hover:text-magenta"
+                className="whitespace-nowrap text-[13px] font-semibold text-foreground/78 transition-colors hover:text-magenta"
               >
                 {item.label}
               </a>
@@ -74,7 +73,7 @@ export function Header() {
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-card text-foreground/80 transition-colors hover:border-primary hover:text-magenta"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-card text-foreground/80 transition-colors hover:border-primary hover:text-magenta"
               aria-label={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
               title={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
             >
@@ -84,7 +83,7 @@ export function Header() {
               href={agendar}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2.5"
+              className="px-4 py-2.5 text-xs"
             >
               Solicitar avaliação
             </BotaoLink>
@@ -93,7 +92,7 @@ export function Header() {
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/55 text-foreground backdrop-blur-md sm:h-11 sm:w-11 xl:hidden"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/55 text-foreground backdrop-blur-md sm:h-11 sm:w-11 lg:hidden"
             aria-label={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
           >
             {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
@@ -102,7 +101,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setAberto((v) => !v)}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/55 text-foreground backdrop-blur-md sm:h-11 sm:w-11 xl:hidden"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/55 text-foreground backdrop-blur-md sm:h-11 sm:w-11 lg:hidden"
             aria-expanded={aberto}
             aria-controls="menu-mobile"
             aria-label={aberto ? "Fechar menu" : "Abrir menu"}
@@ -114,7 +113,7 @@ export function Header() {
         {aberto ? (
           <div
             id="menu-mobile"
-            className="absolute left-0 right-0 top-[calc(100%+0.65rem)] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-[1.75rem] border border-border/50 bg-background/95 p-3 shadow-2xl backdrop-blur-2xl xl:hidden"
+            className="absolute left-0 right-0 top-[calc(100%+0.65rem)] max-h-[calc(100vh-6rem)] overflow-y-auto rounded-[1.75rem] border border-border/50 bg-background/95 p-3 shadow-2xl backdrop-blur-2xl lg:hidden"
           >
             <nav className="flex flex-col" aria-label="Menu mobile">
               {NAV_ITEMS.map((item) => (

@@ -118,6 +118,16 @@ const defaultDemoSettings: SiteSettingsData = {
   francielly_space_eyebrow: "Ambiente exclusivo",
   francielly_cta_label: "Agendar horário com Francielly",
   francielly_space_cta_label: "Agendar visita pelo WhatsApp",
+  francielly_photo_label: "Cuidado autoral",
+  francielly_extra_1_eyebrow: "Trajetória",
+  francielly_extra_1_title: "",
+  francielly_extra_1_subtitle: "",
+  francielly_extra_2_eyebrow: "Atendimento",
+  francielly_extra_2_title: "",
+  francielly_extra_2_subtitle: "",
+  francielly_extra_3_eyebrow: "Resultado",
+  francielly_extra_3_title: "",
+  francielly_extra_3_subtitle: "",
   space_title: "Um refúgio para você se cuidar",
   space_description: "Localizado no Lanna Shopping, em Ponte Nova, o Bem Bonita oferece um ambiente acolhedor e preparado para proporcionar uma experiência tranquila, personalizada e focada em você.",
   landmark: "Lanna Shopping — Sala 118, Ponte Nova/MG",
@@ -152,11 +162,53 @@ const emptyPortfolio = (): Omit<PortfolioData, "id" | "sort_order"> => ({
   description: null,
   category: "cachos",
   category_id: null,
+  service_id: null,
+  service_name: null,
+  hair_type: "Todos os tipos de cabelo",
+  photo_label: "",
+  image_zoom: 1,
+  image_position_x: 50,
+  image_position_y: 50,
   image_url: "",
   storage_path: null,
   alt_text: "",
   published: true,
 });
+
+const hairTypeOptions = [
+  "Todos os tipos de cabelo",
+  "Cabelos cacheados",
+  "Cabelos crespos",
+  "Cabelos ondulados",
+  "Cabelos lisos",
+  "Cabelos em transição",
+  "Cabelos com mechas",
+  "Cabelos coloridos",
+] as const;
+
+const franciellyExtraSlots = [
+  {
+    slot: 1,
+    imageKey: "francielly_extra_1",
+    eyebrowKey: "francielly_extra_1_eyebrow",
+    titleKey: "francielly_extra_1_title",
+    subtitleKey: "francielly_extra_1_subtitle",
+  },
+  {
+    slot: 2,
+    imageKey: "francielly_extra_2",
+    eyebrowKey: "francielly_extra_2_eyebrow",
+    titleKey: "francielly_extra_2_title",
+    subtitleKey: "francielly_extra_2_subtitle",
+  },
+  {
+    slot: 3,
+    imageKey: "francielly_extra_3",
+    eyebrowKey: "francielly_extra_3_eyebrow",
+    titleKey: "francielly_extra_3_title",
+    subtitleKey: "francielly_extra_3_subtitle",
+  },
+] as const;
 
 export function AdminPanel({
   email,
@@ -339,7 +391,7 @@ export function AdminPanel({
         setSettings(previous);
         showError(
           updateError.message.includes("services_card_style") || updateError.message.includes("column")
-            ? "Falta atualizar o banco: execute o arquivo supabase/services-card-style.sql no Supabase."
+            ? "Falta atualizar o banco: execute o arquivo supabase/content-controls-update.sql no Supabase."
             : "Não foi possível salvar o modelo dos cards agora.",
         );
         return;
@@ -538,6 +590,7 @@ export function AdminPanel({
                 <PortfolioOverviewTab
                   items={portfolio}
                   categories={categories}
+                  services={services}
                   onOpenManager={() => setModal("portfolio")}
                 />
               ) : null}
@@ -608,12 +661,13 @@ export function AdminPanel({
       {/* Modal da Galeria */}
       {modal === "portfolio" ? (
         <AdminModal title="Gerenciar e Reordenar Galeria" onClose={() => setModal(null)}>
-          <PortfolioManager
-            items={portfolio}
-            setPortfolio={setPortfolio}
-            categories={categories}
-            setCategories={setCategories}
-            isDemo={!supabaseConfigurado || isDemo}
+                <PortfolioManager
+                  items={portfolio}
+                  setPortfolio={setPortfolio}
+                  categories={categories}
+                  setCategories={setCategories}
+                  services={services}
+                  isDemo={!supabaseConfigurado || isDemo}
             onReload={loadAll}
             onSuccess={showSuccess}
             onError={showError}
@@ -1610,28 +1664,29 @@ function ProfessionalEditorModal({
 function PortfolioOverviewTab({
   items,
   categories,
+  services,
   onOpenManager,
 }: {
   items: PortfolioData[];
   categories: CategoryData[];
+  services: ServiceData[];
   onOpenManager: () => void;
 }) {
-  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [activeService, setActiveService] = useState<string>("all");
 
-  const filteredItems = activeCategory === "all"
+  const filteredItems = activeService === "all"
     ? items
-    : items.filter((item) => item.category === activeCategory);
+    : items.filter((item) => item.service_id === activeService || item.service_name === services.find((service) => service.id === activeService)?.name);
 
   return (
     <section className="space-y-8">
       {/* Topo da Galeria */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <p className="eyebrow">Catálogo Visual</p>
-          <h1 className="mt-2 text-3xl sm:text-4xl font-display">Galeria de Resultados</h1>
+          <p className="eyebrow">Galeria do Salão</p>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-display">Nossa Galeria</h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            {items.length} foto(s) cadastradas em {categories.length} categorias.
-            Veja abaixo a prévia das imagens exibidas no site.
+            {items.length} foto(s) cadastradas. Os filtros do site usam os serviços reais da tabela de serviços.
           </p>
         </div>
         <div className="flex flex-wrap gap-3 shrink-0">
@@ -1641,47 +1696,47 @@ function PortfolioOverviewTab({
         </div>
       </div>
 
-      {/* Categorias / Filtros Ativos */}
+      {/* Serviços / Filtros Ativos */}
       <div className="rounded-3xl border border-border bg-card p-5 shadow-card">
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <Tag className="h-4 w-4 text-gold" /> Categorias Ativas
+            <Tag className="h-4 w-4 text-gold" /> Filtros reais por serviço
           </h3>
           <button
             type="button"
             onClick={onOpenManager}
             className="text-xs text-magenta font-medium hover:underline"
           >
-            + Adicionar / Editar Categorias
+            Gerenciar fotos
           </button>
         </div>
         <div className="mt-4 flex flex-wrap gap-2.5">
           <button
             type="button"
-            onClick={() => setActiveCategory("all")}
+            onClick={() => setActiveService("all")}
             className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
-              activeCategory === "all"
+              activeService === "all"
                 ? "bg-magenta text-white shadow-soft"
                 : "bg-secondary text-foreground/80 hover:bg-secondary/80"
             }`}
           >
             Todas as Fotos ({items.length})
           </button>
-          {categories.map((cat) => {
-            const count = items.filter((item) => item.category === cat.slug).length;
-            const isActive = activeCategory === cat.slug;
+          {services.map((service) => {
+            const count = items.filter((item) => item.service_id === service.id || item.service_name === service.name).length;
+            const isActive = activeService === service.id;
             return (
               <button
-                key={cat.id}
+                key={service.id}
                 type="button"
-                onClick={() => setActiveCategory(cat.slug)}
+                onClick={() => setActiveService(service.id)}
                 className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
                   isActive
                     ? "bg-magenta text-white shadow-soft"
                     : "bg-secondary text-foreground/80 hover:bg-secondary/80"
                 }`}
               >
-                {cat.name} ({count})
+                {service.name} ({count})
               </button>
             );
           })}
@@ -1716,7 +1771,7 @@ function PortfolioOverviewTab({
                   #{item.sort_order || index + 1}
                 </div>
                 <div className="absolute top-2.5 right-2.5 rounded-full bg-secondary/90 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-magenta backdrop-blur">
-                  {item.category}
+                  {item.service_name ?? item.category}
                 </div>
               </div>
               <div className="p-2 pt-3">
@@ -2149,7 +2204,20 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
       </div>
       <label className="block"><span className="text-sm font-medium">Subtítulo</span><input className="admin-input" value={editing.subtitle} onChange={(event) => setEditing({ ...editing, subtitle: event.target.value })} /></label>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block"><span className="text-sm font-medium">Tipos de cabelo / curvaturas</span><input className="admin-input" value={editing.hair_type} onChange={(event) => setEditing({ ...editing, hair_type: event.target.value })} /></label>
+        <label className="block">
+          <span className="text-sm font-medium">Tipos de cabelo / curvaturas</span>
+          <select
+            className="admin-input"
+            value={editing.hair_type || "Todos os tipos de cabelo"}
+            onChange={(event) => setEditing({ ...editing, hair_type: event.target.value })}
+          >
+            {hairTypeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="block"><span className="text-sm font-medium">Categoria / linha</span><input className="admin-input" value={editing.category ?? ""} onChange={(event) => setEditing({ ...editing, category: event.target.value })} placeholder="Ex.: Cachos, Força, Reviveme" /></label>
       </div>
       <label className="block"><span className="text-sm font-medium">Descrição</span><textarea rows={3} className="admin-input" value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} /></label>
@@ -2675,6 +2743,7 @@ function SettingsTab({
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFranPhoto, setUploadingFranPhoto] = useState(false);
+  const [uploadingFranExtra, setUploadingFranExtra] = useState<string | null>(null);
 
   const franImage =
     images.find((img) => img.image_key === "francielly_bio")?.image_url ??
@@ -2803,7 +2872,7 @@ function SettingsTab({
         .eq("id", id);
       if (error) {
         onError(error.message.includes("column")
-          ? "O banco ainda não tem todos os campos desta página. Execute supabase/admin-functional-repair.sql no Supabase."
+          ? "O banco ainda não tem todos os campos novos. Execute supabase/content-controls-update.sql no Supabase."
           : "Não foi possível salvar as informações.");
       }
       else onSuccess("Informações atualizadas com sucesso.");
@@ -2992,9 +3061,63 @@ function SettingsTab({
             <input value={String(settings.francielly_cta_label ?? "")} onChange={(e) => onChange({ ...settings, francielly_cta_label: e.target.value })} className="admin-input" />
           </label>
           <label>
-            <span className="text-sm font-medium">Localização exibida sobre a foto</span>
-            <input value={String(settings.landmark ?? "")} onChange={(e) => onChange({ ...settings, landmark: e.target.value })} className="admin-input" />
+            <span className="text-sm font-medium">Etiqueta da foto principal</span>
+            <input value={String(settings.francielly_photo_label ?? "")} onChange={(e) => onChange({ ...settings, francielly_photo_label: e.target.value })} className="admin-input" />
           </label>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <div>
+            <p className="eyebrow">Fotos e textos extras</p>
+            <h3 className="mt-2 font-display text-2xl">Blocos adicionais da página</h3>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Use até 3 blocos para contar mais sobre a Francielly. Cada bloco pode ter foto, etiqueta, título e subtítulo.
+            </p>
+          </div>
+          <div className="mt-5 grid gap-5 lg:grid-cols-3">
+            {franciellyExtraSlots.map((slot) => {
+              const image = images.find((img) => img.image_key === slot.imageKey);
+              const eyebrowKey = slot.eyebrowKey as keyof SiteSettingsData;
+              const titleKey = slot.titleKey as keyof SiteSettingsData;
+              const subtitleKey = slot.subtitleKey as keyof SiteSettingsData;
+
+              return (
+                <div key={slot.imageKey} className="rounded-2xl border border-border bg-background p-4">
+                  <ImageField
+                    label={`Foto extra ${slot.slot}`}
+                    currentUrl={image?.image_url ?? null}
+                    uploading={uploadingFranExtra === slot.imageKey}
+                    onSelect={(file) => void handleFranciellyExtraUpload(slot.slot, file)}
+                  />
+                  <label className="mt-4 block">
+                    <span className="text-sm font-medium">Etiqueta</span>
+                    <input
+                      value={String(settings[eyebrowKey] ?? "")}
+                      onChange={(e) => onChange({ ...settings, [eyebrowKey]: e.target.value })}
+                      className="admin-input"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-medium">Título</span>
+                    <input
+                      value={String(settings[titleKey] ?? "")}
+                      onChange={(e) => onChange({ ...settings, [titleKey]: e.target.value })}
+                      className="admin-input"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-medium">Subtítulo</span>
+                    <textarea
+                      rows={3}
+                      value={String(settings[subtitleKey] ?? "")}
+                      onChange={(e) => onChange({ ...settings, [subtitleKey]: e.target.value })}
+                      className="admin-input resize-y"
+                    />
+                  </label>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="sticky bottom-4 z-10 flex justify-end rounded-2xl border border-border bg-card/95 p-4 shadow-card backdrop-blur">
@@ -3091,6 +3214,54 @@ function ServicesManager({
           }
         : emptyService(),
     );
+  }
+
+  async function handleFranciellyExtraUpload(slot: 1 | 2 | 3, file: File) {
+    const imageKey = `francielly_extra_${slot}`;
+    setUploadingFranExtra(imageKey);
+    try {
+      if (isDemo) {
+        const fakeUrl = URL.createObjectURL(file);
+        setImages((prev) => {
+          const exists = prev.some((i) => i.image_key === imageKey);
+          if (exists) {
+            return prev.map((i) => i.image_key === imageKey ? { ...i, image_url: fakeUrl } : i);
+          }
+          return [
+            {
+              id: `img-${Date.now()}-${slot}`,
+              image_key: imageKey,
+              image_url: fakeUrl,
+              alt_text: `Foto extra ${slot} da página Francielly`,
+              storage_path: null,
+            },
+            ...prev,
+          ];
+        });
+        onSuccess("Foto extra da página Francielly atualizada.");
+        return;
+      }
+
+      const uploaded = await uploadImagem(file, `site/${imageKey}`);
+      const { error } = await getSupabaseClient()
+        .from("site_images")
+        .upsert(
+          {
+            image_key: imageKey,
+            image_url: uploaded.url,
+            storage_path: uploaded.path,
+            alt_text: `Foto extra ${slot} da página Francielly`,
+          },
+          { onConflict: "image_key" }
+        );
+      if (error) throw error;
+      await onReload();
+      onSuccess("Foto extra da página Francielly atualizada.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Falha ao atualizar foto extra da Francielly.");
+    } finally {
+      setUploadingFranExtra(null);
+    }
   }
 
   async function selectServiceImage(file: File) {
@@ -3497,6 +3668,7 @@ function PortfolioManager({
   setPortfolio,
   categories,
   setCategories,
+  services,
   isDemo,
   onReload,
   onSuccess,
@@ -3506,6 +3678,7 @@ function PortfolioManager({
   setPortfolio: React.Dispatch<React.SetStateAction<PortfolioData[]>>;
   categories: CategoryData[];
   setCategories: React.Dispatch<React.SetStateAction<CategoryData[]>>;
+  services: ServiceData[];
   isDemo: boolean;
   onReload: () => Promise<void>;
   onSuccess: (message: string) => void;
@@ -3532,6 +3705,13 @@ function PortfolioManager({
             description: item.description,
             category: item.category,
             category_id: item.category_id,
+            service_id: item.service_id ?? null,
+            service_name: item.service_name ?? null,
+            hair_type: item.hair_type ?? "Todos os tipos de cabelo",
+            photo_label: item.photo_label ?? "",
+            image_zoom: item.image_zoom ?? 1,
+            image_position_x: item.image_position_x ?? 50,
+            image_position_y: item.image_position_y ?? 50,
             image_url: item.image_url,
             storage_path: item.storage_path,
             alt_text: item.alt_text,
@@ -3704,9 +3884,14 @@ function PortfolioManager({
       : (items.length ? Math.max(...items.map((p) => p.sort_order), 0) + 1 : 1);
 
     const selected = categories.find((category) => category.id === form.category_id);
+    const selectedService = services.find((service) => service.id === form.service_id);
     const payload = {
       ...form,
       category: selected?.slug ?? form.category,
+      service_name: selectedService?.name ?? form.service_name ?? null,
+      image_zoom: Math.min(1.8, Math.max(1, Number(form.image_zoom ?? 1))),
+      image_position_x: Math.min(100, Math.max(0, Number(form.image_position_x ?? 50))),
+      image_position_y: Math.min(100, Math.max(0, Number(form.image_position_y ?? 50))),
       sort_order: nextOrder,
     };
 
@@ -3853,6 +4038,10 @@ function PortfolioManager({
                       src={item.image_url}
                       alt={item.alt_text}
                       className="h-full w-full object-cover"
+                      style={{
+                        transform: `scale(${item.image_zoom ?? 1})`,
+                        transformOrigin: `${item.image_position_x ?? 50}% ${item.image_position_y ?? 50}%`,
+                      }}
                     />
                     <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white backdrop-blur">
                       <GripVertical className="h-3.5 w-3.5" />
@@ -3864,7 +4053,7 @@ function PortfolioManager({
                     <div className="mt-2 text-xs font-medium text-muted-foreground flex items-center justify-between">
                       <span>Posição #{index + 1}</span>
                       <span className="text-[11px] uppercase tracking-wider text-magenta bg-secondary/80 px-2 py-0.5 rounded-full font-medium">
-                        {item.category}
+                        {item.service_name ?? item.category}
                       </span>
                     </div>
                     <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
@@ -3962,6 +4151,58 @@ function PortfolioManager({
             placeholder="Ex: Morena Iluminada em Cachos 3B"
             required
           />
+          <Field
+            label="Subtítulo / descrição curta"
+            value={form.description ?? ""}
+            onChange={(value) => setForm({ ...form, description: value })}
+            placeholder="Ex: Definição, brilho e movimento natural."
+            multiline
+          />
+          <Field
+            label="Etiqueta da foto"
+            value={form.photo_label ?? ""}
+            onChange={(value) => setForm({ ...form, photo_label: value })}
+            placeholder="Ex: Cachos, Mechas, Penteado"
+          />
+          <label className="block text-sm font-medium">
+            Serviço real relacionado
+            <select
+              value={form.service_id ?? ""}
+              onChange={(event) => {
+                const selectedService = services.find((service) => service.id === event.target.value);
+                setForm({
+                  ...form,
+                  service_id: event.target.value || null,
+                  service_name: selectedService?.name ?? null,
+                });
+              }}
+              className="admin-input"
+            >
+              <option value="">Sem serviço vinculado</option>
+              {services.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.name}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-xs text-muted-foreground">
+              É daqui que saem os filtros reais da galeria no site.
+            </span>
+          </label>
+          <label className="block text-sm font-medium">
+            Tipo de cabelo
+            <select
+              value={form.hair_type ?? "Todos os tipos de cabelo"}
+              onChange={(event) => setForm({ ...form, hair_type: event.target.value })}
+              className="admin-input"
+            >
+              {hairTypeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="block text-sm font-medium">
             Categoria
             <select
@@ -3984,6 +4225,49 @@ function PortfolioManager({
             placeholder="Ex: Cachos definidos com mechas iluminadas"
             required
           />
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <p className="text-sm font-semibold">Ajuste da foto na galeria</p>
+            <div className="mt-4 space-y-4">
+              <label className="block text-xs font-medium text-muted-foreground">
+                Zoom: {Number(form.image_zoom ?? 1).toFixed(2)}x
+                <input
+                  type="range"
+                  min="1"
+                  max="1.8"
+                  step="0.05"
+                  value={form.image_zoom ?? 1}
+                  onChange={(event) => setForm({ ...form, image_zoom: Number(event.target.value) })}
+                  className="mt-2 w-full accent-pink-500"
+                />
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Posição horizontal
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={form.image_position_x ?? 50}
+                    onChange={(event) => setForm({ ...form, image_position_x: Number(event.target.value) })}
+                    className="mt-2 w-full accent-pink-500"
+                  />
+                </label>
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Posição vertical
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={form.image_position_y ?? 50}
+                    onChange={(event) => setForm({ ...form, image_position_y: Number(event.target.value) })}
+                    className="mt-2 w-full accent-pink-500"
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
           <Toggle
             label="Exibir foto na galeria do site"
             checked={form.published}

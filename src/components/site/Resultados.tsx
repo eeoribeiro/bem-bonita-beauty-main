@@ -38,23 +38,19 @@ export function Resultados() {
   const { data, isLoading } = usePublicSiteData();
   const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
   const portfolio = data?.portfolio ?? [];
-  const categorias = data?.categories ?? [];
+  const servicos = data?.services ?? [];
   const itensFiltrados =
     categoriaAtiva === "todas"
       ? portfolio
-      : portfolio.filter(
-          (item) =>
-            item.category_id === categoriaAtiva ||
-            item.category === categorias.find((category) => category.id === categoriaAtiva)?.slug,
-        );
+      : portfolio.filter((item) => item.service_id === categoriaAtiva || item.service_name === servicos.find((service) => service.id === categoriaAtiva)?.name);
 
   return (
     <section id="resultados" className="bg-background py-16 lg:py-24">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <TituloSecao
-            eyebrow="Resultados reais"
-            titulo="Galeria de Resultados"
+            eyebrow="Galeria do Salão"
+            titulo="Nossa Galeria"
             texto={
               data?.settings?.portfolio_description ??
               "Trabalhos realizados no Bem Bonita, com foco em definição, movimento, mechas, cortes e penteados personalizados."
@@ -84,10 +80,10 @@ export function Resultados() {
           </div>
         ) : portfolio.length ? (
           <>
-            {categorias.length ? (
+            {servicos.length ? (
               <div
                 className="mt-8 flex flex-wrap gap-2"
-                aria-label="Filtrar portfólio por categoria"
+                aria-label="Filtrar galeria por serviço"
               >
                 <button
                   type="button"
@@ -96,32 +92,52 @@ export function Resultados() {
                 >
                   Todas
                 </button>
-                {categorias.map((category) => (
+                {servicos.map((service) => (
                   <button
-                    key={category.id}
+                    key={service.id}
                     type="button"
-                    onClick={() => setCategoriaAtiva(category.id)}
-                    className={`rounded-full border px-4 py-2 text-sm transition ${categoriaAtiva === category.id ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary"}`}
+                    onClick={() => setCategoriaAtiva(service.id)}
+                    className={`rounded-full border px-4 py-2 text-sm transition ${categoriaAtiva === service.id ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-primary"}`}
                   >
-                    {category.name}
+                    {service.name}
                   </button>
                 ))}
               </div>
             ) : null}
+            {itensFiltrados.length ? null : (
+              <div className="mt-8 rounded-3xl border border-dashed border-primary/30 bg-card p-8 text-center text-sm text-muted-foreground">
+                Nenhuma foto vinculada a esse serviço ainda. No admin, edite uma foto da galeria e escolha o serviço correspondente.
+              </div>
+            )}
             <div className="-mx-5 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
               {itensFiltrados.map((item) => (
                 <figure
                   key={item.id}
                   className="group min-w-[78vw] snap-center overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card sm:min-w-0"
                 >
-                  <img
-                    src={item.image_url}
-                    alt={item.alt_text}
-                    loading="lazy"
-                    className="aspect-[4/5] h-auto w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
-                  <figcaption className="px-4 py-4 text-sm font-medium text-card-foreground">
-                    {item.title}
+                  <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
+                    <img
+                      src={item.image_url}
+                      alt={item.alt_text}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      style={{
+                        transform: `scale(${item.image_zoom ?? 1})`,
+                        transformOrigin: `${item.image_position_x ?? 50}% ${item.image_position_y ?? 50}%`,
+                      }}
+                    />
+                    {item.photo_label ? (
+                      <span className="absolute left-3 top-3 rounded-full bg-black/60 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white backdrop-blur">
+                        {item.photo_label}
+                      </span>
+                    ) : null}
+                  </div>
+                  <figcaption className="px-4 py-4 text-card-foreground">
+                    <span className="block text-sm font-semibold">{item.title}</span>
+                    {item.description ? (
+                      <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{item.description}</span>
+                    ) : null}
                   </figcaption>
                 </figure>
               ))}

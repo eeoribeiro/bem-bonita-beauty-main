@@ -221,7 +221,7 @@ export function Servicos({ paginaCompleta = false }: { paginaCompleta?: boolean 
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div data-reveal className="reveal mx-auto max-w-3xl text-center">
           <TituloSecao
-            eyebrow={paginaCompleta ? "Serviços" : "Serviços em destaque"}
+            eyebrow={paginaCompleta ? "Serviços" : "Serviços do Salão Bem Bonita"}
             titulo={paginaCompleta ? "Cuidados para cada momento do seu cabelo" : "Escolha o cuidado ideal para os seus cachos"}
             texto={
               paginaCompleta

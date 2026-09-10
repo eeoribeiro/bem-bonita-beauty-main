@@ -64,7 +64,12 @@ export function Hero() {
               className="relative aspect-[4/5] w-full animate-pulse rounded-[2rem] border border-border/70 bg-secondary/70 shadow-soft sm:rounded-[2.5rem]"
             />
           ) : (
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-border/70 shadow-soft sm:rounded-[2.5rem]">
+            <a
+              href="/francielly"
+              aria-label="Conhecer a página da Francielly"
+              className="group block focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+            >
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-border/70 shadow-soft transition duration-300 group-hover:-translate-y-1 group-hover:border-primary/50 group-hover:shadow-[0_22px_70px_rgba(218,96,160,0.28)] sm:rounded-[2.5rem]">
               <img
                 src={heroImage?.image_url ?? "/media/francielly-profissional.jpg"}
                 width={710}
@@ -76,9 +81,10 @@ export function Hero() {
                   heroImage?.alt_text ??
                   "Francielly Soares, profissional do salão Bem Bonita, com tesouras de cabeleireira"
                 }
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"
               />
             </div>
+            </a>
           )}
           <div className="absolute -bottom-5 left-4 rounded-2xl bg-card/95 px-4 py-3 shadow-card backdrop-blur sm:-bottom-6 sm:left-10 sm:px-5 sm:py-4">
             <p className="font-display text-lg">{SALAO.profissional}</p>

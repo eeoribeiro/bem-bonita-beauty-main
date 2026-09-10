@@ -49,6 +49,16 @@ create table if not exists public.site_settings (
   francielly_headline text default 'Paixão, técnica e identidade',
   francielly_bio text default 'Especialista em cabelos crespos e cacheados, Francielly construiu o salão Bem Bonita a partir do propósito de transformar a relação que as mulheres têm com seus fios naturais, unindo técnica apurada, respeito à saúde capilar e acolhimento.',
   francielly_mission text default 'Mais do que estética: resgate da autoestima',
+  francielly_photo_label text default 'Cuidado autoral',
+  francielly_extra_1_eyebrow text default 'Trajetória',
+  francielly_extra_1_title text,
+  francielly_extra_1_subtitle text,
+  francielly_extra_2_eyebrow text default 'Atendimento',
+  francielly_extra_2_title text,
+  francielly_extra_2_subtitle text,
+  francielly_extra_3_eyebrow text default 'Resultado',
+  francielly_extra_3_title text,
+  francielly_extra_3_subtitle text,
   space_title text default 'Um refúgio exclusivo para cuidar dos seus cachos',
   space_description text default 'Localizado no Lanna Shopping em Ponte Nova, o salão Bem Bonita foi desenhado para proporcionar uma experiência relaxante, intimista e acolhedora.',
   landmark text default 'Lanna Shopping, primeiro andar, sala 118',
@@ -63,6 +73,16 @@ alter table public.site_settings add constraint site_settings_services_card_styl
 alter table public.site_settings add column if not exists francielly_headline text default 'Paixão, técnica e identidade';
 alter table public.site_settings add column if not exists francielly_bio text;
 alter table public.site_settings add column if not exists francielly_mission text default 'Mais do que estética: resgate da autoestima';
+alter table public.site_settings add column if not exists francielly_photo_label text default 'Cuidado autoral';
+alter table public.site_settings add column if not exists francielly_extra_1_eyebrow text default 'Trajetória';
+alter table public.site_settings add column if not exists francielly_extra_1_title text;
+alter table public.site_settings add column if not exists francielly_extra_1_subtitle text;
+alter table public.site_settings add column if not exists francielly_extra_2_eyebrow text default 'Atendimento';
+alter table public.site_settings add column if not exists francielly_extra_2_title text;
+alter table public.site_settings add column if not exists francielly_extra_2_subtitle text;
+alter table public.site_settings add column if not exists francielly_extra_3_eyebrow text default 'Resultado';
+alter table public.site_settings add column if not exists francielly_extra_3_title text;
+alter table public.site_settings add column if not exists francielly_extra_3_subtitle text;
 alter table public.site_settings add column if not exists space_title text;
 alter table public.site_settings add column if not exists space_description text;
 alter table public.site_settings add column if not exists francielly_eyebrow text default 'Sobre a especialista';
@@ -150,6 +170,13 @@ create table if not exists public.portfolio_items (
   description text,
   category text not null default 'cachos',
   category_id uuid references public.portfolio_categories(id) on delete set null,
+  service_id uuid references public.services(id) on delete set null,
+  service_name text,
+  hair_type text default 'Todos os tipos de cabelo',
+  photo_label text,
+  image_zoom numeric(3,2) not null default 1,
+  image_position_x integer not null default 50,
+  image_position_y integer not null default 50,
   image_url text not null,
   storage_path text,
   alt_text text not null,
@@ -169,6 +196,14 @@ create table if not exists public.site_images (
   created_at text default 'Recente',
   updated_at timestamptz not null default now()
 );
+
+alter table public.portfolio_items add column if not exists service_id uuid references public.services(id) on delete set null;
+alter table public.portfolio_items add column if not exists service_name text;
+alter table public.portfolio_items add column if not exists hair_type text default 'Todos os tipos de cabelo';
+alter table public.portfolio_items add column if not exists photo_label text;
+alter table public.portfolio_items add column if not exists image_zoom numeric(3,2) not null default 1;
+alter table public.portfolio_items add column if not exists image_position_x integer not null default 50;
+alter table public.portfolio_items add column if not exists image_position_y integer not null default 50;
 
 create table if not exists public.space_photos (
   id uuid primary key default gen_random_uuid(),
