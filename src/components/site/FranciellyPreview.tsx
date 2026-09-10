@@ -21,7 +21,7 @@ export function FranciellyPreview() {
   return (
     <section id="francielly-preview" className="bg-background py-16 lg:py-28">
       <div className="mx-auto grid max-w-7xl items-center gap-9 px-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10 lg:px-8">
-        <div data-reveal className="reveal relative">
+        <div data-reveal className="reveal order-2 relative lg:order-1">
           <div className="aspect-[4/5] overflow-hidden rounded-[2rem] border border-border/60 shadow-soft">
             <SafeImage
               src={foto}
@@ -38,7 +38,7 @@ export function FranciellyPreview() {
           </div>
         </div>
 
-        <div data-reveal className="reveal">
+        <div data-reveal className="reveal order-1 lg:order-2">
           <p className="eyebrow flex items-center gap-2">
             <Sparkles className="h-3.5 w-3.5 text-gold" />
             Sobre a especialista

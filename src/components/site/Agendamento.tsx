@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CheckCircle, MapPin, MessageCircle, Send, Sparkles, User, Scissors, Calendar, Clock } from "lucide-react";
 
 import { Botao, BotaoLink } from "./Botao";
 import { SALAO, whatsappLink } from "@/lib/salao";
+import { usePublicSiteData } from "@/lib/site-data";
 
 const servicosOpcoes = [
   "Corte Especializado",
@@ -30,11 +31,27 @@ const periodosOpcoes = [
 ];
 
 export function Agendamento() {
+  const { data } = usePublicSiteData();
+  const servicosReais = useMemo(
+    () =>
+      (data?.services ?? [])
+        .filter((service) => service.published !== false && service.name?.trim())
+        .map((service) => service.name.trim()),
+    [data?.services],
+  );
+  const opcoesServico = servicosReais.length ? servicosReais : servicosOpcoes;
   const [nome, setNome] = useState("");
-  const [servico, setServico] = useState(servicosOpcoes[0]);
+  const [servico, setServico] = useState(opcoesServico[0]);
   const [curvatura, setCurvatura] = useState(curvaturasOpcoes[1]);
   const [periodo, setPeriodo] = useState(periodosOpcoes[0]);
   const [observacao, setObservacao] = useState("");
+
+  useEffect(() => {
+    if (!opcoesServico.length) return;
+    if (!servico || !opcoesServico.includes(servico)) {
+      setServico(opcoesServico[0]);
+    }
+  }, [opcoesServico, servico]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -115,7 +132,7 @@ export function Agendamento() {
                   onChange={(e) => setServico(e.target.value)}
                   className="admin-input mt-0 bg-background text-foreground"
                 >
-                  {servicosOpcoes.map((op) => (
+                  {opcoesServico.map((op) => (
                     <option key={op} value={op}>
                       {op}
                     </option>
