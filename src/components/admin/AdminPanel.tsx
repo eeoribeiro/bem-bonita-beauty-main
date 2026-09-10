@@ -43,7 +43,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
 import { AdminModal } from "./AdminModal";
 import { ConfirmModal } from "./ConfirmModal";
@@ -3198,6 +3198,12 @@ function ServicesManager({
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ServiceData | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
+
+  function serviceAreaError(message?: string) {
+    const detail = message ? ` Detalhe: ${message}` : "";
+    return `A área de serviços precisa do ajuste no Supabase. Execute supabase/services-admin-definitive-fix.sql no SQL Editor e tente novamente.${detail}`;
+  }
 
   function edit(item?: ServiceData) {
     setEditingId(item?.id ?? null);
@@ -3216,6 +3222,9 @@ function ServicesManager({
           }
         : emptyService(),
     );
+    window.setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   }
 
   async function handleFranciellyExtraUpload(slot: 1 | 2 | 3, file: File) {
@@ -3278,7 +3287,7 @@ function ServicesManager({
       const uploaded = await uploadImagem(file, "services");
       setForm((current) => ({ ...current, image_url: uploaded.url, storage_path: uploaded.path }));
     } catch (error) {
-      onError(error instanceof Error ? error.message : "Não foi possível enviar a foto do serviço.");
+      onError(serviceAreaError(error instanceof Error ? error.message : "Não foi possível enviar a foto do serviço."));
     } finally {
       setUploadingServiceImage(false);
     }
@@ -3396,7 +3405,7 @@ function ServicesManager({
         ? getSupabaseClient().from("services").update(payload).eq("id", editingId)
         : getSupabaseClient().from("services").insert(payload);
       const { data: savedService, error } = await query.select("*").single();
-      if (error || !savedService) onError(error?.message ?? "Não foi possível salvar o serviço.");
+      if (error || !savedService) onError(serviceAreaError(error?.message ?? "Não foi possível salvar o serviço."));
       else {
         onSuccess(editingId ? "Serviço atualizado." : "Novo serviço adicionado no final da lista.");
         edit();
@@ -3593,6 +3602,7 @@ function ServicesManager({
       </div>
 
       <form
+        ref={formRef}
         onSubmit={submit}
         className="space-y-4 rounded-2xl border border-border bg-background p-5"
       >
