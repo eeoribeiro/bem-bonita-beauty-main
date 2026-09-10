@@ -2,6 +2,7 @@ import { CheckCircle2, MessageCircle, Sparkles, ShoppingBag } from "lucide-react
 
 import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
+import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
 import { SALAO, whatsappLink } from "@/lib/salao";
 import { usePublicSiteData } from "@/lib/site-data";
 
@@ -83,6 +84,7 @@ const produtosLinha: ProdutoItem[] = [
 
 export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean }) {
   const { data, isError, isFetching, isLoading } = usePublicSiteData();
+  const carouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const productsImage = data?.images.find((image) => image.image_key === "products");
   const products = data
     ? data.products.map((product) => ({
@@ -180,16 +182,19 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
             </span>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            ref={carouselRef}
+            className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3"
+          >
             {isLoading || isFetching ? (
               Array.from({ length: paginaCompleta ? 6 : 3 }).map((_, index) => (
                 <div
                   key={index}
-                  className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card"
+                  className="min-w-[72vw] max-w-[18rem] snap-center overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card sm:min-w-0 sm:max-w-none"
                   aria-label="Carregando produto"
                 >
-                  <div className="aspect-[4/5] w-full animate-pulse bg-secondary/70 sm:aspect-[3/4]" />
-                  <div className="space-y-3 p-5 sm:p-6">
+                  <div className="aspect-square w-full animate-pulse bg-secondary/70 sm:aspect-[3/4]" />
+                  <div className="space-y-3 p-4 sm:p-6">
                     <div className="h-5 w-28 animate-pulse rounded-full bg-secondary/80" />
                     <div className="h-7 w-3/4 animate-pulse rounded bg-secondary/80" />
                     <div className="h-4 w-full animate-pulse rounded bg-secondary/70" />
@@ -201,12 +206,12 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
               produtosExibidos.map((produto, index) => (
                 <article
                   key={produto.id}
-                  className={`group flex flex-col justify-between overflow-hidden rounded-3xl border bg-card shadow-card transition-all duration-300 hover:border-primary/50 hover:shadow-soft ${
+                  className={`group flex min-w-[72vw] max-w-[18rem] snap-center flex-col justify-between overflow-hidden rounded-3xl border bg-card shadow-card transition-all duration-300 hover:border-primary/50 hover:shadow-soft sm:min-w-0 sm:max-w-none ${
                     produto.destaque ? "border-primary/60 ring-1 ring-primary/30 sm:col-span-2 lg:col-span-1" : "border-border/70"
                   }`}
                 >
                   <div>
-                    <div className="relative flex aspect-[4/5] w-full items-center justify-center overflow-hidden bg-secondary/25 sm:aspect-[3/4]">
+                    <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-secondary/25 sm:aspect-[3/4]">
                       <img
                         src={produto.imagem || kitImg}
                         alt={produto.nome}
@@ -222,16 +227,16 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                       ) : null}
                     </div>
 
-                    <div className="p-5 sm:p-6">
+                    <div className="p-4 sm:p-6">
                       <span className="inline-block rounded-full bg-secondary px-3 py-1 text-[11px] font-medium text-magenta">
                         {produto.curvatura}
                       </span>
-                      <h4 className="mt-3 font-display text-xl leading-snug">{produto.nome}</h4>
+                      <h4 className="mt-3 font-display text-lg leading-snug sm:text-xl">{produto.nome}</h4>
                       <p className="mt-1 text-xs font-medium text-muted-foreground">{produto.subtitulo}</p>
                       {produto.preco ? <p className="mt-3 text-sm font-semibold text-magenta">{produto.preco}</p> : null}
-                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{produto.descricao}</p>
+                      <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-muted-foreground sm:line-clamp-none">{produto.descricao}</p>
 
-                      <ul className="mt-4 space-y-1.5 border-t border-border/60 pt-3 text-sm text-foreground/80">
+                      <ul className="mt-4 space-y-1.5 border-t border-border/60 pt-3 text-xs text-foreground/80 sm:text-sm">
                         {produto.beneficios.map((beneficio) => (
                           <li key={beneficio} className="flex items-center gap-2">
                             <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-gold" />
@@ -242,7 +247,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                     </div>
                   </div>
 
-                  <div className="border-t border-border/60 p-5 pt-4 sm:p-6 sm:pt-4">
+                  <div className="border-t border-border/60 p-4 pt-4 sm:p-6 sm:pt-4">
                     <BotaoLink
                       href={whatsappLink(`Olá, ${SALAO.nome}! Gostaria de saber mais informações e valor do produto: ${produto.nome}.`)}
                       target="_blank"

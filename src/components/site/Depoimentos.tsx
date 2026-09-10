@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { MessageCircle, Star, X } from "lucide-react";
 
 import { BotaoLink } from "./Botao";
+import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
 import { SALAO, whatsappLink } from "@/lib/salao";
 import { usePublicSiteData, type TestimonialData } from "@/lib/site-data";
 
@@ -10,6 +11,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
   const feedbacks = (data?.testimonials ?? []).filter((item) => Boolean(item.image_url));
   const feedbacksExibidos = paginaCompleta ? feedbacks : feedbacks.slice(0, 3);
   const [aberto, setAberto] = useState<TestimonialData | null>(null);
+  const carouselRef = useMobileAutoCarousel<HTMLDivElement>();
 
   useEffect(() => {
     if (!aberto) return;
@@ -50,13 +52,16 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
           </p>
         </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+        <div
+          ref={carouselRef}
+          className="-mx-5 mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3 lg:gap-6"
+        >
           {feedbacksExibidos.map((feedback) => (
             <button
               key={feedback.id}
               type="button"
               onClick={() => setAberto(feedback)}
-              className="group flex min-h-full flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-2 text-left text-white shadow-[0_18px_48px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.03] transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/40 hover:bg-white/[0.07] hover:shadow-[0_24px_60px_rgba(220,90,150,0.2)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35"
+              className="group flex min-h-full min-w-[78vw] snap-center flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-2 text-left text-white shadow-[0_18px_48px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.03] transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/40 hover:bg-white/[0.07] hover:shadow-[0_24px_60px_rgba(220,90,150,0.2)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-0"
               aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
             >
               <div className="relative aspect-[4/5] overflow-hidden rounded-[1.45rem] bg-[#141116] ring-1 ring-white/10">

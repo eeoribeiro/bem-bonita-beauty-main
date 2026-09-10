@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
+import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
 import { SALAO } from "@/lib/salao";
 import { usePublicSiteData } from "@/lib/site-data";
 
@@ -37,6 +38,8 @@ const cachos = [
 export function Resultados() {
   const { data, isLoading } = usePublicSiteData();
   const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
+  const fallbackCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
+  const portfolioCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const portfolio = data?.portfolio ?? [];
   const servicos = data?.services ?? [];
   const itensFiltrados =
@@ -109,7 +112,10 @@ export function Resultados() {
                 Nenhuma foto vinculada a esse serviço ainda. No admin, edite uma foto da galeria e escolha o serviço correspondente.
               </div>
             )}
-            <div className="-mx-5 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
+            <div
+              ref={portfolioCarouselRef}
+              className="-mx-5 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4"
+            >
               {itensFiltrados.map((item) => (
                 <figure
                   key={item.id}
@@ -144,7 +150,10 @@ export function Resultados() {
             </div>
           </>
         ) : (
-          <div className="-mx-5 mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-5">
+          <div
+            ref={fallbackCarouselRef}
+            className="-mx-5 mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-5"
+          >
             {cachos.map((item) => (
               <figure
                 key={item.titulo}

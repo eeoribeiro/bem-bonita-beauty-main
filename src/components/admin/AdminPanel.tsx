@@ -2842,6 +2842,8 @@ function SettingsTab({
     { key: "headline", label: "Título principal da Home (Hero)" },
     { key: "hero_description", label: "Descrição principal da Home", multiline: true },
     { key: "about_text", label: "Texto da seção Sobre na Home", multiline: true },
+    { key: "services_title", label: "Título dos Serviços do Salão", help: "Esse título sincroniza com a seção de serviços do site." },
+    { key: "services_description", label: "Texto abaixo dos Serviços do Salão", multiline: true, help: "Esse texto aparece abaixo do título na seção de serviços." },
     { key: "whatsapp", label: "WhatsApp", help: "Somente números com DDD (ex: 5531996792131)." },
     { key: "instagram", label: "Instagram", help: "Usuário do Instagram com ou sem @." },
     { key: "address", label: "Endereço completo", multiline: true },

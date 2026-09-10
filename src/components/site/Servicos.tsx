@@ -3,6 +3,7 @@ import { MessageCircle, Palette, Scissors, Sparkles, WandSparkles, Waves } from 
 import { BotaoLink } from "./Botao";
 import { SafeImage } from "./SafeImage";
 import { TituloSecao } from "./TituloSecao";
+import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
 import { contatoLink, SALAO, whatsappLink } from "@/lib/salao";
 import { initialServices } from "@/lib/initial-content";
 import { usePublicSiteData } from "@/lib/site-data";
@@ -210,6 +211,16 @@ export function Servicos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   const servicos = montarServicos(data?.services, isError);
   const servicosExibidos = servicos;
   const cardStyle: ServicesCardStyle = data?.settings?.services_card_style === "compact" ? "compact" : "photo";
+  const carouselRef = useMobileAutoCarousel<HTMLDivElement>();
+  const sectionTitle =
+    paginaCompleta
+      ? data?.settings?.services_title?.trim() || "Cuidados para cada momento do seu cabelo"
+      : "Escolha o cuidado ideal para os seus cachos";
+  const sectionText =
+    data?.settings?.services_description?.trim() ||
+    (paginaCompleta
+      ? "Cortes, tratamentos e finalizações pensados para valorizar cabelos cacheados, crespos, ondulados e em transição."
+      : "A tabela completa de atendimentos para escolher o cuidado ideal antes de chamar no WhatsApp.");
 
   return (
     <section
@@ -222,22 +233,28 @@ export function Servicos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         <div data-reveal className="reveal mx-auto max-w-3xl text-center">
           <TituloSecao
             eyebrow={paginaCompleta ? "Serviços" : "Serviços do Salão Bem Bonita"}
-            titulo={paginaCompleta ? "Cuidados para cada momento do seu cabelo" : "Escolha o cuidado ideal para os seus cachos"}
-            texto={
-              paginaCompleta
-                ? "Cortes, tratamentos e finalizações pensados para valorizar cabelos cacheados, crespos, ondulados e em transição."
-                : "A tabela completa de atendimentos para escolher o cuidado ideal antes de chamar no WhatsApp."
-            }
+            titulo={sectionTitle}
+            texto={sectionText}
             className="mx-auto text-center [&>span]:mx-auto"
           />
         </div>
 
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:mt-12 xl:grid-cols-4">
+        <div
+          ref={carouselRef}
+          className="-mx-5 mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:mt-12 xl:grid-cols-4"
+        >
           {isLoading
             ? Array.from({ length: paginaCompleta ? 8 : 6 }, (_, index) => (
-                <div key={index} className="h-80 animate-pulse rounded-[2rem] bg-card/70 shadow-[0_6px_18px_rgba(180,90,130,0.12)]" />
+                <div
+                  key={index}
+                  className="h-80 min-w-[78vw] snap-center animate-pulse rounded-[2rem] bg-card/70 shadow-[0_6px_18px_rgba(180,90,130,0.12)] sm:min-w-0"
+                />
               ))
-            : servicosExibidos.map((servico) => <ServiceCard key={servico.id} servico={servico} style={cardStyle} />)}
+            : servicosExibidos.map((servico) => (
+                <div key={servico.id} className="min-w-[78vw] snap-center sm:min-w-0">
+                  <ServiceCard servico={servico} style={cardStyle} />
+                </div>
+              ))}
         </div>
 
         {!paginaCompleta ? (
