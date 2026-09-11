@@ -1672,11 +1672,60 @@ function PortfolioOverviewTab({
   services: ServiceData[];
   onOpenManager: () => void;
 }) {
-  const [activeService, setActiveService] = useState<string>("all");
+  const [activeFilter, setActiveFilter] = useState<string>("all");
 
-  const filteredItems = activeService === "all"
-    ? items
-    : items.filter((item) => item.service_id === activeService || item.service_name === services.find((service) => service.id === activeService)?.name);
+  function normalizeFilter(value?: string | null) {
+    return (value ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  }
+
+  const serviceFilters = services
+    .map((service) => ({
+      id: `service:${service.id}`,
+      label: service.name,
+      count: items.filter(
+        (item) => item.service_id === service.id || normalizeFilter(item.service_name) === normalizeFilter(service.name),
+      ).length,
+    }))
+    .filter((filter) => filter.count > 0);
+
+  const categoryFilters = categories
+    .map((category) => ({
+      id: `category:${category.id}`,
+      label: category.name,
+      active: category.active,
+      count: items.filter(
+        (item) =>
+          item.category_id === category.id ||
+          normalizeFilter(item.category) === normalizeFilter(category.slug) ||
+          normalizeFilter(item.category) === normalizeFilter(category.name),
+      ).length,
+    }))
+    .filter((filter) => filter.count > 0);
+
+  const filteredItems =
+    activeFilter === "all"
+      ? items
+      : activeFilter.startsWith("service:")
+        ? items.filter((item) => {
+            const serviceId = activeFilter.replace("service:", "");
+            const service = services.find((entry) => entry.id === serviceId);
+            return item.service_id === serviceId || normalizeFilter(item.service_name) === normalizeFilter(service?.name);
+          })
+        : activeFilter.startsWith("category:")
+          ? items.filter((item) => {
+              const categoryId = activeFilter.replace("category:", "");
+              const category = categories.find((entry) => entry.id === categoryId);
+              return (
+                item.category_id === categoryId ||
+                normalizeFilter(item.category) === normalizeFilter(category?.slug) ||
+                normalizeFilter(item.category) === normalizeFilter(category?.name)
+              );
+            })
+          : items;
 
   return (
     <section className="space-y-8">
@@ -1686,7 +1735,7 @@ function PortfolioOverviewTab({
           <p className="eyebrow">Galeria do Salão</p>
           <h1 className="mt-2 text-3xl sm:text-4xl font-display">Nossa Galeria</h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            {items.length} foto(s) cadastradas. Os filtros do site usam os serviços reais da tabela de serviços.
+            {items.length} foto(s) cadastradas. Os filtros do site aparecem quando uma foto está vinculada a um serviço ou categoria.
           </p>
         </div>
         <div className="flex flex-wrap gap-3 shrink-0">
@@ -1696,50 +1745,86 @@ function PortfolioOverviewTab({
         </div>
       </div>
 
-      {/* Serviços / Filtros Ativos */}
+      {/* Filtros Ativos */}
       <div className="rounded-3xl border border-border bg-card p-5 shadow-card">
         <div className="flex items-center justify-between pb-3 border-b border-border">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <Tag className="h-4 w-4 text-gold" /> Filtros reais por serviço
+            <Tag className="h-4 w-4 text-gold" /> Filtros ativos no site
           </h3>
           <button
             type="button"
             onClick={onOpenManager}
             className="text-xs text-magenta font-medium hover:underline"
           >
-            Gerenciar fotos
+            Gerenciar fotos e categorias
           </button>
         </div>
         <div className="mt-4 flex flex-wrap gap-2.5">
           <button
             type="button"
-            onClick={() => setActiveService("all")}
+            onClick={() => setActiveFilter("all")}
             className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
-              activeService === "all"
+              activeFilter === "all"
                 ? "bg-magenta text-white shadow-soft"
                 : "bg-secondary text-foreground/80 hover:bg-secondary/80"
             }`}
           >
             Todas as Fotos ({items.length})
           </button>
-          {services.map((service) => {
-            const count = items.filter((item) => item.service_id === service.id || item.service_name === service.name).length;
-            const isActive = activeService === service.id;
-            return (
-              <button
-                key={service.id}
-                type="button"
-                onClick={() => setActiveService(service.id)}
-                className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
-                  isActive
-                    ? "bg-magenta text-white shadow-soft"
-                    : "bg-secondary text-foreground/80 hover:bg-secondary/80"
-                }`}
-              >
-                {service.name} ({count})
-              </button>
-            );
-          })}
+        </div>
+        {serviceFilters.length ? (
+          <div className="mt-4">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-magenta">
+              Serviços reais
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              {serviceFilters.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => setActiveFilter(filter.id)}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    activeFilter === filter.id
+                      ? "bg-magenta text-white shadow-soft"
+                      : "bg-secondary text-foreground/80 hover:bg-secondary/80"
+                  }`}
+                >
+                  {filter.label} ({filter.count})
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {categoryFilters.length ? (
+          <div className="mt-4">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-gold">
+              Categorias da galeria
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              {categoryFilters.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => setActiveFilter(filter.id)}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    activeFilter === filter.id
+                      ? "bg-magenta text-white shadow-soft"
+                      : "bg-secondary text-foreground/80 hover:bg-secondary/80"
+                  }`}
+                >
+                  {filter.label} ({filter.count}){filter.active ? "" : " · oculta"}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {!serviceFilters.length && !categoryFilters.length ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-primary/30 bg-secondary/30 p-4 text-sm text-muted-foreground">
+            Ainda não há filtro ativo. Clique em “Gerenciar fotos e categorias”, crie categorias e vincule cada foto a uma categoria ou serviço.
+          </div>
+        ) : null}
+        <div className="mt-4 rounded-2xl bg-secondary/25 p-3 text-xs leading-relaxed text-muted-foreground">
+          Serviços reais são editados na aba “Serviços”. Categorias da galeria são editadas em “Gerenciar fotos e categorias”.
         </div>
       </div>
 
