@@ -131,7 +131,7 @@ function ServiceCard({ servico, style }: { servico: ServicoView; style: Services
 
   if (style === "compact") {
     return (
-      <article className="group flex min-h-[21rem] flex-col rounded-[2rem] border border-border/75 bg-card p-6 text-card-foreground shadow-[0_12px_38px_rgba(0,0,0,0.14)] transition duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-soft">
+      <article className="group flex h-full min-h-[21rem] flex-col rounded-[2rem] border border-border/75 bg-card p-6 text-card-foreground shadow-[0_12px_38px_rgba(0,0,0,0.14)] transition duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-soft">
         <div className="flex items-start justify-between gap-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-secondary text-magenta transition duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
             <Icone className="h-6 w-6" aria-hidden="true" />
@@ -165,7 +165,7 @@ function ServiceCard({ servico, style }: { servico: ServicoView; style: Services
   }
 
   return (
-    <article className="group flex min-h-full flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-card text-card-foreground shadow-[0_18px_50px_rgba(0,0,0,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft">
+    <article className="group flex h-full min-h-full flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-card text-card-foreground shadow-[0_18px_50px_rgba(0,0,0,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft">
       <div className="relative aspect-[4/3] overflow-hidden bg-secondary/50">
         <SafeImage
           src={servico.imagem ?? fallback}
@@ -251,7 +251,7 @@ export function Servicos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                 />
               ))
             : servicosExibidos.map((servico) => (
-                <div key={servico.id} className="min-w-[78vw] snap-center sm:min-w-0">
+                <div key={servico.id} className="flex min-w-[78vw] snap-center sm:min-w-0">
                   <ServiceCard servico={servico} style={cardStyle} />
                 </div>
               ))}
