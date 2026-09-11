@@ -1,7 +1,6 @@
 import { Maximize2, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 
-import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
 import { usePublicSiteData } from "@/lib/site-data";
 
 type FotoEspaco = {
@@ -12,7 +11,6 @@ type FotoEspaco = {
 export function Sobre() {
   const { data, isFetching, isLoading } = usePublicSiteData();
   const [selectedPhoto, setSelectedPhoto] = useState<FotoEspaco | null>(null);
-  const carouselRef = useMobileAutoCarousel<HTMLDivElement>();
 
   const fotosEspaco =
     data?.spacePhotos
@@ -24,12 +22,6 @@ export function Sobre() {
       .filter((foto, index, lista) => lista.findIndex((item) => item.url === foto.url) === index) ?? [];
 
   const carregando = isLoading || isFetching;
-  const portfolioGridClass =
-    fotosEspaco.length === 1
-      ? "-mx-5 mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-auto sm:grid sm:max-w-3xl sm:grid-cols-1 sm:overflow-visible sm:px-0 sm:pb-0"
-      : fotosEspaco.length === 2
-        ? "-mx-5 mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-auto sm:grid sm:max-w-6xl sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0"
-        : "-mx-5 mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3";
 
   return (
     <section
@@ -52,29 +44,22 @@ export function Sobre() {
         </div>
 
         {carregando ? (
-          <div className="-mx-5 mt-12 flex gap-4 overflow-hidden px-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 lg:grid-cols-3">
+          <div className="mt-12 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="aspect-[4/3] min-w-[78vw] animate-pulse rounded-[2rem] border border-border/60 bg-secondary/70 shadow-card sm:min-w-0"
+                className="aspect-[4/5] animate-pulse rounded-[2rem] border border-border/60 bg-secondary/70 shadow-card"
               />
             ))}
           </div>
         ) : fotosEspaco.length ? (
-          <div ref={carouselRef} className={portfolioGridClass}>
+          <div className="mt-12 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
             {fotosEspaco.map((foto, index) => (
               <button
                 key={foto.url}
                 type="button"
                 onClick={() => setSelectedPhoto(foto)}
-                className={[
-                  "group relative block min-w-[78vw] snap-center overflow-hidden rounded-[2rem] border border-white/70 bg-card p-2 shadow-[0_18px_55px_rgba(200,100,140,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 sm:min-w-0 dark:border-white/10 dark:bg-white/5",
-                  fotosEspaco.length === 1
-                    ? "aspect-[4/3]"
-                    : fotosEspaco.length === 2
-                      ? "aspect-[4/3]"
-                      : "aspect-[4/3]",
-                ].join(" ")}
+                className="group relative block aspect-[4/5] overflow-hidden rounded-[2rem] border border-white/70 bg-card p-2 shadow-[0_18px_55px_rgba(200,100,140,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 dark:border-white/10 dark:bg-white/5"
                 aria-label={`Ampliar foto do espaço: ${foto.titulo}`}
               >
                 <img
@@ -85,7 +70,6 @@ export function Sobre() {
                   decoding="async"
                   className="h-full w-full rounded-[1.5rem] object-cover transition duration-500 group-hover:scale-[1.03]"
                 />
-                <span className="absolute inset-x-2 bottom-2 h-24 rounded-b-[1.5rem] bg-gradient-to-t from-black/55 to-transparent opacity-80" />
                 <span className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
                   <Maximize2 className="h-4 w-4" aria-hidden="true" />
                 </span>
