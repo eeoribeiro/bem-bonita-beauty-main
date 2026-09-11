@@ -1692,20 +1692,6 @@ function PortfolioOverviewTab({
     }))
     .filter((filter) => filter.count > 0);
 
-  const categoryFilters = categories
-    .map((category) => ({
-      id: `category:${category.id}`,
-      label: category.name,
-      active: category.active,
-      count: items.filter(
-        (item) =>
-          item.category_id === category.id ||
-          normalizeFilter(item.category) === normalizeFilter(category.slug) ||
-          normalizeFilter(item.category) === normalizeFilter(category.name),
-      ).length,
-    }))
-    .filter((filter) => filter.count > 0);
-
   const filteredItems =
     activeFilter === "all"
       ? items
@@ -1715,17 +1701,7 @@ function PortfolioOverviewTab({
             const service = services.find((entry) => entry.id === serviceId);
             return item.service_id === serviceId || normalizeFilter(item.service_name) === normalizeFilter(service?.name);
           })
-        : activeFilter.startsWith("category:")
-          ? items.filter((item) => {
-              const categoryId = activeFilter.replace("category:", "");
-              const category = categories.find((entry) => entry.id === categoryId);
-              return (
-                item.category_id === categoryId ||
-                normalizeFilter(item.category) === normalizeFilter(category?.slug) ||
-                normalizeFilter(item.category) === normalizeFilter(category?.name)
-              );
-            })
-          : items;
+        : items;
 
   return (
     <section className="space-y-8">
@@ -1735,7 +1711,7 @@ function PortfolioOverviewTab({
           <p className="eyebrow">Galeria do Salão</p>
           <h1 className="mt-2 text-3xl sm:text-4xl font-display">Nossa Galeria</h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            {items.length} foto(s) cadastradas. Os filtros do site aparecem quando uma foto está vinculada a um serviço ou categoria.
+            {items.length} foto(s) cadastradas. Os filtros do site usam somente os serviços reais cadastrados na aba “Serviços”.
           </p>
         </div>
         <div className="flex flex-wrap gap-3 shrink-0">
@@ -1756,7 +1732,7 @@ function PortfolioOverviewTab({
             onClick={onOpenManager}
             className="text-xs text-magenta font-medium hover:underline"
           >
-            Gerenciar fotos e categorias
+            Gerenciar fotos
           </button>
         </div>
         <div className="mt-4 flex flex-wrap gap-2.5">
@@ -1795,36 +1771,13 @@ function PortfolioOverviewTab({
             </div>
           </div>
         ) : null}
-        {categoryFilters.length ? (
-          <div className="mt-4">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-gold">
-              Categorias da galeria
-            </p>
-            <div className="flex flex-wrap gap-2.5">
-              {categoryFilters.map((filter) => (
-                <button
-                  key={filter.id}
-                  type="button"
-                  onClick={() => setActiveFilter(filter.id)}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
-                    activeFilter === filter.id
-                      ? "bg-magenta text-white shadow-soft"
-                      : "bg-secondary text-foreground/80 hover:bg-secondary/80"
-                  }`}
-                >
-                  {filter.label} ({filter.count}){filter.active ? "" : " · oculta"}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-        {!serviceFilters.length && !categoryFilters.length ? (
+        {!serviceFilters.length ? (
           <div className="mt-4 rounded-2xl border border-dashed border-primary/30 bg-secondary/30 p-4 text-sm text-muted-foreground">
-            Ainda não há filtro ativo. Clique em “Gerenciar fotos e categorias”, crie categorias e vincule cada foto a uma categoria ou serviço.
+            Ainda não há filtro ativo. Clique em “Gerenciar fotos”, edite uma foto e escolha um serviço real para ela.
           </div>
         ) : null}
         <div className="mt-4 rounded-2xl bg-secondary/25 p-3 text-xs leading-relaxed text-muted-foreground">
-          Serviços reais são editados na aba “Serviços”. Categorias da galeria são editadas em “Gerenciar fotos e categorias”.
+          Para mudar, excluir ou criar filtros, use a aba “Serviços”. Esta galeria não usa mais as categorias antigas “Cachos” e “Penteados”.
         </div>
       </div>
 
@@ -4052,11 +4005,11 @@ function PortfolioManager({
       ? (items.find((p) => p.id === editingId)?.sort_order ?? items.length + 1)
       : (items.length ? Math.max(...items.map((p) => p.sort_order), 0) + 1 : 1);
 
-    const selected = categories.find((category) => category.id === form.category_id);
     const selectedService = services.find((service) => service.id === form.service_id);
     const payload = {
       ...form,
-      category: selected?.slug ?? form.category,
+      category: selectedService?.name ?? form.service_name ?? "",
+      category_id: null,
       service_name: selectedService?.name ?? form.service_name ?? null,
       image_zoom: Math.min(1.8, Math.max(1, Number(form.image_zoom ?? 1))),
       image_position_x: Math.min(100, Math.max(0, Number(form.image_position_x ?? 50))),
@@ -4127,115 +4080,6 @@ function PortfolioManager({
 
   return (
     <div className="space-y-7">
-      <section className="rounded-2xl border border-border bg-background p-5">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="eyebrow">Filtros da Nossa Galeria</p>
-            <h3 className="mt-1 text-xl font-display">Categorias da galeria</h3>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Crie, edite e ative categorias. No site, elas aparecem como filtros quando tiverem fotos vinculadas.
-            </p>
-          </div>
-          <span className="w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-magenta">
-            {categories.length} categoria(s)
-          </span>
-        </div>
-        <div className="mt-5 grid gap-2 sm:grid-cols-2">
-          {categories.map((category) => (
-            <div
-              key={category.id}
-              className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-3 py-2"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">{category.name}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {category.active ? "Ativa no site" : "Oculta no site"} · {category.slug}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => void toggleCategory(category)}
-                  className={`rounded-full px-3 py-2 text-[11px] font-semibold ${
-                    category.active ? "bg-emerald-500/15 text-emerald-400" : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {category.active ? "Ativa" : "Oculta"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => startEditCategory(category)}
-                  aria-label={`Editar categoria ${category.name}`}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-magenta"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void removeCategory(category)}
-                  aria-label={`Excluir categoria ${category.name}`}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-red-950/40 text-red-300"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-          {!categories.length ? (
-            <div className="rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground sm:col-span-2">
-              Nenhuma categoria cadastrada ainda. Crie uma categoria abaixo e depois vincule nas fotos.
-            </div>
-          ) : null}
-        </div>
-        <div className="mt-5 rounded-2xl border border-dashed border-primary/30 bg-secondary/20 p-4">
-          <p className="text-sm font-semibold">
-            {editingCategoryId ? "Editar categoria selecionada" : "Adicionar nova categoria"}
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-            <label className="block text-sm font-medium">
-              Nome da categoria
-              <input
-                value={editingCategoryId ? editingCategoryName : newCategory}
-                onChange={(event) =>
-                  editingCategoryId ? setEditingCategoryName(event.target.value) : setNewCategory(event.target.value)
-                }
-                placeholder="Ex: Cachos, Mechas, Penteados, Cortes"
-                className="admin-input mt-1"
-              />
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {editingCategoryId ? (
-                <label className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-3 text-xs font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={editingCategoryActive}
-                    onChange={(event) => setEditingCategoryActive(event.target.checked)}
-                    className="h-4 w-4 accent-pink-500"
-                  />
-                  Ativa no site
-                </label>
-              ) : null}
-              {editingCategoryId ? (
-                <button
-                  type="button"
-                  onClick={clearCategoryForm}
-                  className="min-h-11 rounded-xl border border-border px-4 text-sm font-semibold text-muted-foreground"
-                >
-                  Cancelar
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => void saveCategory()}
-                className="min-h-11 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-soft"
-              >
-                {editingCategoryId ? "Salvar categoria" : "Adicionar categoria"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <div className="grid gap-8 xl:grid-cols-[1.35fr_0.65fr]">
         <div>
           <div className="flex items-center justify-between">
@@ -4440,28 +4284,6 @@ function PortfolioManager({
               {hairTypeOptions.map((option) => (
                 <option key={option} value={option}>
                   {option}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm font-medium">
-            Categoria
-            <select
-              value={form.category_id ?? ""}
-              onChange={(event) => {
-                const selectedCategory = categories.find((category) => category.id === event.target.value);
-                setForm({
-                  ...form,
-                  category_id: event.target.value || null,
-                  category: selectedCategory?.slug ?? form.category,
-                });
-              }}
-              className="admin-input"
-            >
-              <option value="">Escolha uma categoria</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
                 </option>
               ))}
             </select>
