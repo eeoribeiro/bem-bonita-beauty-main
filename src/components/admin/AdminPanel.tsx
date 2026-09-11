@@ -2848,7 +2848,6 @@ function SettingsTab({
     { key: "instagram", label: "Instagram", help: "Usuário do Instagram com ou sem @." },
     { key: "address", label: "Endereço completo", multiline: true },
     { key: "landmark", label: "Ponto de referência", multiline: true },
-    { key: "business_hours_text", label: "Horário de atendimento", multiline: true },
   ];
 
   async function saveSettings() {
@@ -2874,8 +2873,8 @@ function SettingsTab({
         .eq("id", id);
       if (error) {
         onError(error.message.includes("column")
-          ? "O banco ainda não tem todos os campos novos. Execute supabase/content-controls-update.sql no Supabase."
-          : "Não foi possível salvar as informações.");
+          ? "O banco ainda não tem todos os campos novos. Execute supabase/gallery-categories-fran-fix.sql no Supabase."
+          : `Não foi possível salvar as informações. Se o ponto de referência não salva, execute supabase/gallery-categories-fran-fix.sql. Detalhe: ${error.message}`);
       }
       else onSuccess("Informações atualizadas com sucesso.");
     } catch {
@@ -3084,7 +3083,15 @@ function SettingsTab({
               const subtitleKey = slot.subtitleKey as keyof SiteSettingsData;
 
               return (
-                <div key={slot.imageKey} className="rounded-2xl border border-border bg-background p-4">
+                <div key={slot.imageKey} className="rounded-2xl border border-border bg-background p-4 shadow-card">
+                  <div className="mb-4 rounded-xl bg-secondary/45 px-3 py-2">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-magenta">
+                      Bloco extra {slot.slot}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                      Coloque foto, título e texto. O bloco só aparece na página da Fran quando tiver conteúdo.
+                    </p>
+                  </div>
                   <ImageField
                     label={`Foto extra ${slot.slot}`}
                     currentUrl={image?.image_url ?? null}
@@ -3701,6 +3708,9 @@ function PortfolioManager({
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newCategory, setNewCategory] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [editingCategoryActive, setEditingCategoryActive] = useState(true);
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<CategoryData | null>(null);
   const [pendingDeleteItem, setPendingDeleteItem] = useState<PortfolioData | null>(null);
 
@@ -3733,6 +3743,29 @@ function PortfolioManager({
     );
   }
 
+  function makeCategorySlug(name: string) {
+    return name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+  }
+
+  function startEditCategory(category: CategoryData) {
+    setEditingCategoryId(category.id);
+    setEditingCategoryName(category.name);
+    setEditingCategoryActive(category.active);
+    setNewCategory(category.name);
+  }
+
+  function clearCategoryForm() {
+    setEditingCategoryId(null);
+    setEditingCategoryName("");
+    setEditingCategoryActive(true);
+    setNewCategory("");
+  }
+
   async function selectImage(file: File) {
     setUploading(true);
     try {
@@ -3751,42 +3784,77 @@ function PortfolioManager({
     }
   }
 
-  async function addCategory() {
-    const name = newCategory.trim();
+  async function saveCategory() {
+    const name = (editingCategoryId ? editingCategoryName : newCategory).trim();
     if (!name) return;
-    const slug = name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+    const slug = makeCategorySlug(name);
 
     if (isDemo) {
-      const newCat: CategoryData = {
-        id: `cat-${Date.now()}`,
-        name,
-        slug,
-        sort_order: categories.length + 1,
-        active: true,
-      };
-      setCategories((prev) => [...prev, newCat]);
-      setNewCategory("");
-      onSuccess("Categoria criada com sucesso.");
+      if (editingCategoryId) {
+        setCategories((prev) =>
+          prev.map((category) =>
+            category.id === editingCategoryId
+              ? { ...category, name, slug, active: editingCategoryActive }
+              : category,
+          ),
+        );
+      } else {
+        const newCat: CategoryData = {
+          id: `cat-${Date.now()}`,
+          name,
+          slug,
+          sort_order: categories.length + 1,
+          active: true,
+        };
+        setCategories((prev) => [...prev, newCat]);
+      }
+      clearCategoryForm();
+      onSuccess(editingCategoryId ? "Categoria atualizada com sucesso." : "Categoria criada com sucesso.");
+      return;
+    }
+
+    try {
+      const query = editingCategoryId
+        ? getSupabaseClient()
+            .from("portfolio_categories")
+            .update({ name, slug, active: editingCategoryActive })
+            .eq("id", editingCategoryId)
+        : getSupabaseClient()
+            .from("portfolio_categories")
+            .insert({ name, slug, sort_order: categories.length + 1, active: true });
+      const { error } = await query;
+      if (error) onError(`Não foi possível salvar a categoria. Detalhe: ${error.message}`);
+      else {
+        clearCategoryForm();
+        onSuccess(editingCategoryId ? "Categoria atualizada." : "Categoria criada.");
+        await onReload();
+      }
+    } catch {
+      onError("Erro ao salvar categoria.");
+    }
+  }
+
+  async function toggleCategory(category: CategoryData) {
+    if (isDemo) {
+      setCategories((prev) =>
+        prev.map((item) => (item.id === category.id ? { ...item, active: !category.active } : item)),
+      );
+      onSuccess(category.active ? "Categoria ocultada do site." : "Categoria ativada no site.");
       return;
     }
 
     try {
       const { error } = await getSupabaseClient()
         .from("portfolio_categories")
-        .insert({ name, slug, sort_order: categories.length, active: true });
-      if (error) onError("Não foi possível criar a categoria.");
+        .update({ active: !category.active })
+        .eq("id", category.id);
+      if (error) onError(`Não foi possível mudar a categoria. Detalhe: ${error.message}`);
       else {
-        setNewCategory("");
-        onSuccess("Categoria criada.");
+        onSuccess(category.active ? "Categoria ocultada do site." : "Categoria ativada no site.");
         await onReload();
       }
     } catch {
-      onError("Erro ao criar categoria.");
+      onError("Erro ao mudar categoria.");
     }
   }
 
@@ -3975,39 +4043,111 @@ function PortfolioManager({
   return (
     <div className="space-y-7">
       <section className="rounded-2xl border border-border bg-background p-5">
-        <h3 className="text-xl font-display">Categorias</h3>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="eyebrow">Filtros da Nossa Galeria</p>
+            <h3 className="mt-1 text-xl font-display">Categorias da galeria</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Crie, edite e ative categorias. No site, elas aparecem como filtros quando tiverem fotos vinculadas.
+            </p>
+          </div>
+          <span className="w-fit rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-magenta">
+            {categories.length} categoria(s)
+          </span>
+        </div>
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">
           {categories.map((category) => (
-            <span
+            <div
               key={category.id}
-              className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-2 text-xs text-magenta font-medium"
+              className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-3 py-2"
             >
-              <span>{category.name}</span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{category.name}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {category.active ? "Ativa no site" : "Oculta no site"} · {category.slug}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => void toggleCategory(category)}
+                  className={`rounded-full px-3 py-2 text-[11px] font-semibold ${
+                    category.active ? "bg-emerald-500/15 text-emerald-400" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {category.active ? "Ativa" : "Oculta"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startEditCategory(category)}
+                  aria-label={`Editar categoria ${category.name}`}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-magenta"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void removeCategory(category)}
+                  aria-label={`Excluir categoria ${category.name}`}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-red-950/40 text-red-300"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+          {!categories.length ? (
+            <div className="rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground sm:col-span-2">
+              Nenhuma categoria cadastrada ainda. Crie uma categoria abaixo e depois vincule nas fotos.
+            </div>
+          ) : null}
+        </div>
+        <div className="mt-5 rounded-2xl border border-dashed border-primary/30 bg-secondary/20 p-4">
+          <p className="text-sm font-semibold">
+            {editingCategoryId ? "Editar categoria selecionada" : "Adicionar nova categoria"}
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+            <label className="block text-sm font-medium">
+              Nome da categoria
+              <input
+                value={editingCategoryId ? editingCategoryName : newCategory}
+                onChange={(event) =>
+                  editingCategoryId ? setEditingCategoryName(event.target.value) : setNewCategory(event.target.value)
+                }
+                placeholder="Ex: Cachos, Mechas, Penteados, Cortes"
+                className="admin-input mt-1"
+              />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {editingCategoryId ? (
+                <label className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-3 text-xs font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={editingCategoryActive}
+                    onChange={(event) => setEditingCategoryActive(event.target.checked)}
+                    className="h-4 w-4 accent-pink-500"
+                  />
+                  Ativa no site
+                </label>
+              ) : null}
+              {editingCategoryId ? (
+                <button
+                  type="button"
+                  onClick={clearCategoryForm}
+                  className="min-h-11 rounded-xl border border-border px-4 text-sm font-semibold text-muted-foreground"
+                >
+                  Cancelar
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={() => void removeCategory(category)}
-                aria-label={`Excluir categoria ${category.name}`}
-                className="-my-2 -mr-2 flex h-11 w-11 items-center justify-center rounded-full hover:bg-background/70"
+                onClick={() => void saveCategory()}
+                className="min-h-11 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-soft"
               >
-                <X className="h-3.5 w-3.5" />
+                {editingCategoryId ? "Salvar categoria" : "Adicionar categoria"}
               </button>
-            </span>
-          ))}
-        </div>
-        <div className="mt-4 flex gap-2">
-          <input
-            value={newCategory}
-            onChange={(event) => setNewCategory(event.target.value)}
-            placeholder="Nova categoria (ex: Mechas, Cortes, Noivas)"
-            className="admin-input mt-0"
-          />
-          <button
-            type="button"
-            onClick={() => void addCategory()}
-            className="rounded-xl bg-secondary px-4 text-sm text-magenta font-medium"
-          >
-            Adicionar
-          </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -4223,10 +4363,17 @@ function PortfolioManager({
             Categoria
             <select
               value={form.category_id ?? ""}
-              onChange={(event) => setForm({ ...form, category_id: event.target.value || null })}
+              onChange={(event) => {
+                const selectedCategory = categories.find((category) => category.id === event.target.value);
+                setForm({
+                  ...form,
+                  category_id: event.target.value || null,
+                  category: selectedCategory?.slug ?? form.category,
+                });
+              }}
               className="admin-input"
             >
-              <option value="">Sem categoria</option>
+              <option value="">Escolha uma categoria</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}

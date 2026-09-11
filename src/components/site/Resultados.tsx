@@ -50,6 +50,7 @@ export function Resultados() {
   const portfolioCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const portfolio = data?.portfolio ?? [];
   const servicos = data?.services ?? [];
+  const categorias = data?.categories ?? [];
   const filtrosServico = useMemo(() => {
     const filtros = servicos
       .map((service) => {
@@ -82,13 +83,61 @@ export function Resultados() {
 
     return filtros;
   }, [portfolio, servicos]);
+  const filtrosCategoria = useMemo(() => {
+    const filtros = categorias
+      .map((category) => {
+        const categorySlug = normalizarFiltro(category.slug);
+        const categoryName = normalizarFiltro(category.name);
+        const quantidade = portfolio.filter(
+          (item) =>
+            item.category_id === category.id ||
+            normalizarFiltro(item.category) === categorySlug ||
+            normalizarFiltro(item.category) === categoryName,
+        ).length;
+
+        return {
+          id: `category:${category.id}`,
+          label: category.name,
+          quantidade,
+          slug: category.slug,
+        };
+      })
+      .filter((filter) => filter.quantidade > 0);
+
+    const categoriasSemCadastro = portfolio
+      .map((item) => item.category?.trim())
+      .filter((name): name is string => Boolean(name))
+      .filter(
+        (name) =>
+          !categorias.some(
+            (category) =>
+              normalizarFiltro(category.slug) === normalizarFiltro(name) ||
+              normalizarFiltro(category.name) === normalizarFiltro(name),
+          ),
+      );
+
+    for (const name of Array.from(new Set(categoriasSemCadastro))) {
+      const id = `category-name:${normalizarFiltro(name)}`;
+      filtros.push({
+        id,
+        label: name,
+        quantidade: portfolio.filter((item) => normalizarFiltro(item.category) === normalizarFiltro(name)).length,
+        slug: name,
+      });
+    }
+
+    return filtros;
+  }, [categorias, portfolio]);
 
   useEffect(() => {
     if (categoriaAtiva === "todas") return;
-    if (!filtrosServico.some((filter) => filter.id === categoriaAtiva)) {
+    if (
+      !filtrosServico.some((filter) => filter.id === categoriaAtiva) &&
+      !filtrosCategoria.some((filter) => filter.id === categoriaAtiva)
+    ) {
       setCategoriaAtiva("todas");
     }
-  }, [categoriaAtiva, filtrosServico]);
+  }, [categoriaAtiva, filtrosCategoria, filtrosServico]);
 
   const itensFiltrados = useMemo(() => {
     if (categoriaAtiva === "todas") return portfolio;
@@ -98,13 +147,32 @@ export function Resultados() {
       return portfolio.filter((item) => normalizarFiltro(item.service_name) === selectedName);
     }
 
+    if (categoriaAtiva.startsWith("category-name:")) {
+      const selectedName = categoriaAtiva.replace("category-name:", "");
+      return portfolio.filter((item) => normalizarFiltro(item.category) === selectedName);
+    }
+
+    if (categoriaAtiva.startsWith("category:")) {
+      const selectedCategoryId = categoriaAtiva.replace("category:", "");
+      const selectedCategory = categorias.find((category) => category.id === selectedCategoryId);
+      const selectedSlug = normalizarFiltro(selectedCategory?.slug);
+      const selectedName = normalizarFiltro(selectedCategory?.name);
+
+      return portfolio.filter(
+        (item) =>
+          item.category_id === selectedCategoryId ||
+          normalizarFiltro(item.category) === selectedSlug ||
+          normalizarFiltro(item.category) === selectedName,
+      );
+    }
+
     const selectedService = servicos.find((service) => service.id === categoriaAtiva);
     const selectedName = normalizarFiltro(selectedService?.name);
 
     return portfolio.filter(
       (item) => item.service_id === categoriaAtiva || normalizarFiltro(item.service_name) === selectedName,
     );
-  }, [categoriaAtiva, portfolio, servicos]);
+  }, [categoriaAtiva, categorias, portfolio, servicos]);
 
   return (
     <section id="resultados" className="bg-background py-16 lg:py-24">
@@ -142,28 +210,51 @@ export function Resultados() {
           </div>
         ) : portfolio.length ? (
           <>
-            {filtrosServico.length ? (
-              <div
-                className="-mx-5 mt-8 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
-                aria-label="Filtrar galeria por serviço"
-              >
-                <button
-                  type="button"
-                  onClick={() => setCategoriaAtiva("todas")}
-                  className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${categoriaAtiva === "todas" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/40 text-muted-foreground hover:border-primary hover:text-foreground"}`}
-                >
-                  Todas <span className="ml-1 opacity-70">({portfolio.length})</span>
-                </button>
-                {filtrosServico.map((filter) => (
+            {filtrosServico.length || filtrosCategoria.length ? (
+              <div className="mt-8 space-y-4" aria-label="Filtros da galeria">
+                <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
                   <button
-                    key={filter.id}
                     type="button"
-                    onClick={() => setCategoriaAtiva(filter.id)}
-                    className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${categoriaAtiva === filter.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/40 text-muted-foreground hover:border-primary hover:text-foreground"}`}
+                    onClick={() => setCategoriaAtiva("todas")}
+                    className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${categoriaAtiva === "todas" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/40 text-muted-foreground hover:border-primary hover:text-foreground"}`}
                   >
-                    {filter.label} <span className="ml-1 opacity-70">({filter.quantidade})</span>
+                    Todas <span className="ml-1 opacity-70">({portfolio.length})</span>
                   </button>
-                ))}
+                </div>
+                {filtrosServico.length ? (
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-magenta">Serviços</p>
+                    <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+                      {filtrosServico.map((filter) => (
+                        <button
+                          key={filter.id}
+                          type="button"
+                          onClick={() => setCategoriaAtiva(filter.id)}
+                          className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${categoriaAtiva === filter.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/40 text-muted-foreground hover:border-primary hover:text-foreground"}`}
+                        >
+                          {filter.label} <span className="ml-1 opacity-70">({filter.quantidade})</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {filtrosCategoria.length ? (
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-gold">Categorias</p>
+                    <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+                      {filtrosCategoria.map((filter) => (
+                        <button
+                          key={filter.id}
+                          type="button"
+                          onClick={() => setCategoriaAtiva(filter.id)}
+                          className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${categoriaAtiva === filter.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/40 text-muted-foreground hover:border-primary hover:text-foreground"}`}
+                        >
+                          {filter.label} <span className="ml-1 opacity-70">({filter.quantidade})</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
             {itensFiltrados.length ? null : (
