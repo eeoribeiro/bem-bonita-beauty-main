@@ -1,4 +1,5 @@
-import { CheckCircle2, MessageCircle, Sparkles, ShoppingBag } from "lucide-react";
+import { CheckCircle2, LoaderCircle, MessageCircle, Minus, Plus, Sparkles, ShoppingBag, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
@@ -23,6 +24,11 @@ interface ProdutoItem {
   preco?: string | null;
   destaque?: boolean;
 }
+
+type CartItem = {
+  id: string;
+  quantity: number;
+};
 
 const produtosLinha: ProdutoItem[] = [
   {
@@ -82,9 +88,29 @@ const produtosLinha: ProdutoItem[] = [
   },
 ];
 
+function parsePrecoCentavos(preco?: string | null) {
+  const cleaned = (preco ?? "")
+    .replace(/[^\d,.-]/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+  const value = Number.parseFloat(cleaned);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.round(value * 100);
+}
+
+function formatarMoeda(centavos: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(centavos / 100);
+}
+
 export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean }) {
   const { data, isError, isFetching, isLoading } = usePublicSiteData();
   const carouselRef = useMobileAutoCarousel<HTMLDivElement>();
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutMessage, setCheckoutMessage] = useState("");
   const productsImage = data?.images.find((image) => image.image_key === "products");
   const products = data
     ? data.products.map((product) => ({
@@ -104,6 +130,94 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   const produtosExibidos = paginaCompleta
     ? products
     : [...products].sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque))).slice(0, 3);
+  const produtosPorId = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
+  const cartProducts = cart
+    .map((item) => {
+      const product = produtosPorId.get(item.id);
+      if (!product) return null;
+      const unitAmount = parsePrecoCentavos(product.preco);
+      return {
+        ...item,
+        product,
+        unitAmount,
+        total: unitAmount * item.quantity,
+      };
+    })
+    .filter((item): item is CartItem & { product: ProdutoItem; unitAmount: number; total: number } => Boolean(item));
+  const cartTotal = cartProducts.reduce((total, item) => total + item.total, 0);
+  const cartQuantity = cart.reduce((total, item) => total + item.quantity, 0);
+
+  useEffect(() => {
+    try {
+      const savedCart = window.localStorage.getItem("bem-bonita-cart");
+      if (savedCart) setCart(JSON.parse(savedCart) as CartItem[]);
+    } catch {
+      setCart([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("bem-bonita-cart", JSON.stringify(cart));
+  }, [cart]);
+
+  function addToCart(product: ProdutoItem) {
+    if (!parsePrecoCentavos(product.preco)) {
+      setCheckoutMessage("Esse produto precisa ter preço cadastrado para vender online.");
+      return;
+    }
+    setCart((current) => {
+      const existing = current.find((item) => item.id === product.id);
+      if (existing) {
+        return current.map((item) =>
+          item.id === product.id ? { ...item, quantity: Math.min(20, item.quantity + 1) } : item,
+        );
+      }
+      return [...current, { id: product.id, quantity: 1 }];
+    });
+    setCheckoutMessage(`${product.nome} foi adicionado ao carrinho.`);
+  }
+
+  function updateCartQuantity(id: string, quantity: number) {
+    if (quantity <= 0) {
+      setCart((current) => current.filter((item) => item.id !== id));
+      return;
+    }
+    setCart((current) =>
+      current.map((item) => (item.id === id ? { ...item, quantity: Math.min(20, quantity) } : item)),
+    );
+  }
+
+  async function startPagBankCheckout() {
+    if (!cartProducts.length) {
+      setCheckoutMessage("Adicione pelo menos um produto ao carrinho.");
+      return;
+    }
+    if (cartProducts.some((item) => !item.unitAmount)) {
+      setCheckoutMessage("Todos os produtos do carrinho precisam ter preço cadastrado.");
+      return;
+    }
+
+    setCheckoutLoading(true);
+    setCheckoutMessage("");
+    try {
+      const response = await fetch("/api/pagbank/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          items: cartProducts.map((item) => ({ id: item.id, quantity: item.quantity })),
+        }),
+      });
+      const payload = (await response.json()) as { paymentUrl?: string; error?: string };
+      if (!response.ok || !payload.paymentUrl) {
+        throw new Error(payload.error || "Não foi possível iniciar o pagamento.");
+      }
+      window.location.href = payload.paymentUrl;
+    } catch (error) {
+      setCheckoutMessage(error instanceof Error ? error.message : "Não foi possível iniciar o pagamento.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
 
   return (
     <section id="produtos" className={`bg-blush-soft pb-16 lg:pb-28 ${paginaCompleta ? "pt-28 lg:pt-40" : "pt-16 lg:pt-28"}`}>
@@ -177,10 +291,90 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                 {paginaCompleta ? "Produtos disponíveis" : "Conheça alguns produtos"}
               </h3>
             </div>
-            <span className="text-xs text-muted-foreground sm:text-right">
-              Retirada no salão ou entrega sob consulta
+            <span className="rounded-full bg-card px-4 py-2 text-xs font-semibold text-magenta shadow-card sm:text-right">
+              {paginaCompleta ? `${cartQuantity} item(ns) no carrinho` : "Compra online na loja completa"}
             </span>
           </div>
+
+          {paginaCompleta ? (
+            <div className="mb-6 rounded-3xl border border-primary/25 bg-card p-5 shadow-card sm:p-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="eyebrow flex items-center gap-2">
+                    <ShoppingBag className="h-3.5 w-3.5 text-gold" />
+                    Carrinho online
+                  </p>
+                  <h4 className="mt-2 font-display text-2xl">Finalize sua compra pelo PagBank</h4>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    Adicione os produtos da linha Bem Bonita e pague online com Pix ou cartão.
+                  </p>
+                </div>
+                <div className="w-full rounded-2xl bg-secondary/35 p-4 lg:max-w-md">
+                  {cartProducts.length ? (
+                    <div className="space-y-3">
+                      {cartProducts.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between gap-3 rounded-2xl bg-background p-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold">{item.product.nome}</p>
+                            <p className="text-xs text-muted-foreground">{formatarMoeda(item.unitAmount)} cada</p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground"
+                              aria-label={`Diminuir ${item.product.nome}`}
+                            >
+                              <Minus className="h-3.5 w-3.5" />
+                            </button>
+                            <span className="w-6 text-center text-sm font-bold">{item.quantity}</span>
+                            <button
+                              type="button"
+                              onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground"
+                              aria-label={`Aumentar ${item.product.nome}`}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateCartQuantity(item.id, 0)}
+                              className="flex h-9 w-9 items-center justify-center rounded-full bg-red-500/10 text-red-500"
+                              aria-label={`Remover ${item.product.nome}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between border-t border-border pt-3 text-sm font-bold">
+                        <span>Total</span>
+                        <span className="text-magenta">{formatarMoeda(cartTotal)}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="rounded-2xl border border-dashed border-primary/30 bg-background p-4 text-sm text-muted-foreground">
+                      Seu carrinho está vazio. Escolha um produto abaixo para começar.
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void startPagBankCheckout()}
+                    disabled={checkoutLoading || !cartProducts.length}
+                    className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-soft transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {checkoutLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
+                    Pagar online pelo PagBank
+                  </button>
+                  {checkoutMessage ? (
+                    <p className="mt-3 rounded-2xl bg-background px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+                      {checkoutMessage}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <div
             ref={carouselRef}
@@ -248,16 +442,21 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                   </div>
 
                   <div className="border-t border-border/60 p-4 pt-4 sm:p-6 sm:pt-4">
-                    <BotaoLink
-                      href={whatsappLink(`Olá, ${SALAO.nome}! Gostaria de saber mais informações e valor do produto: ${produto.nome}.`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      variante={produto.destaque ? "pink" : "outline"}
-                      className="w-full px-4 py-3 text-xs sm:text-sm"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (paginaCompleta) addToCart(produto);
+                        else window.location.href = "/produtos";
+                      }}
+                      className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-xs font-bold transition sm:text-sm ${
+                        produto.destaque
+                          ? "bg-primary text-primary-foreground shadow-soft hover:brightness-105"
+                          : "border border-primary/55 text-magenta hover:bg-primary hover:text-primary-foreground"
+                      }`}
                     >
                       <ShoppingBag className="h-3.5 w-3.5" />
-                      Consultar este produto
-                    </BotaoLink>
+                      {paginaCompleta ? "Adicionar ao carrinho" : "Ver na loja"}
+                    </button>
                   </div>
                 </article>
               ))
