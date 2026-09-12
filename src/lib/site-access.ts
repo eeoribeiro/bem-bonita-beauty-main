@@ -6,6 +6,9 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 type AccessConfig = { password: string; secret: string };
 
 function getAccessConfig(): AccessConfig | null {
+  const enabled = process.env["SITE_ACCESS_ENABLED"]?.trim().toLowerCase() === "true";
+  if (!enabled) return null;
+
   const password = process.env["SITE_ACCESS_PASSWORD"]?.trim();
   const secret = process.env["SITE_ACCESS_TOKEN_SECRET"]?.trim();
   return password && secret ? { password, secret } : null;
@@ -171,6 +174,8 @@ export async function handleSiteAccess(request: Request): Promise<Response | nul
   const url = new URL(request.url);
   if (isPublicAsset(url.pathname)) return null;
   const config = getAccessConfig();
+
+  if (!config && url.pathname !== LOGIN_PATH) return null;
 
   if (url.pathname === LOGIN_PATH && request.method === "POST") {
     if (!config) return renderAccessPage({ nextPath: "/", configurationMissing: true });

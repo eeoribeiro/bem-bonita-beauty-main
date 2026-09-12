@@ -83,10 +83,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Salão especializado em cabelos crespos e cacheados em Ponte Nova – MG, com Francielly Soares.",
       },
-      {
-        name: "google-site-verification",
-        content: "YnyWDs94yRfFT-gLcmO2p8kPpA3NSds8H7Y36zVFYXM",
-      },
       { name: "author", content: "Bem Bonita — Francielly Soares" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -121,6 +117,7 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">
       <head>
+        <meta name="google-site-verification" content="YnyWDs94yRfFT-gLcmO2p8kPpA3NSds8H7Y36zVFYXM" />
         <HeadContent />
       </head>
       <body>
