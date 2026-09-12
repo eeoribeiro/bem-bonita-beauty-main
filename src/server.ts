@@ -141,10 +141,16 @@ async function sendOrderEmailNotification(order: {
   if (!resendApiKey || !to) return;
 
   const from = getServerEnv("RESEND_FROM_EMAIL") || "Bem Bonita <onboarding@resend.dev>";
+  const siteUrl = getServerEnv("PUBLIC_SITE_URL") || "https://www.bembonitafrancielly.com.br";
+  const logoUrl = `${siteUrl.replace(/\/$/, "")}/favicon.svg?v=2`;
   const itemsHtml = order.items
     .map(
       (item) =>
-        `<li>${item.quantity}x ${escapeHtml(item.product_name)} — ${formatCurrencyFromCents(item.total_amount)}</li>`,
+        `<tr>
+          <td style="padding:12px 0;border-bottom:1px solid #f4d7e7;color:#2b2028;font-weight:600;">${escapeHtml(item.product_name)}</td>
+          <td style="padding:12px 0;border-bottom:1px solid #f4d7e7;color:#6f6270;text-align:center;">${item.quantity}x</td>
+          <td style="padding:12px 0;border-bottom:1px solid #f4d7e7;color:#d8518b;text-align:right;font-weight:700;">${formatCurrencyFromCents(item.total_amount)}</td>
+        </tr>`,
     )
     .join("");
 
@@ -159,16 +165,46 @@ async function sendOrderEmailNotification(order: {
       to: [to],
       subject: `Novo pedido Bem Bonita — ${order.customerName}`,
       html: `
-        <h1>Novo pedido iniciado no site</h1>
-        <p><strong>Cliente:</strong> ${escapeHtml(order.customerName)}</p>
-        <p><strong>WhatsApp:</strong> ${escapeHtml(order.customerPhone)}</p>
-        ${order.customerEmail ? `<p><strong>E-mail:</strong> ${escapeHtml(order.customerEmail)}</p>` : ""}
-        <p><strong>Referência:</strong> ${escapeHtml(order.referenceId)}</p>
-        <p><strong>Total:</strong> ${formatCurrencyFromCents(order.totalAmount)}</p>
-        <h2>Produtos</h2>
-        <ul>${itemsHtml}</ul>
-        <p><a href="${escapeHtml(order.paymentUrl)}">Abrir pagamento PagBank</a></p>
-        <p>Confira o pagamento no PagBank antes de separar ou entregar o pedido.</p>
+        <div style="margin:0;padding:0;background:#fff6fb;font-family:Arial,Helvetica,sans-serif;color:#2b2028;">
+          <div style="max-width:640px;margin:0 auto;padding:28px 16px;">
+            <div style="background:#ffffff;border:1px solid #f2cfe0;border-radius:28px;overflow:hidden;box-shadow:0 18px 50px rgba(216,81,139,.16);">
+              <div style="padding:28px 28px 22px;background:linear-gradient(135deg,#fff1f8,#ffffff);text-align:center;">
+                <img src="${escapeHtml(logoUrl)}" alt="Bem Bonita" width="62" height="62" style="display:block;margin:0 auto 12px;border-radius:18px;" />
+                <p style="margin:0 0 8px;color:#d8518b;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Loja online</p>
+                <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:500;line-height:1.15;color:#201720;">Novo pedido Bem Bonita</h1>
+                <p style="margin:10px 0 0;color:#7b6d7a;font-size:14px;">Pedido iniciado pelo carrinho online. Confira o pagamento no PagBank antes de entregar.</p>
+              </div>
+
+              <div style="padding:24px 28px;">
+                <div style="border:1px solid #f2cfe0;border-radius:22px;padding:18px;background:#fffafd;">
+                  <p style="margin:0 0 8px;color:#d8518b;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;">Cliente</p>
+                  <p style="margin:0;font-size:20px;font-weight:700;color:#201720;">${escapeHtml(order.customerName)}</p>
+                  <p style="margin:8px 0 0;color:#6f6270;font-size:14px;"><strong>WhatsApp:</strong> ${escapeHtml(order.customerPhone)}</p>
+                  ${order.customerEmail ? `<p style="margin:6px 0 0;color:#6f6270;font-size:14px;"><strong>E-mail:</strong> ${escapeHtml(order.customerEmail)}</p>` : ""}
+                  <p style="margin:6px 0 0;color:#6f6270;font-size:14px;"><strong>Referência:</strong> ${escapeHtml(order.referenceId)}</p>
+                </div>
+
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:22px;border-collapse:collapse;">
+                  <thead>
+                    <tr>
+                      <th align="left" style="padding:0 0 10px;color:#b5832f;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Produto</th>
+                      <th align="center" style="padding:0 0 10px;color:#b5832f;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Qtd.</th>
+                      <th align="right" style="padding:0 0 10px;color:#b5832f;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>${itemsHtml}</tbody>
+                </table>
+
+                <div style="margin-top:22px;text-align:right;">
+                  <p style="margin:0;color:#6f6270;font-size:13px;">Total do pedido</p>
+                  <p style="margin:4px 0 0;color:#d8518b;font-size:26px;font-weight:800;">${formatCurrencyFromCents(order.totalAmount)}</p>
+                </div>
+
+                <a href="${escapeHtml(order.paymentUrl)}" style="display:block;margin-top:24px;background:#df61a0;color:#ffffff;text-align:center;text-decoration:none;border-radius:999px;padding:15px 18px;font-weight:800;">Abrir pagamento no PagBank</a>
+              </div>
+            </div>
+          </div>
+        </div>
       `,
     }),
   });
