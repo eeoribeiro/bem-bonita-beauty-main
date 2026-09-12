@@ -25,6 +25,9 @@ function CartButton() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const products = data?.products ?? [];
   const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
   const cartProducts = cart
@@ -95,6 +98,10 @@ function CartButton() {
       setMessage("Todos os produtos do carrinho precisam ter preço cadastrado.");
       return;
     }
+    if (customerName.trim().length < 2 || customerPhone.trim().length < 8) {
+      setMessage("Preencha nome e WhatsApp para o pedido aparecer no admin.");
+      return;
+    }
 
     setCheckoutLoading(true);
     setMessage("");
@@ -104,6 +111,11 @@ function CartButton() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           items: cartProducts.map((item) => ({ id: item.id, quantity: item.quantity })),
+          customer: {
+            name: customerName,
+            phone: customerPhone,
+            email: customerEmail,
+          },
         }),
       });
       const payload = (await response.json()) as { paymentUrl?: string; error?: string };
@@ -214,6 +226,42 @@ function CartButton() {
             </div>
 
             <div className="border-t border-border bg-card/70 p-5">
+              <div className="mb-4 grid gap-3">
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Nome para o pedido
+                  </span>
+                  <input
+                    value={customerName}
+                    onChange={(event) => setCustomerName(event.target.value)}
+                    placeholder="Ex.: Maria Silva"
+                    className="mt-1 h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none transition focus:border-primary"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    WhatsApp
+                  </span>
+                  <input
+                    value={customerPhone}
+                    onChange={(event) => setCustomerPhone(event.target.value)}
+                    placeholder="Ex.: (31) 99999-9999"
+                    className="mt-1 h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none transition focus:border-primary"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    E-mail opcional
+                  </span>
+                  <input
+                    type="email"
+                    value={customerEmail}
+                    onChange={(event) => setCustomerEmail(event.target.value)}
+                    placeholder="cliente@email.com"
+                    className="mt-1 h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none transition focus:border-primary"
+                  />
+                </label>
+              </div>
               <div className="mb-4 flex items-center justify-between text-sm font-bold">
                 <span>Total</span>
                 <span className="text-magenta">{formatarMoeda(cartTotal)}</span>

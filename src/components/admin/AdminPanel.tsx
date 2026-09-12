@@ -71,6 +71,7 @@ import type {
   CategoryData,
   PortfolioData,
   ProfessionalData,
+  ProductOrderData,
   ProductData,
   ServiceData,
   SiteImageData,
@@ -79,7 +80,7 @@ import type {
   TestimonialData,
 } from "@/lib/site-data";
 
-type Tab = "overview" | "photos" | "space" | "services" | "products" | "team" | "portfolio" | "feedbacks" | "francielly" | "settings";
+type Tab = "overview" | "photos" | "space" | "services" | "products" | "orders" | "team" | "portfolio" | "feedbacks" | "francielly" | "settings";
 type Modal = "services" | "portfolio" | "team_editor" | "new_photo" | null;
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
@@ -88,6 +89,7 @@ const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "space", label: "Nosso Espaço", icon: MapPin },
   { id: "services", label: "Serviços", icon: Scissors },
   { id: "products", label: "Produtos", icon: ShoppingBag },
+  { id: "orders", label: "Pedidos", icon: ShoppingBag },
   { id: "portfolio", label: "Galeria", icon: Images },
   { id: "feedbacks", label: "Feedbacks", icon: MessageSquareQuote },
   { id: "francielly", label: "Página da Francielly", icon: UserCheck },
@@ -232,6 +234,8 @@ export function AdminPanel({
   const [services, setServices] = useState<ServiceData[]>([]);
   const [professionals, setProfessionals] = useState<ProfessionalData[]>([]);
   const [products, setProducts] = useState<ProductData[]>([]);
+  const [orders, setOrders] = useState<ProductOrderData[]>([]);
+  const [ordersError, setOrdersError] = useState("");
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioData[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialData[]>([]);
@@ -260,6 +264,8 @@ export function AdminPanel({
         }))
       );
       setProducts(initialProducts);
+      setOrders([]);
+      setOrdersError("");
       setCategories(
         initialPortfolioCategories
           .filter((c) => c.slug !== initialContentMarker)
@@ -323,6 +329,17 @@ export function AdminPanel({
           image_url: [fotoFranciellyFallback, fotoMechasFallback, fotoDefinicaoFallback][index] ?? null,
         })));
         setProducts((productRows.data ?? []) as ProductData[]);
+        const orderRows = await supabase
+          .from("product_orders")
+          .select("*, product_order_items(*)")
+          .order("created_at", { ascending: false });
+        if (orderRows.error) {
+          setOrders([]);
+          setOrdersError("Execute o SQL de pedidos no Supabase para liberar esta aba.");
+        } else {
+          setOrders((orderRows.data ?? []) as ProductOrderData[]);
+          setOrdersError("");
+        }
         setCategories(
           ((categoryRows.data ?? []) as CategoryData[]).filter(
             (c) => c.slug !== initialContentMarker
@@ -609,6 +626,9 @@ export function AdminPanel({
               ) : null}
               {tab === "products" ? (
                 <ProductsManagerTab products={products} setProducts={setProducts} isDemo={!supabaseConfigurado || isDemo} onReload={loadAll} onSuccess={showSuccess} onError={showError} />
+              ) : null}
+              {tab === "orders" ? (
+                <OrdersManagerTab orders={orders} ordersError={ordersError} isDemo={!supabaseConfigurado || isDemo} onReload={loadAll} onSuccess={showSuccess} onError={showError} />
               ) : null}
               {tab === "feedbacks" ? (
                 <FeedbacksManagerTab testimonials={testimonials} setTestimonials={setTestimonials} isDemo={!supabaseConfigurado || isDemo} onReload={loadAll} onSuccess={showSuccess} onError={showError} />
@@ -2076,6 +2096,168 @@ function FeedbacksManagerTab({ testimonials, setTestimonials, isDemo, onReload, 
       />
     ) : null}
   </section>;
+}
+
+function formatOrderCurrency(value: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((value || 0) / 100);
+}
+
+function formatOrderDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+const orderStatusLabels: Record<ProductOrderData["status"], string> = {
+  pending: "Aguardando pagamento",
+  paid: "Pago",
+  cancelled: "Cancelado",
+  refunded: "Reembolsado",
+  manual_review: "Conferir manualmente",
+};
+
+function OrdersManagerTab({
+  orders,
+  ordersError,
+  isDemo,
+  onReload,
+  onSuccess,
+  onError,
+}: {
+  orders: ProductOrderData[];
+  ordersError: string;
+  isDemo: boolean;
+  onReload: () => Promise<void>;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+}) {
+  async function updateOrderStatus(order: ProductOrderData, status: ProductOrderData["status"]) {
+    if (isDemo) {
+      onSuccess("Status atualizado no preview.");
+      return;
+    }
+
+    const { error } = await getSupabaseClient()
+      .from("product_orders")
+      .update({ status })
+      .eq("id", order.id);
+
+    if (error) {
+      onError("Não foi possível atualizar o status do pedido.");
+      return;
+    }
+
+    await onReload();
+    onSuccess("Status do pedido atualizado.");
+  }
+
+  return (
+    <section className="space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="eyebrow">Loja online</p>
+          <h1 className="mt-2 text-3xl font-display sm:text-4xl">Pedidos dos produtos</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Veja quem iniciou compra pelo carrinho, os produtos escolhidos e o link de pagamento PagBank.
+            Confirme o pagamento no PagBank antes de entregar.
+          </p>
+        </div>
+        <Botao type="button" onClick={() => void onReload()}>
+          <RefreshCw className="h-4 w-4" /> Atualizar pedidos
+        </Botao>
+      </div>
+
+      {ordersError ? (
+        <div className="rounded-3xl border border-amber-400/30 bg-amber-500/10 p-5 text-sm text-amber-100">
+          {ordersError}
+        </div>
+      ) : null}
+
+      {orders.length ? (
+        <div className="space-y-4">
+          {orders.map((order) => (
+            <article key={order.id} className="rounded-3xl border border-border bg-card p-5 shadow-card">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-magenta">
+                      {orderStatusLabels[order.status] ?? order.status}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{formatOrderDate(order.created_at)}</span>
+                  </div>
+                  <h2 className="mt-3 font-display text-2xl">{order.customer_name}</h2>
+                  <div className="mt-2 grid gap-1 text-sm text-muted-foreground">
+                    <span>WhatsApp: {order.customer_phone}</span>
+                    {order.customer_email ? <span>E-mail: {order.customer_email}</span> : null}
+                    <span>Referência: {order.reference_id}</span>
+                  </div>
+                </div>
+
+                <div className="min-w-[220px] rounded-2xl border border-border bg-background/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Total</p>
+                  <p className="mt-1 text-xl font-bold text-magenta">{formatOrderCurrency(order.total_amount)}</p>
+                  <label className="mt-3 block text-xs font-semibold text-muted-foreground">
+                    Status
+                    <select
+                      className="admin-input mt-1"
+                      value={order.status}
+                      onChange={(event) => void updateOrderStatus(order, event.target.value as ProductOrderData["status"])}
+                    >
+                      {Object.entries(orderStatusLabels).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {order.pagbank_payment_url ? (
+                    <a
+                      href={order.pagbank_payment_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
+                    >
+                      Abrir PagBank <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {(order.product_order_items ?? []).map((item) => (
+                  <div key={item.id} className="flex gap-3 rounded-2xl border border-border bg-background/60 p-3">
+                    {item.image_url ? (
+                      <img src={item.image_url} alt={item.product_name} className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                    ) : (
+                      <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-secondary text-magenta">
+                        <ShoppingBag className="h-5 w-5" />
+                      </span>
+                    )}
+                    <div className="min-w-0">
+                      <p className="line-clamp-2 text-sm font-semibold">{item.product_name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {item.quantity}x {formatOrderCurrency(item.unit_amount)}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-magenta">{formatOrderCurrency(item.total_amount)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-3xl border border-dashed border-border p-10 text-center">
+          <ShoppingBag className="mx-auto h-9 w-9 text-magenta" />
+          <h2 className="mt-3 font-display text-2xl">Nenhum pedido registrado ainda</h2>
+          <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+            Quando alguém preencher os dados no carrinho e clicar para pagar pelo PagBank, o pedido aparece aqui.
+          </p>
+        </div>
+      )}
+    </section>
+  );
 }
 
 function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess, onError }: {

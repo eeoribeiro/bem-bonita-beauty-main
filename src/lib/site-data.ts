@@ -114,6 +114,33 @@ export type ProductData = {
   published: boolean;
 };
 
+export type ProductOrderItemData = {
+  id: string;
+  order_id: string;
+  product_id: string | null;
+  product_name: string;
+  unit_amount: number;
+  quantity: number;
+  total_amount: number;
+  image_url?: string | null;
+  created_at?: string;
+};
+
+export type ProductOrderData = {
+  id: string;
+  reference_id: string;
+  pagbank_payment_url: string | null;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string | null;
+  status: "pending" | "paid" | "cancelled" | "refunded" | "manual_review";
+  total_amount: number;
+  notes: string | null;
+  created_at: string;
+  updated_at?: string;
+  product_order_items?: ProductOrderItemData[];
+};
+
 export type CategoryData = {
   id: string;
   name: string;

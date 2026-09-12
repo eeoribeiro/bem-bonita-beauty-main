@@ -253,6 +253,34 @@ create table if not exists public.contact_requests (
   updated_at timestamptz not null default now()
 );
 
+-- 10. Pedidos da Loja Online
+create table if not exists public.product_orders (
+  id uuid primary key default gen_random_uuid(),
+  reference_id text not null unique,
+  pagbank_payment_url text,
+  customer_name text not null,
+  customer_phone text not null,
+  customer_email text,
+  status text not null default 'pending'
+    check (status in ('pending', 'paid', 'cancelled', 'refunded', 'manual_review')),
+  total_amount integer not null default 0 check (total_amount >= 0),
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.product_order_items (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references public.product_orders(id) on delete cascade,
+  product_id uuid references public.products(id) on delete set null,
+  product_name text not null,
+  unit_amount integer not null default 0 check (unit_amount >= 0),
+  quantity integer not null default 1 check (quantity > 0),
+  total_amount integer not null default 0 check (total_amount >= 0),
+  image_url text,
+  created_at timestamptz not null default now()
+);
+
 -- Triggers para atualização automática de updated_at
 create or replace function public.set_updated_at()
 returns trigger
@@ -309,6 +337,10 @@ drop trigger if exists contact_requests_updated_at on public.contact_requests;
 create trigger contact_requests_updated_at before update on public.contact_requests
 for each row execute function public.set_updated_at();
 
+drop trigger if exists product_orders_updated_at on public.product_orders;
+create trigger product_orders_updated_at before update on public.product_orders
+for each row execute function public.set_updated_at();
+
 -- Políticas de Segurança RLS (Row Level Security)
 alter table public.admin_users enable row level security;
 alter table public.site_settings enable row level security;
@@ -322,6 +354,8 @@ alter table public.space_photos enable row level security;
 alter table public.testimonials enable row level security;
 alter table public.business_hours enable row level security;
 alter table public.contact_requests enable row level security;
+alter table public.product_orders enable row level security;
+alter table public.product_order_items enable row level security;
 
 -- Policies
 drop policy if exists "Admins read admin users" on public.admin_users;
@@ -405,10 +439,28 @@ drop policy if exists "Admins manage contact requests" on public.contact_request
 create policy "Admins manage contact requests" on public.contact_requests
 for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists "Anyone creates product orders" on public.product_orders;
+create policy "Anyone creates product orders" on public.product_orders
+for insert to anon, authenticated with check (status = 'pending');
+drop policy if exists "Admins read product orders" on public.product_orders;
+create policy "Admins read product orders" on public.product_orders
+for select to authenticated using (public.is_admin());
+drop policy if exists "Admins update product orders" on public.product_orders;
+create policy "Admins update product orders" on public.product_orders
+for update to authenticated using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Anyone creates product order items" on public.product_order_items;
+create policy "Anyone creates product order items" on public.product_order_items
+for insert to anon, authenticated with check (true);
+drop policy if exists "Admins read product order items" on public.product_order_items;
+create policy "Admins read product order items" on public.product_order_items
+for select to authenticated using (public.is_admin());
+
 grant usage on schema public to anon, authenticated;
 grant select on public.site_settings, public.professionals, public.site_images, public.space_photos, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours to anon, authenticated;
 grant insert on public.contact_requests to anon, authenticated;
-grant select, insert, update, delete on public.admin_users, public.site_settings, public.professionals, public.site_images, public.space_photos, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours, public.contact_requests to authenticated;
+grant insert on public.product_orders, public.product_order_items to anon, authenticated;
+grant select, insert, update, delete on public.admin_users, public.site_settings, public.professionals, public.site_images, public.space_photos, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours, public.contact_requests, public.product_orders, public.product_order_items to authenticated;
 
 -- Índices
 create index if not exists professionals_sort_order_idx on public.professionals (active, sort_order);
@@ -420,6 +472,9 @@ create index if not exists portfolio_categories_order_idx on public.portfolio_ca
 create index if not exists testimonials_public_date_idx on public.testimonials (published, created_at desc);
 create index if not exists contact_requests_status_date_idx on public.contact_requests (status, created_at desc);
 create index if not exists space_photos_public_order_idx on public.space_photos (published, sort_order);
+create index if not exists product_orders_created_idx on public.product_orders (created_at desc);
+create index if not exists product_orders_status_idx on public.product_orders (status, created_at desc);
+create index if not exists product_order_items_order_idx on public.product_order_items (order_id);
 
 -- Storage bucket para upload de fotos
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

@@ -50,9 +50,16 @@ type CheckoutRequestItem = {
   quantity?: unknown;
 };
 
+type CheckoutCustomer = {
+  name?: unknown;
+  phone?: unknown;
+  email?: unknown;
+};
+
 type ProductRow = {
   id: string;
   name: string;
+  image_url: string | null;
   price_text: string | null;
   published: boolean;
 };
@@ -87,6 +94,90 @@ function getServerEnv(name: string) {
   return process.env[name]?.trim();
 }
 
+function formatCurrencyFromCents(value: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value / 100);
+}
+
+function cleanText(value: unknown, maxLength: number) {
+  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+async function supabaseRest(
+  supabaseUrl: string,
+  supabaseKey: string,
+  path: string,
+  init?: RequestInit,
+) {
+  return fetch(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/${path.replace(/^\//, "")}`, {
+    ...init,
+    headers: {
+      apikey: supabaseKey,
+      authorization: `Bearer ${supabaseKey}`,
+      ...(init?.headers ?? {}),
+    },
+  });
+}
+
+async function sendOrderEmailNotification(order: {
+  referenceId: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  totalAmount: number;
+  paymentUrl: string;
+  items: Array<{ product_name: string; quantity: number; total_amount: number }>;
+}) {
+  const resendApiKey = getServerEnv("RESEND_API_KEY");
+  const to = getServerEnv("ORDER_NOTIFICATION_EMAIL");
+  if (!resendApiKey || !to) return;
+
+  const from = getServerEnv("RESEND_FROM_EMAIL") || "Bem Bonita <onboarding@resend.dev>";
+  const itemsHtml = order.items
+    .map(
+      (item) =>
+        `<li>${item.quantity}x ${escapeHtml(item.product_name)} — ${formatCurrencyFromCents(item.total_amount)}</li>`,
+    )
+    .join("");
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${resendApiKey}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject: `Novo pedido Bem Bonita — ${order.customerName}`,
+      html: `
+        <h1>Novo pedido iniciado no site</h1>
+        <p><strong>Cliente:</strong> ${escapeHtml(order.customerName)}</p>
+        <p><strong>WhatsApp:</strong> ${escapeHtml(order.customerPhone)}</p>
+        ${order.customerEmail ? `<p><strong>E-mail:</strong> ${escapeHtml(order.customerEmail)}</p>` : ""}
+        <p><strong>Referência:</strong> ${escapeHtml(order.referenceId)}</p>
+        <p><strong>Total:</strong> ${formatCurrencyFromCents(order.totalAmount)}</p>
+        <h2>Produtos</h2>
+        <ul>${itemsHtml}</ul>
+        <p><a href="${escapeHtml(order.paymentUrl)}">Abrir pagamento PagBank</a></p>
+        <p>Confira o pagamento no PagBank antes de separar ou entregar o pedido.</p>
+      `,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error("Resend notification error", await response.text().catch(() => ""));
+  }
+}
+
 async function handlePagBankCheckout(request: Request) {
   if (request.method !== "POST") {
     return jsonResponse({ error: "Método não permitido." }, { status: 405 });
@@ -106,11 +197,22 @@ async function handlePagBankCheckout(request: Request) {
     return jsonResponse({ error: "Supabase não configurado no servidor." }, { status: 500 });
   }
 
-  let body: { items?: CheckoutRequestItem[] };
+  let body: { items?: CheckoutRequestItem[]; customer?: CheckoutCustomer };
   try {
-    body = (await request.json()) as { items?: CheckoutRequestItem[] };
+    body = (await request.json()) as { items?: CheckoutRequestItem[]; customer?: CheckoutCustomer };
   } catch {
     return jsonResponse({ error: "Pedido inválido." }, { status: 400 });
+  }
+
+  const customerName = cleanText(body.customer?.name, 120);
+  const customerPhone = cleanText(body.customer?.phone, 30);
+  const customerEmail = cleanText(body.customer?.email, 160);
+
+  if (customerName.length < 2 || customerPhone.length < 8) {
+    return jsonResponse(
+      { error: "Informe nome e WhatsApp para registrar o pedido no admin." },
+      { status: 400 },
+    );
   }
 
   const cartItems = (body.items ?? [])
@@ -126,15 +228,12 @@ async function handlePagBankCheckout(request: Request) {
 
   const productIds = Array.from(new Set(cartItems.map((item) => item.id)));
   const query = new URL(`${supabaseUrl}/rest/v1/products`);
-  query.searchParams.set("select", "id,name,price_text,published");
+  query.searchParams.set("select", "id,name,image_url,price_text,published");
   query.searchParams.set("published", "eq.true");
   query.searchParams.set("id", `in.(${productIds.map((id) => `"${id.replace(/"/g, '\\"')}"`).join(",")})`);
 
   const productsResponse = await fetch(query, {
-    headers: {
-      apikey: supabaseKey,
-      authorization: `Bearer ${supabaseKey}`,
-    },
+    headers: { apikey: supabaseKey, authorization: `Bearer ${supabaseKey}` },
   });
 
   if (!productsResponse.ok) {
@@ -158,6 +257,18 @@ async function handlePagBankCheckout(request: Request) {
     .filter((item): item is { reference_id: string; name: string; quantity: number; unit_amount: number } =>
       Boolean(item),
     );
+  const orderItems = checkoutItems.map((item) => {
+    const product = productsById.get(item.reference_id);
+    return {
+      product_id: item.reference_id,
+      product_name: item.name,
+      unit_amount: item.unit_amount,
+      quantity: item.quantity,
+      total_amount: item.unit_amount * item.quantity,
+      image_url: product?.image_url ?? null,
+    };
+  });
+  const totalAmount = orderItems.reduce((total, item) => total + item.total_amount, 0);
 
   if (!checkoutItems.length) {
     return jsonResponse(
@@ -207,7 +318,58 @@ async function handlePagBankCheckout(request: Request) {
     return jsonResponse({ error: "PagBank não retornou o link de pagamento." }, { status: 502 });
   }
 
-  return jsonResponse({ paymentUrl, referenceId });
+  const orderResponse = await supabaseRest(supabaseUrl, supabaseKey, "product_orders?select=id", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      prefer: "return=representation",
+    },
+    body: JSON.stringify({
+      reference_id: referenceId,
+      pagbank_payment_url: paymentUrl,
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      customer_email: customerEmail || null,
+      status: "pending",
+      total_amount: totalAmount,
+      notes: "Pedido iniciado pelo carrinho online. Confirme o pagamento no painel PagBank.",
+    }),
+  });
+
+  if (!orderResponse.ok) {
+    console.error("Supabase order insert error", await orderResponse.text().catch(() => ""));
+    return jsonResponse(
+      { error: "Falta criar a tabela de pedidos no Supabase. Execute o SQL de pedidos e tente novamente." },
+      { status: 500 },
+    );
+  }
+
+  const [savedOrder] = (await orderResponse.json()) as Array<{ id: string }>;
+  const itemsResponse = await supabaseRest(supabaseUrl, supabaseKey, "product_order_items", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(orderItems.map((item) => ({ ...item, order_id: savedOrder.id }))),
+  });
+
+  if (!itemsResponse.ok) {
+    console.error("Supabase order items insert error", await itemsResponse.text().catch(() => ""));
+    return jsonResponse(
+      { error: "O pedido foi iniciado, mas os itens não foram salvos no admin. Verifique o SQL de pedidos." },
+      { status: 500 },
+    );
+  }
+
+  await sendOrderEmailNotification({
+    referenceId,
+    customerName,
+    customerPhone,
+    customerEmail,
+    totalAmount,
+    paymentUrl,
+    items: orderItems,
+  });
+
+  return jsonResponse({ paymentUrl, referenceId, orderId: savedOrder.id });
 }
 
 export default {
