@@ -10,6 +10,11 @@ create table if not exists public.product_orders (
   customer_name text not null,
   customer_phone text not null,
   customer_email text,
+  fulfillment_method text not null default 'pickup'
+    check (fulfillment_method in ('pickup', 'motoboy', 'shipping', 'combine')),
+  delivery_address text,
+  delivery_neighborhood text,
+  delivery_reference text,
   status text not null default 'pending'
     check (status in ('pending', 'paid', 'cancelled', 'refunded', 'manual_review')),
   total_amount integer not null default 0 check (total_amount >= 0),
@@ -17,6 +22,19 @@ create table if not exists public.product_orders (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.product_orders
+  add column if not exists fulfillment_method text not null default 'pickup',
+  add column if not exists delivery_address text,
+  add column if not exists delivery_neighborhood text,
+  add column if not exists delivery_reference text;
+
+alter table public.product_orders
+  drop constraint if exists product_orders_fulfillment_method_check;
+
+alter table public.product_orders
+  add constraint product_orders_fulfillment_method_check
+  check (fulfillment_method in ('pickup', 'motoboy', 'shipping', 'combine'));
 
 create table if not exists public.product_order_items (
   id uuid primary key default gen_random_uuid(),

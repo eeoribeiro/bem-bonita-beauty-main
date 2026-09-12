@@ -2117,6 +2117,13 @@ const orderStatusLabels: Record<ProductOrderData["status"], string> = {
   manual_review: "Conferir manualmente",
 };
 
+const fulfillmentLabels: Record<string, string> = {
+  pickup: "Retirar no salão",
+  motoboy: "Receber em casa por motoboy",
+  shipping: "Entrega combinada",
+  combine: "Combinar pelo WhatsApp",
+};
+
 function OrdersManagerTab({
   orders,
   ordersError,
@@ -2222,6 +2229,26 @@ function OrdersManagerTab({
                     </a>
                   ) : null}
                 </div>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-border bg-background/60 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <MapPin className="h-4 w-4 text-magenta" />
+                  <p className="text-sm font-semibold">
+                    {fulfillmentLabels[order.fulfillment_method ?? "pickup"] ?? "Retirar no salão"}
+                  </p>
+                </div>
+                {order.delivery_address || order.delivery_neighborhood || order.delivery_reference ? (
+                  <div className="mt-2 grid gap-1 text-sm text-muted-foreground">
+                    {order.delivery_address ? <span>Endereço: {order.delivery_address}</span> : null}
+                    {order.delivery_neighborhood ? <span>Bairro: {order.delivery_neighborhood}</span> : null}
+                    {order.delivery_reference ? <span>Referência: {order.delivery_reference}</span> : null}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Cliente escolheu retirada ou combinar sem endereço preenchido.
+                  </p>
+                )}
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

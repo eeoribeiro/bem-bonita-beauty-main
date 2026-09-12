@@ -54,6 +54,10 @@ type CheckoutCustomer = {
   name?: unknown;
   phone?: unknown;
   email?: unknown;
+  fulfillmentMethod?: unknown;
+  deliveryAddress?: unknown;
+  deliveryNeighborhood?: unknown;
+  deliveryReference?: unknown;
 };
 
 type ProductRow = {
@@ -132,6 +136,10 @@ async function sendOrderEmailNotification(order: {
   customerName: string;
   customerPhone: string;
   customerEmail: string;
+  fulfillmentLabel: string;
+  deliveryAddress: string;
+  deliveryNeighborhood: string;
+  deliveryReference: string;
   totalAmount: number;
   paymentUrl: string;
   items: Array<{ product_name: string; quantity: number; total_amount: number }>;
@@ -182,6 +190,10 @@ async function sendOrderEmailNotification(order: {
                   <p style="margin:8px 0 0;color:#6f6270;font-size:14px;"><strong>WhatsApp:</strong> ${escapeHtml(order.customerPhone)}</p>
                   ${order.customerEmail ? `<p style="margin:6px 0 0;color:#6f6270;font-size:14px;"><strong>E-mail:</strong> ${escapeHtml(order.customerEmail)}</p>` : ""}
                   <p style="margin:6px 0 0;color:#6f6270;font-size:14px;"><strong>Referência:</strong> ${escapeHtml(order.referenceId)}</p>
+                  <p style="margin:6px 0 0;color:#6f6270;font-size:14px;"><strong>Entrega:</strong> ${escapeHtml(order.fulfillmentLabel)}</p>
+                  ${order.deliveryAddress ? `<p style="margin:6px 0 0;color:#6f6270;font-size:14px;"><strong>Endereço:</strong> ${escapeHtml(order.deliveryAddress)}</p>` : ""}
+                  ${order.deliveryNeighborhood ? `<p style="margin:6px 0 0;color:#6f6270;font-size:14px;"><strong>Bairro:</strong> ${escapeHtml(order.deliveryNeighborhood)}</p>` : ""}
+                  ${order.deliveryReference ? `<p style="margin:6px 0 0;color:#6f6270;font-size:14px;"><strong>Referência:</strong> ${escapeHtml(order.deliveryReference)}</p>` : ""}
                 </div>
 
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:22px;border-collapse:collapse;">
@@ -243,10 +255,24 @@ async function handlePagBankCheckout(request: Request) {
   const customerName = cleanText(body.customer?.name, 120);
   const customerPhone = cleanText(body.customer?.phone, 30);
   const customerEmail = cleanText(body.customer?.email, 160);
+  const fulfillmentMethodRaw = cleanText(body.customer?.fulfillmentMethod, 30);
+  const fulfillmentMethod = ["pickup", "motoboy", "shipping", "combine"].includes(fulfillmentMethodRaw)
+    ? fulfillmentMethodRaw
+    : "pickup";
+  const deliveryAddress = cleanText(body.customer?.deliveryAddress, 240);
+  const deliveryNeighborhood = cleanText(body.customer?.deliveryNeighborhood, 100);
+  const deliveryReference = cleanText(body.customer?.deliveryReference, 160);
 
   if (customerName.length < 2 || customerPhone.length < 8) {
     return jsonResponse(
       { error: "Informe nome e WhatsApp para registrar o pedido no admin." },
+      { status: 400 },
+    );
+  }
+
+  if ((fulfillmentMethod === "motoboy" || fulfillmentMethod === "shipping") && deliveryAddress.length < 8) {
+    return jsonResponse(
+      { error: "Informe o endereço para receber em casa." },
       { status: 400 },
     );
   }
@@ -355,6 +381,12 @@ async function handlePagBankCheckout(request: Request) {
   }
 
   const orderId = crypto.randomUUID();
+  const fulfillmentLabels: Record<string, string> = {
+    pickup: "Retirar no salão",
+    motoboy: "Receber em casa por motoboy",
+    shipping: "Entrega combinada",
+    combine: "Combinar pelo WhatsApp",
+  };
   const orderResponse = await supabaseRest(supabaseUrl, supabaseKey, "product_orders", {
     method: "POST",
     headers: {
@@ -368,6 +400,10 @@ async function handlePagBankCheckout(request: Request) {
       customer_name: customerName,
       customer_phone: customerPhone,
       customer_email: customerEmail || null,
+      fulfillment_method: fulfillmentMethod,
+      delivery_address: deliveryAddress || null,
+      delivery_neighborhood: deliveryNeighborhood || null,
+      delivery_reference: deliveryReference || null,
       status: "pending",
       total_amount: totalAmount,
       notes: "Pedido iniciado pelo carrinho online. Confirme o pagamento no painel PagBank.",
@@ -401,6 +437,10 @@ async function handlePagBankCheckout(request: Request) {
     customerName,
     customerPhone,
     customerEmail,
+    fulfillmentLabel: fulfillmentLabels[fulfillmentMethod] ?? fulfillmentLabels.pickup,
+    deliveryAddress,
+    deliveryNeighborhood,
+    deliveryReference,
     totalAmount,
     paymentUrl,
     items: orderItems,

@@ -28,6 +28,10 @@ function CartButton() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<"pickup" | "motoboy" | "shipping" | "combine">("pickup");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryNeighborhood, setDeliveryNeighborhood] = useState("");
+  const [deliveryReference, setDeliveryReference] = useState("");
   const products = data?.products ?? [];
   const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
   const cartProducts = cart
@@ -102,6 +106,10 @@ function CartButton() {
       setMessage("Preencha nome e WhatsApp para o pedido aparecer no admin.");
       return;
     }
+    if ((fulfillmentMethod === "motoboy" || fulfillmentMethod === "shipping") && deliveryAddress.trim().length < 8) {
+      setMessage("Preencha o endereço para receber em casa.");
+      return;
+    }
 
     setCheckoutLoading(true);
     setMessage("");
@@ -115,6 +123,10 @@ function CartButton() {
             name: customerName,
             phone: customerPhone,
             email: customerEmail,
+            fulfillmentMethod,
+            deliveryAddress,
+            deliveryNeighborhood,
+            deliveryReference,
           },
         }),
       });
@@ -261,6 +273,77 @@ function CartButton() {
                     className="mt-1 h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none transition focus:border-primary"
                   />
                 </label>
+                <div>
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Como quer receber?
+                  </span>
+                  <div className="mt-2 grid gap-2">
+                    {[
+                      ["pickup", "Retirar no salão"],
+                      ["motoboy", "Receber em casa por motoboy"],
+                      ["shipping", "Entrega combinada"],
+                      ["combine", "Combinar pelo WhatsApp"],
+                    ].map(([value, label]) => (
+                      <label
+                        key={value}
+                        className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition ${
+                          fulfillmentMethod === value
+                            ? "border-primary bg-primary/10 text-foreground"
+                            : "border-border bg-background text-muted-foreground"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="fulfillment"
+                          value={value}
+                          checked={fulfillmentMethod === value}
+                          onChange={() => setFulfillmentMethod(value as typeof fulfillmentMethod)}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {fulfillmentMethod === "motoboy" || fulfillmentMethod === "shipping" ? (
+                  <div className="grid gap-3 rounded-3xl border border-border bg-background/70 p-4">
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Endereço completo
+                      </span>
+                      <input
+                        value={deliveryAddress}
+                        onChange={(event) => setDeliveryAddress(event.target.value)}
+                        placeholder="Rua, número, complemento"
+                        className="mt-1 h-11 w-full rounded-2xl border border-border bg-card px-4 text-sm outline-none transition focus:border-primary"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Bairro
+                      </span>
+                      <input
+                        value={deliveryNeighborhood}
+                        onChange={(event) => setDeliveryNeighborhood(event.target.value)}
+                        placeholder="Ex.: Centro"
+                        className="mt-1 h-11 w-full rounded-2xl border border-border bg-card px-4 text-sm outline-none transition focus:border-primary"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        Referência
+                      </span>
+                      <input
+                        value={deliveryReference}
+                        onChange={(event) => setDeliveryReference(event.target.value)}
+                        placeholder="Ex.: perto da praça, portão rosa..."
+                        className="mt-1 h-11 w-full rounded-2xl border border-border bg-card px-4 text-sm outline-none transition focus:border-primary"
+                      />
+                    </label>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      A taxa de entrega pode ser confirmada pelo WhatsApp antes do envio.
+                    </p>
+                  </div>
+                ) : null}
               </div>
               <div className="mb-4 flex items-center justify-between text-sm font-bold">
                 <span>Total</span>

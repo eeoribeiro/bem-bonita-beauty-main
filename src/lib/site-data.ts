@@ -133,6 +133,10 @@ export type ProductOrderData = {
   customer_name: string;
   customer_phone: string;
   customer_email: string | null;
+  fulfillment_method?: "pickup" | "motoboy" | "shipping" | "combine" | null;
+  delivery_address?: string | null;
+  delivery_neighborhood?: string | null;
+  delivery_reference?: string | null;
   status: "pending" | "paid" | "cancelled" | "refunded" | "manual_review";
   total_amount: number;
   notes: string | null;
