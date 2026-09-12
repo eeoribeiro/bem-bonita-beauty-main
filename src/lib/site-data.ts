@@ -137,7 +137,16 @@ export type ProductOrderData = {
   delivery_address?: string | null;
   delivery_neighborhood?: string | null;
   delivery_reference?: string | null;
-  status: "pending" | "paid" | "cancelled" | "refunded" | "manual_review";
+  status:
+    | "pending"
+    | "paid"
+    | "preparing"
+    | "ready"
+    | "out_for_delivery"
+    | "completed"
+    | "cancelled"
+    | "refunded"
+    | "manual_review";
   total_amount: number;
   notes: string | null;
   created_at: string;

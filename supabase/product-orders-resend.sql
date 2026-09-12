@@ -16,7 +16,7 @@ create table if not exists public.product_orders (
   delivery_neighborhood text,
   delivery_reference text,
   status text not null default 'pending'
-    check (status in ('pending', 'paid', 'cancelled', 'refunded', 'manual_review')),
+    check (status in ('pending', 'paid', 'preparing', 'ready', 'out_for_delivery', 'completed', 'cancelled', 'refunded', 'manual_review')),
   total_amount integer not null default 0 check (total_amount >= 0),
   notes text,
   created_at timestamptz not null default now(),
@@ -28,6 +28,13 @@ alter table public.product_orders
   add column if not exists delivery_address text,
   add column if not exists delivery_neighborhood text,
   add column if not exists delivery_reference text;
+
+alter table public.product_orders
+  drop constraint if exists product_orders_status_check;
+
+alter table public.product_orders
+  add constraint product_orders_status_check
+  check (status in ('pending', 'paid', 'preparing', 'ready', 'out_for_delivery', 'completed', 'cancelled', 'refunded', 'manual_review'));
 
 alter table public.product_orders
   drop constraint if exists product_orders_fulfillment_method_check;

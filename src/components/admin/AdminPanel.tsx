@@ -2110,12 +2110,26 @@ function formatOrderDate(value: string) {
 }
 
 const orderStatusLabels: Record<ProductOrderData["status"], string> = {
-  pending: "Aguardando pagamento",
-  paid: "Pago",
+  pending: "Pedido recebido",
+  paid: "Pagamento confirmado",
+  preparing: "Separando pedido",
+  ready: "Pronto para retirada/entrega",
+  out_for_delivery: "Saiu para entrega",
+  completed: "Concluído",
   cancelled: "Cancelado",
-  refunded: "Reembolsado",
-  manual_review: "Conferir manualmente",
+  refunded: "Devolvido/Reembolsado",
+  manual_review: "Conferir pedido",
 };
+
+const selectableOrderStatuses: Array<{ value: ProductOrderData["status"]; label: string }> = [
+  { value: "pending", label: "Pedido recebido" },
+  { value: "paid", label: "Pagamento confirmado" },
+  { value: "preparing", label: "Separando pedido" },
+  { value: "ready", label: "Pronto para retirada/entrega" },
+  { value: "out_for_delivery", label: "Saiu para entrega" },
+  { value: "completed", label: "Concluído" },
+  { value: "cancelled", label: "Cancelado" },
+];
 
 const fulfillmentLabels: Record<string, string> = {
   pickup: "Retirar no salão",
@@ -2166,8 +2180,7 @@ function OrdersManagerTab({
           <p className="eyebrow">Loja online</p>
           <h1 className="mt-2 text-3xl font-display sm:text-4xl">Pedidos dos produtos</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Veja quem iniciou compra pelo carrinho, os produtos escolhidos e o link de pagamento PagBank.
-            Confirme o pagamento no PagBank antes de entregar.
+            Veja quem comprou, confira o pagamento no PagBank e acompanhe a separação, retirada ou entrega do pedido.
           </p>
         </div>
         <Botao type="button" onClick={() => void onReload()}>
@@ -2211,7 +2224,10 @@ function OrdersManagerTab({
                       value={order.status}
                       onChange={(event) => void updateOrderStatus(order, event.target.value as ProductOrderData["status"])}
                     >
-                      {Object.entries(orderStatusLabels).map(([value, label]) => (
+                      {!selectableOrderStatuses.some((option) => option.value === order.status) ? (
+                        <option value={order.status}>{orderStatusLabels[order.status] ?? order.status}</option>
+                      ) : null}
+                      {selectableOrderStatuses.map(({ value, label }) => (
                         <option key={value} value={value}>
                           {label}
                         </option>
