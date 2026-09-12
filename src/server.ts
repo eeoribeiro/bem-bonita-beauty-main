@@ -54,6 +54,8 @@ type CheckoutCustomer = {
   name?: unknown;
   phone?: unknown;
   email?: unknown;
+  contactPreference?: unknown;
+  privacyConsent?: unknown;
   fulfillmentMethod?: unknown;
   deliveryAddress?: unknown;
   deliveryNeighborhood?: unknown;
@@ -255,8 +257,11 @@ async function handlePagBankCheckout(request: Request) {
   const customerName = cleanText(body.customer?.name, 120);
   const customerPhone = cleanText(body.customer?.phone, 30);
   const customerEmail = cleanText(body.customer?.email, 160);
+  const contactPreferenceRaw = cleanText(body.customer?.contactPreference, 20);
+  const contactPreference = ["whatsapp", "email"].includes(contactPreferenceRaw) ? contactPreferenceRaw : "whatsapp";
+  const privacyConsent = body.customer?.privacyConsent === true;
   const fulfillmentMethodRaw = cleanText(body.customer?.fulfillmentMethod, 30);
-  const fulfillmentMethod = ["pickup", "motoboy", "shipping", "combine"].includes(fulfillmentMethodRaw)
+  const fulfillmentMethod = ["pickup", "motoboy"].includes(fulfillmentMethodRaw)
     ? fulfillmentMethodRaw
     : "pickup";
   const deliveryAddress = cleanText(body.customer?.deliveryAddress, 240);
@@ -269,8 +274,14 @@ async function handlePagBankCheckout(request: Request) {
       { status: 400 },
     );
   }
+  if (contactPreference === "email" && !customerEmail.includes("@")) {
+    return jsonResponse({ error: "Informe um e-mail válido para receber contato por e-mail." }, { status: 400 });
+  }
+  if (!privacyConsent) {
+    return jsonResponse({ error: "Aceite o uso dos dados para finalizar o pedido." }, { status: 400 });
+  }
 
-  if ((fulfillmentMethod === "motoboy" || fulfillmentMethod === "shipping") && deliveryAddress.length < 8) {
+  if (fulfillmentMethod === "motoboy" && deliveryAddress.length < 8) {
     return jsonResponse(
       { error: "Informe o endereço para receber em casa." },
       { status: 400 },
@@ -341,6 +352,7 @@ async function handlePagBankCheckout(request: Request) {
 
   const origin = new URL(request.url).origin;
   const referenceId = `bem-bonita-${Date.now()}`;
+  const successUrl = `${origin}/pedido?ref=${encodeURIComponent(referenceId)}&phone=${encodeURIComponent(customerPhone)}`;
   const pagBankApiUrl = getServerEnv("PAGBANK_API_URL") || "https://api.pagseguro.com";
   const checkoutResponse = await fetch(`${pagBankApiUrl.replace(/\/$/, "")}/checkouts`, {
     method: "POST",
@@ -353,7 +365,7 @@ async function handlePagBankCheckout(request: Request) {
       reference_id: referenceId,
       items: checkoutItems,
       payment_methods: [{ type: "CREDIT_CARD" }, { type: "DEBIT_CARD" }, { type: "PIX" }],
-      redirect_url: `${origin}/produtos?pedido=sucesso`,
+      redirect_url: successUrl,
       soft_descriptor: "BEMBONITA",
     }),
   });
@@ -384,8 +396,6 @@ async function handlePagBankCheckout(request: Request) {
   const fulfillmentLabels: Record<string, string> = {
     pickup: "Retirar no salão",
     motoboy: "Receber em casa por motoboy",
-    shipping: "Entrega combinada",
-    combine: "Combinar pelo WhatsApp",
   };
   const orderResponse = await supabaseRest(supabaseUrl, supabaseKey, "product_orders", {
     method: "POST",
@@ -406,7 +416,7 @@ async function handlePagBankCheckout(request: Request) {
       delivery_reference: deliveryReference || null,
       status: "pending",
       total_amount: totalAmount,
-      notes: "Pedido iniciado pelo carrinho online. Confirme o pagamento no painel PagBank.",
+      notes: `Pedido iniciado pelo carrinho online. Preferência de contato: ${contactPreference === "email" ? "E-mail" : "WhatsApp"}. Cliente aceitou uso dos dados para este pedido. Confirme o pagamento no painel PagBank.`,
     }),
   });
 
@@ -449,12 +459,40 @@ async function handlePagBankCheckout(request: Request) {
   return jsonResponse({ paymentUrl, referenceId, orderId });
 }
 
+async function handleOrderTrack(request: Request) {
+  if (request.method !== "POST") return jsonResponse({ error: "Método não permitido." }, { status: 405 });
+  const supabaseUrl = getServerEnv("VITE_SUPABASE_URL");
+  const supabaseKey = getServerEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
+  if (!supabaseUrl || !supabaseKey) return jsonResponse({ error: "Supabase não configurado." }, { status: 500 });
+
+  const body = (await request.json().catch(() => ({}))) as { referenceId?: unknown; phone?: unknown };
+  const referenceId = cleanText(body.referenceId, 80);
+  const phone = cleanText(body.phone, 30).replace(/\D/g, "");
+  if (!referenceId || phone.length < 8) return jsonResponse({ error: "Informe o código do pedido e WhatsApp." }, { status: 400 });
+
+  const query = new URL(`${supabaseUrl}/rest/v1/product_orders`);
+  query.searchParams.set("select", "reference_id,customer_name,customer_phone,fulfillment_method,delivery_address,delivery_neighborhood,delivery_reference,status,total_amount,created_at,product_order_items(product_name,quantity,total_amount)");
+  query.searchParams.set("reference_id", `eq.${referenceId}`);
+  query.searchParams.set("limit", "1");
+  const response = await fetch(query, { headers: { apikey: supabaseKey, authorization: `Bearer ${supabaseKey}` } });
+  if (!response.ok) return jsonResponse({ error: "Não foi possível consultar o pedido." }, { status: 500 });
+  const rows = (await response.json()) as Array<{ customer_phone?: string }>;
+  const order = rows[0];
+  if (!order || (order.customer_phone ?? "").replace(/\D/g, "") !== phone) {
+    return jsonResponse({ error: "Pedido não encontrado com esses dados." }, { status: 404 });
+  }
+  return jsonResponse({ order });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const url = new URL(request.url);
       if (url.pathname === "/api/pagbank/checkout") {
         return await handlePagBankCheckout(request);
+      }
+      if (url.pathname === "/api/orders/track") {
+        return await handleOrderTrack(request);
       }
 
       const accessResponse = await handleSiteAccess(request);

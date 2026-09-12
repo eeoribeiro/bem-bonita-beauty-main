@@ -15,6 +15,7 @@ import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CursosRouteImport } from './routes/cursos'
 import { Route as FeedbacksRouteImport } from './routes/feedbacks'
 import { Route as FranciellyRouteImport } from './routes/francielly'
+import { Route as PedidoRouteImport } from './routes/pedido'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as ServicosRouteImport } from './routes/servicos'
@@ -49,6 +50,11 @@ const FranciellyRoute = FranciellyRouteImport.update({
   path: '/francielly',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PedidoRoute = PedidoRouteImport.update({
+  id: '/pedido',
+  path: '/pedido',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
   id: '/privacidade',
   path: '/privacidade',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/cursos': typeof CursosRoute
   '/feedbacks': typeof FeedbacksRoute
   '/francielly': typeof FranciellyRoute
+  '/pedido': typeof PedidoRoute
   '/privacidade': typeof PrivacidadeRoute
   '/produtos': typeof ProdutosRoute
   '/servicos': typeof ServicosRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/cursos': typeof CursosRoute
   '/feedbacks': typeof FeedbacksRoute
   '/francielly': typeof FranciellyRoute
+  '/pedido': typeof PedidoRoute
   '/privacidade': typeof PrivacidadeRoute
   '/produtos': typeof ProdutosRoute
   '/servicos': typeof ServicosRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/cursos': typeof CursosRoute
   '/feedbacks': typeof FeedbacksRoute
   '/francielly': typeof FranciellyRoute
+  '/pedido': typeof PedidoRoute
   '/privacidade': typeof PrivacidadeRoute
   '/produtos': typeof ProdutosRoute
   '/servicos': typeof ServicosRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/cursos'
     | '/feedbacks'
     | '/francielly'
+    | '/pedido'
     | '/privacidade'
     | '/produtos'
     | '/servicos'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/cursos'
     | '/feedbacks'
     | '/francielly'
+    | '/pedido'
     | '/privacidade'
     | '/produtos'
     | '/servicos'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/cursos'
     | '/feedbacks'
     | '/francielly'
+    | '/pedido'
     | '/privacidade'
     | '/produtos'
     | '/servicos'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   CursosRoute: typeof CursosRoute
   FeedbacksRoute: typeof FeedbacksRoute
   FranciellyRoute: typeof FranciellyRoute
+  PedidoRoute: typeof PedidoRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   ProdutosRoute: typeof ProdutosRoute
   ServicosRoute: typeof ServicosRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FranciellyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pedido': {
+      id: '/pedido'
+      path: '/pedido'
+      fullPath: '/pedido'
+      preLoaderRoute: typeof PedidoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacidade': {
       id: '/privacidade'
       path: '/privacidade'
@@ -222,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   CursosRoute: CursosRoute,
   FeedbacksRoute: FeedbacksRoute,
   FranciellyRoute: FranciellyRoute,
+  PedidoRoute: PedidoRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   ProdutosRoute: ProdutosRoute,
   ServicosRoute: ServicosRoute,

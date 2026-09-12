@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, LoaderCircle, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { ArrowLeft, CreditCard, LoaderCircle, Lock, Minus, Plus, ShieldCheck, ShoppingBag, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { BotaoLink } from "@/components/site/Botao";
@@ -27,7 +27,9 @@ function CheckoutPage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
-  const [fulfillmentMethod, setFulfillmentMethod] = useState<"pickup" | "motoboy" | "shipping" | "combine">("pickup");
+  const [contactPreference, setContactPreference] = useState<"whatsapp" | "email">("whatsapp");
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<"pickup" | "motoboy">("pickup");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryNeighborhood, setDeliveryNeighborhood] = useState("");
   const [deliveryReference, setDeliveryReference] = useState("");
@@ -44,7 +46,7 @@ function CheckoutPage() {
     .filter((item): item is CartItem & { product: ProductData; unitAmount: number; total: number } => Boolean(item));
   const cartTotal = cartProducts.reduce((total, item) => total + item.total, 0);
   const cartQuantity = quantidadeCarrinho(cart);
-  const needsAddress = fulfillmentMethod === "motoboy" || fulfillmentMethod === "shipping";
+  const needsAddress = fulfillmentMethod === "motoboy";
 
   useEffect(() => {
     setCart(readCart());
@@ -79,6 +81,14 @@ function CheckoutPage() {
       setMessage("Preencha nome e WhatsApp para o pedido aparecer no admin.");
       return;
     }
+    if (contactPreference === "email" && !customerEmail.includes("@")) {
+      setMessage("Informe um e-mail válido para receber contato por e-mail.");
+      return;
+    }
+    if (!privacyConsent) {
+      setMessage("Aceite o uso dos seus dados para finalizar o pedido.");
+      return;
+    }
     if (needsAddress && deliveryAddress.trim().length < 8) {
       setMessage("Preencha o endereço completo para receber em casa.");
       return;
@@ -96,6 +106,8 @@ function CheckoutPage() {
             name: customerName,
             phone: customerPhone,
             email: customerEmail,
+            contactPreference,
+            privacyConsent,
             fulfillmentMethod,
             deliveryAddress,
             deliveryNeighborhood,
@@ -134,7 +146,7 @@ function CheckoutPage() {
             </BotaoLink>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start">
+          <div className="grid gap-6 lg:grid-cols-[minmax(20rem,0.82fr)_minmax(27rem,1.18fr)] lg:items-start">
             <div className="rounded-[2rem] border border-border/70 bg-card p-4 shadow-card sm:p-6">
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
@@ -212,9 +224,23 @@ function CheckoutPage() {
                   <input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="Ex.: (31) 99999-9999" className="mt-1 h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none transition focus:border-primary" />
                 </label>
                 <label className="block">
-                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">E-mail opcional</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">E-mail</span>
                   <input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} placeholder="cliente@email.com" className="mt-1 h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none transition focus:border-primary" />
                 </label>
+                <div>
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Prefere contato por</span>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {[
+                      ["whatsapp", "WhatsApp"],
+                      ["email", "E-mail"],
+                    ].map(([value, label]) => (
+                      <label key={value} className={`flex cursor-pointer items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm transition ${contactPreference === value ? "border-primary bg-primary/10 text-foreground" : "border-border bg-background text-muted-foreground"}`}>
+                        <input type="radio" name="contactPreference" value={value} checked={contactPreference === value} onChange={() => setContactPreference(value as typeof contactPreference)} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
                 <div>
                   <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Como quer receber?</span>
@@ -222,8 +248,6 @@ function CheckoutPage() {
                     {[
                       ["pickup", "Retirar no salão"],
                       ["motoboy", "Receber em casa por motoboy"],
-                      ["shipping", "Entrega combinada"],
-                      ["combine", "Combinar pelo WhatsApp"],
                     ].map(([value, label]) => (
                       <label key={value} className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition ${fulfillmentMethod === value ? "border-primary bg-primary/10 text-foreground" : "border-border bg-background text-muted-foreground"}`}>
                         <input type="radio" name="fulfillment" value={value} checked={fulfillmentMethod === value} onChange={() => setFulfillmentMethod(value as typeof fulfillmentMethod)} />
@@ -256,19 +280,37 @@ function CheckoutPage() {
                     <span>Total</span>
                     <span className="text-lg text-magenta">{formatarMoeda(cartTotal)}</span>
                   </div>
+                  <div className="mt-4 rounded-2xl border border-primary/20 bg-white/70 p-4 text-xs leading-relaxed text-muted-foreground">
+                    <div className="mb-2 flex items-center gap-2 font-bold text-foreground">
+                      <ShieldCheck className="h-4 w-4 text-magenta" />
+                      Pagamento seguro PagBank
+                    </div>
+                    <p>Você paga em ambiente protegido do PagBank, com Pix ou cartão. A loja recebe o pedido e acompanha tudo pelo painel administrativo.</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 font-semibold text-magenta"><Lock className="h-3 w-3" /> Seguro</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 font-semibold text-magenta"><CreditCard className="h-3 w-3" /> Pix ou cartão</span>
+                    </div>
+                  </div>
                   <button type="button" onClick={() => void startPagBankCheckout()} disabled={checkoutLoading || !cartProducts.length} className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-soft transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60">
                     {checkoutLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
                     Pagar online pelo PagBank
                   </button>
+                  <label className="mt-4 flex items-start gap-3 text-xs leading-relaxed text-muted-foreground">
+                    <input type="checkbox" checked={privacyConsent} onChange={(event) => setPrivacyConsent(event.target.checked)} className="mt-1" />
+                    <span>Autorizo o uso dos meus dados para processar o pedido, contato sobre entrega/retirada e confirmação de pagamento, conforme a política de privacidade.</span>
+                  </label>
                   {message ? <p className="mt-3 rounded-2xl bg-secondary/70 px-4 py-3 text-xs leading-relaxed text-muted-foreground">{message}</p> : null}
                 </div>
               </div>
             </aside>
           </div>
 
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Ao finalizar, você será direcionada para o ambiente seguro do PagBank.
-          </p>
+          <div className="mx-auto mt-6 max-w-3xl rounded-3xl border border-primary/20 bg-card/80 p-5 text-center text-sm shadow-card">
+            <p className="font-semibold text-foreground">Compra protegida pelo PagBank</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Seus dados de pagamento são preenchidos somente no PagBank. Depois do pagamento, você poderá acompanhar o pedido pelo código e WhatsApp.
+            </p>
+          </div>
           <div className="mt-4 text-center text-xs text-muted-foreground">
             <Link to="/produtos" className="font-semibold text-magenta hover:underline">
               Continuar comprando
