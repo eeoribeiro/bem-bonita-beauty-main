@@ -140,10 +140,15 @@ function CheckoutPage() {
                 Confira os produtos, informe seus dados e escolha se prefere retirar no salão ou receber em casa.
               </p>
             </div>
-            <BotaoLink href="/produtos" variante="outline" className="w-fit">
-              <ArrowLeft className="h-4 w-4" />
-              Voltar para loja
-            </BotaoLink>
+            <div className="flex flex-wrap gap-2">
+              <BotaoLink href="/pedido" variante="outline" className="w-fit">
+                Acompanhar pedido
+              </BotaoLink>
+              <BotaoLink href="/produtos" variante="outline" className="w-fit">
+                <ArrowLeft className="h-4 w-4" />
+                Voltar para loja
+              </BotaoLink>
+            </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[minmax(20rem,0.82fr)_minmax(27rem,1.18fr)] lg:items-start">
@@ -312,6 +317,9 @@ function CheckoutPage() {
             </p>
           </div>
           <div className="mt-4 text-center text-xs text-muted-foreground">
+            <Link to="/pedido" className="mr-4 font-semibold text-magenta hover:underline">
+              Acompanhar pedido
+            </Link>
             <Link to="/produtos" className="font-semibold text-magenta hover:underline">
               Continuar comprando
             </Link>
