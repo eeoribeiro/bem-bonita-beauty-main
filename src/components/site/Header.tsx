@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { LoaderCircle, Menu, MessageCircle, Minus, Moon, Plus, ShoppingBag, Sun, Trash2, X } from "lucide-react";
 
 import { BotaoLink } from "./Botao";
@@ -23,6 +24,7 @@ function CartButton() {
   const [open, setOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [mounted, setMounted] = useState(false);
   const products = data?.products ?? [];
   const productsById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
   const cartProducts = cart
@@ -42,6 +44,7 @@ function CartButton() {
   const cartQuantity = quantidadeCarrinho(cart);
 
   useEffect(() => {
+    setMounted(true);
     setCart(readCart());
 
     const syncCart = () => setCart(readCart());
@@ -62,11 +65,16 @@ function CartButton() {
 
   useEffect(() => {
     if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const closeWithEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", closeWithEscape);
-    return () => window.removeEventListener("keydown", closeWithEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeWithEscape);
+    };
   }, [open]);
 
   function updateCartQuantity(id: string, quantity: number) {
@@ -126,16 +134,17 @@ function CartButton() {
         ) : null}
       </button>
 
-      {open ? (
+      {mounted && open
+        ? createPortal(
         <div
           role="dialog"
           aria-modal="true"
           aria-label="Carrinho de compras"
           onMouseDown={(event) => event.target === event.currentTarget && setOpen(false)}
-          className="pointer-events-auto fixed inset-0 z-[90] flex justify-end bg-black/45 p-3 backdrop-blur-sm sm:p-5"
+          className="fixed inset-0 z-[200] flex items-stretch justify-end bg-black/55 p-3 backdrop-blur-sm sm:p-5"
         >
-          <aside className="flex h-full w-full max-w-md flex-col overflow-hidden rounded-[2rem] border border-border/70 bg-background shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-border p-5">
+          <aside className="flex h-full w-full max-w-[28rem] flex-col overflow-hidden rounded-[2rem] border border-border/70 bg-background text-foreground shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-border bg-card/70 p-5">
               <div>
                 <p className="eyebrow">Carrinho online</p>
                 <h2 className="mt-1 font-display text-2xl">Sua compra Bem Bonita</h2>
@@ -151,7 +160,7 @@ function CartButton() {
               </button>
             </div>
 
-            <div className="flex-1 space-y-3 overflow-y-auto p-5">
+            <div className="flex-1 space-y-3 overflow-y-auto bg-background p-5">
               {cartProducts.length ? (
                 cartProducts.map((item) => (
                   <div key={item.id} className="rounded-2xl border border-border bg-card p-3">
@@ -204,7 +213,7 @@ function CartButton() {
               )}
             </div>
 
-            <div className="border-t border-border p-5">
+            <div className="border-t border-border bg-card/70 p-5">
               <div className="mb-4 flex items-center justify-between text-sm font-bold">
                 <span>Total</span>
                 <span className="text-magenta">{formatarMoeda(cartTotal)}</span>
@@ -225,8 +234,10 @@ function CartButton() {
               ) : null}
             </div>
           </aside>
-        </div>
-      ) : null}
+        </div>,
+          document.body,
+        )
+        : null}
     </>
   );
 }
