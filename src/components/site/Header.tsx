@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { LoaderCircle, Menu, MessageCircle, Minus, Moon, Plus, ShoppingBag, Sun, Trash2, X } from "lucide-react";
+import { LoaderCircle, Menu, Minus, Moon, Plus, ShoppingBag, Sun, Trash2, X } from "lucide-react";
 
 import { BotaoLink } from "./Botao";
 import { Logo } from "./Logo";
 import { cartChangeEvent, formatarMoeda, parsePrecoCentavos, quantidadeCarrinho, readCart, saveCart, type CartItem } from "@/lib/cart";
-import { contatoLink, SALAO } from "@/lib/salao";
 import { usePublicSiteData, type ProductData } from "@/lib/site-data";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -401,8 +400,6 @@ export function Header() {
     return () => window.removeEventListener("keydown", fecharComEscape);
   }, [aberto]);
 
-  const agendar = contatoLink(`Olá, ${SALAO.nome}! Gostaria de agendar um horário.`);
-
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-50 px-2.5 pt-2.5 sm:px-5 sm:pt-4">
       <div
@@ -437,12 +434,10 @@ export function Header() {
               {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
             </button>
             <BotaoLink
-              href={agendar}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/produtos"
               className="px-4 py-2.5 text-xs"
             >
-              Solicitar avaliação
+              Linha Bem Bonita
             </BotaoLink>
           </nav>
 
@@ -487,14 +482,12 @@ export function Header() {
               ))}
             </nav>
             <BotaoLink
-              href={agendar}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/produtos"
               className="mt-3 w-full"
               onClick={() => setAberto(false)}
             >
-              <MessageCircle className="h-4 w-4" />
-              Solicitar avaliação
+              <ShoppingBag className="h-4 w-4" />
+              Linha Bem Bonita
             </BotaoLink>
           </div>
         ) : null}
