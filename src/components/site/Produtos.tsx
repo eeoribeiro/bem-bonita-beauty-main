@@ -132,7 +132,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
     setCart(nextCart);
     saveCart(nextCart);
     setCheckoutMessage(`${product.nome} foi adicionado ao carrinho.`);
-    window.dispatchEvent(new CustomEvent("bem-bonita-cart-open"));
+    window.location.href = "/checkout";
   }
 
   return (

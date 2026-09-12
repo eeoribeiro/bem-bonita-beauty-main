@@ -145,9 +145,11 @@ function CartButton() {
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          window.location.href = "/checkout";
+        }}
         className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/55 text-foreground backdrop-blur-md transition-colors hover:border-primary hover:text-magenta sm:h-11 sm:w-11 lg:h-9 lg:w-9"
-        aria-label={`Abrir carrinho${cartQuantity ? ` com ${cartQuantity} item(ns)` : ""}`}
+        aria-label={`Ir para o checkout${cartQuantity ? ` com ${cartQuantity} item(ns)` : ""}`}
       >
         <ShoppingBag className="h-4 w-4" />
         {cartQuantity ? (

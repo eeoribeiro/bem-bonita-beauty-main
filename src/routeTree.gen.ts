@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CursosRouteImport } from './routes/cursos'
 import { Route as FeedbacksRouteImport } from './routes/feedbacks'
 import { Route as FranciellyRouteImport } from './routes/francielly'
@@ -26,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CursosRoute = CursosRouteImport.update({
@@ -62,6 +68,7 @@ const ServicosRoute = ServicosRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/checkout': typeof CheckoutRoute
   '/cursos': typeof CursosRoute
   '/feedbacks': typeof FeedbacksRoute
   '/francielly': typeof FranciellyRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/checkout': typeof CheckoutRoute
   '/cursos': typeof CursosRoute
   '/feedbacks': typeof FeedbacksRoute
   '/francielly': typeof FranciellyRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/checkout': typeof CheckoutRoute
   '/cursos': typeof CursosRoute
   '/feedbacks': typeof FeedbacksRoute
   '/francielly': typeof FranciellyRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/checkout'
     | '/cursos'
     | '/feedbacks'
     | '/francielly'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/checkout'
     | '/cursos'
     | '/feedbacks'
     | '/francielly'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/checkout'
     | '/cursos'
     | '/feedbacks'
     | '/francielly'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  CheckoutRoute: typeof CheckoutRoute
   CursosRoute: typeof CursosRoute
   FeedbacksRoute: typeof FeedbacksRoute
   FranciellyRoute: typeof FranciellyRoute
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cursos': {
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  CheckoutRoute: CheckoutRoute,
   CursosRoute: CursosRoute,
   FeedbacksRoute: FeedbacksRoute,
   FranciellyRoute: FranciellyRoute,
