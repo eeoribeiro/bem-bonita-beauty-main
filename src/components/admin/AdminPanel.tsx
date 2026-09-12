@@ -1797,9 +1797,6 @@ function PortfolioOverviewTab({
             Ainda não há filtro ativo. Clique em “Gerenciar fotos”, edite uma foto e escolha um serviço real para ela.
           </div>
         ) : null}
-        <div className="mt-4 rounded-2xl bg-secondary/25 p-3 text-xs leading-relaxed text-muted-foreground">
-          Para mudar, excluir ou criar filtros, use a aba “Serviços”. Esta galeria não usa mais as categorias antigas “Cachos” e “Penteados”.
-        </div>
       </div>
 
       {/* Prévia da Grade de Fotos da Galeria */}
@@ -2160,6 +2157,8 @@ function OrdersManagerTab({
   onSuccess: (message: string) => void;
   onError: (message: string) => void;
 }) {
+  const [pendingDelete, setPendingDelete] = useState<ProductOrderData | null>(null);
+
   async function updateOrderStatus(order: ProductOrderData, status: ProductOrderData["status"]) {
     if (isDemo) {
       onSuccess("Status atualizado no preview.");
@@ -2178,6 +2177,26 @@ function OrdersManagerTab({
 
     await onReload();
     onSuccess("Status do pedido atualizado.");
+  }
+
+  async function confirmDeleteOrder() {
+    if (!pendingDelete) return;
+    const order = pendingDelete;
+    setPendingDelete(null);
+
+    if (isDemo) {
+      onSuccess("Pedido excluído no preview.");
+      return;
+    }
+
+    const { error } = await getSupabaseClient().from("product_orders").delete().eq("id", order.id);
+    if (error) {
+      onError("Não foi possível excluir o pedido. Se aparecer erro de permissão, execute o SQL atualizado de pedidos.");
+      return;
+    }
+
+    await onReload();
+    onSuccess("Pedido excluído.");
   }
 
   return (
@@ -2217,7 +2236,7 @@ function OrdersManagerTab({
                   <div className="mt-2 grid gap-1 text-sm text-muted-foreground">
                     <span>WhatsApp: {order.customer_phone}</span>
                     {order.customer_email ? <span>E-mail: {order.customer_email}</span> : null}
-                    <span>Referência: {order.reference_id}</span>
+                    <span>Código do pedido: {order.reference_id}</span>
                   </div>
                 </div>
 
@@ -2251,6 +2270,13 @@ function OrdersManagerTab({
                       Abrir PagBank <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setPendingDelete(order)}
+                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/40 px-3 py-2 text-xs font-bold text-red-300 transition hover:bg-red-500/10"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Excluir pedido
+                  </button>
                 </div>
               </div>
 
@@ -2269,7 +2295,7 @@ function OrdersManagerTab({
                   </div>
                 ) : (
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Cliente escolheu retirada ou combinar sem endereço preenchido.
+                    Cliente escolheu retirada no salão.
                   </p>
                 )}
               </div>
@@ -2306,6 +2332,15 @@ function OrdersManagerTab({
           </p>
         </div>
       )}
+      {pendingDelete ? (
+        <ConfirmModal
+          title="Excluir pedido"
+          message={`Deseja excluir o pedido de “${pendingDelete.customer_name}”? Esta ação remove o pedido do admin.`}
+          confirmLabel="Excluir pedido"
+          onConfirm={() => void confirmDeleteOrder()}
+          onClose={() => setPendingDelete(null)}
+        />
+      ) : null}
     </section>
   );
 }
@@ -3337,68 +3372,6 @@ function SettingsTab({
           </label>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <div>
-            <p className="eyebrow">Fotos e textos extras</p>
-            <h3 className="mt-2 font-display text-2xl">Blocos adicionais da página</h3>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Use até 3 blocos para contar mais sobre a Francielly. Cada bloco pode ter foto, etiqueta, título e subtítulo.
-            </p>
-          </div>
-          <div className="mt-5 grid gap-5 lg:grid-cols-3">
-            {franciellyExtraSlots.map((slot) => {
-              const image = images.find((img) => img.image_key === slot.imageKey);
-              const eyebrowKey = slot.eyebrowKey as keyof SiteSettingsData;
-              const titleKey = slot.titleKey as keyof SiteSettingsData;
-              const subtitleKey = slot.subtitleKey as keyof SiteSettingsData;
-
-              return (
-                <div key={slot.imageKey} className="rounded-2xl border border-border bg-background p-4 shadow-card">
-                  <div className="mb-4 rounded-xl bg-secondary/45 px-3 py-2">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-magenta">
-                      Bloco extra {slot.slot}
-                    </p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                      Coloque foto, título e texto. O bloco só aparece na página da Fran quando tiver conteúdo.
-                    </p>
-                  </div>
-                  <ImageField
-                    label={`Foto extra ${slot.slot}`}
-                    currentUrl={image?.image_url ?? null}
-                    uploading={uploadingFranExtra === slot.imageKey}
-                    onSelect={(file) => void handleFranciellyExtraUpload(slot.slot, file)}
-                  />
-                  <label className="mt-4 block">
-                    <span className="text-sm font-medium">Etiqueta</span>
-                    <input
-                      value={String(settings[eyebrowKey] ?? "")}
-                      onChange={(e) => onChange({ ...settings, [eyebrowKey]: e.target.value })}
-                      className="admin-input"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-sm font-medium">Título</span>
-                    <input
-                      value={String(settings[titleKey] ?? "")}
-                      onChange={(e) => onChange({ ...settings, [titleKey]: e.target.value })}
-                      className="admin-input"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-sm font-medium">Subtítulo</span>
-                    <textarea
-                      rows={3}
-                      value={String(settings[subtitleKey] ?? "")}
-                      onChange={(e) => onChange({ ...settings, [subtitleKey]: e.target.value })}
-                      className="admin-input resize-y"
-                    />
-                  </label>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         <div className="sticky bottom-4 z-10 flex justify-end rounded-2xl border border-border bg-card/95 p-4 shadow-card backdrop-blur">
           <Botao type="button" disabled={saving} onClick={() => void saveSettings()}>
             {saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -3413,12 +3386,12 @@ function SettingsTab({
         className="grid max-w-4xl gap-5 rounded-3xl border border-border bg-card p-6 sm:grid-cols-2 sm:p-8 shadow-card"
       >
         <div className="sm:col-span-2 pb-2 border-b border-border">
-          <h2 className="text-xl font-display">Textos Gerais da Home, Contato &amp; Localização</h2>
+          <h2 className="text-xl font-display font-semibold">Textos principais, contato e localização</h2>
         </div>
 
         {generalFields.map((field) => (
           <label key={field.key} className={field.multiline ? "sm:col-span-2" : ""}>
-            <span className="text-sm font-medium">{field.label}</span>
+            <span className="text-sm font-bold text-foreground">{field.label}</span>
             {field.multiline ? (
               <textarea
                 rows={3}
@@ -4312,7 +4285,7 @@ function PortfolioManager({
 
   return (
     <div className="space-y-7">
-      <div className="grid gap-8 xl:grid-cols-[1.35fr_0.65fr]">
+      <div className="grid gap-8 2xl:grid-cols-[1.35fr_0.65fr]">
         <div>
           <div className="flex items-center justify-between">
             <div>
@@ -4438,10 +4411,10 @@ function PortfolioManager({
 
         <form
           onSubmit={submit}
-          className="space-y-4 rounded-2xl border border-border bg-background p-5"
+          className="space-y-4 rounded-2xl border border-border bg-background p-4 sm:p-5"
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-display">{editingId ? "Editar foto" : "Nova foto"}</h3>
+            <h3 className="text-xl font-display">{editingId ? "Editar foto" : "Adicionar foto"}</h3>
             {editingId ? (
               <button
                 type="button"
@@ -4475,14 +4448,8 @@ function PortfolioManager({
             placeholder="Ex: Definição, brilho e movimento natural."
             multiline
           />
-          <Field
-            label="Etiqueta da foto"
-            value={form.photo_label ?? ""}
-            onChange={(value) => setForm({ ...form, photo_label: value })}
-            placeholder="Ex: Cachos, Mechas, Penteado"
-          />
           <label className="block text-sm font-medium">
-            Serviço real relacionado para o filtro
+            Filtro da galeria
             <select
               value={form.service_id ?? ""}
               onChange={(event) => {
@@ -4495,7 +4462,7 @@ function PortfolioManager({
               }}
               className="admin-input"
             >
-              <option value="">Escolha um serviço</option>
+              <option value="">Escolha o serviço desta foto</option>
               {services.map((service) => (
                 <option key={service.id} value={service.id}>
                   {service.name}
@@ -4503,7 +4470,7 @@ function PortfolioManager({
               ))}
             </select>
             <span className="mt-1 block text-xs text-muted-foreground">
-              Obrigatório para a foto aparecer dentro do filtro correto na galeria do site.
+              Esse serviço vira o filtro que o cliente vê no site.
             </span>
           </label>
           <label className="block text-sm font-medium">

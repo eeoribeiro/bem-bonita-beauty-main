@@ -3,6 +3,23 @@
 
 create extension if not exists pgcrypto;
 
+create or replace function public.is_bem_bonita_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.admin_users
+    where user_id = auth.uid()
+  );
+$$;
+
+revoke all on function public.is_bem_bonita_admin() from public;
+grant execute on function public.is_bem_bonita_admin() to anon, authenticated;
+
 create table if not exists public.product_orders (
   id uuid primary key default gen_random_uuid(),
   reference_id text not null unique,
@@ -86,23 +103,33 @@ with check (true);
 drop policy if exists "Admins read product orders" on public.product_orders;
 create policy "Admins read product orders" on public.product_orders
 for select to authenticated
-using (public.is_admin());
+using (public.is_bem_bonita_admin());
 
 drop policy if exists "Admins update product orders" on public.product_orders;
 create policy "Admins update product orders" on public.product_orders
 for update to authenticated
-using (public.is_admin())
-with check (public.is_admin());
+using (public.is_bem_bonita_admin())
+with check (public.is_bem_bonita_admin());
+
+drop policy if exists "Admins delete product orders" on public.product_orders;
+create policy "Admins delete product orders" on public.product_orders
+for delete to authenticated
+using (public.is_bem_bonita_admin());
 
 drop policy if exists "Admins read product order items" on public.product_order_items;
 create policy "Admins read product order items" on public.product_order_items
 for select to authenticated
-using (public.is_admin());
+using (public.is_bem_bonita_admin());
+
+drop policy if exists "Admins delete product order items" on public.product_order_items;
+create policy "Admins delete product order items" on public.product_order_items
+for delete to authenticated
+using (public.is_bem_bonita_admin());
 
 grant usage on schema public to anon, authenticated;
 grant insert on public.product_orders, public.product_order_items to anon, authenticated;
-grant select, insert, update on public.product_orders to authenticated;
-grant select, insert on public.product_order_items to authenticated;
+grant select, insert, update, delete on public.product_orders to authenticated;
+grant select, insert, delete on public.product_order_items to authenticated;
 
 create index if not exists product_orders_created_idx on public.product_orders (created_at desc);
 create index if not exists product_orders_status_idx on public.product_orders (status, created_at desc);
