@@ -29,6 +29,7 @@ import {
   RefreshCw,
   Save,
   Scissors,
+  Search,
   Settings,
   ShoppingBag,
   Sparkles,
@@ -43,7 +44,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { AdminModal } from "./AdminModal";
 import { ConfirmModal } from "./ConfirmModal";
@@ -2158,6 +2159,31 @@ function OrdersManagerTab({
   onError: (message: string) => void;
 }) {
   const [pendingDelete, setPendingDelete] = useState<ProductOrderData | null>(null);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderSort, setOrderSort] = useState<"recent" | "oldest">("recent");
+  const visibleOrders = useMemo(() => {
+    const term = orderSearch.trim().toLowerCase();
+    return [...orders]
+      .filter((order) => {
+        if (!term) return true;
+        const searchable = [
+          order.customer_name,
+          order.customer_phone,
+          order.customer_email ?? "",
+          order.reference_id,
+          orderStatusLabels[order.status] ?? order.status,
+          fulfillmentLabels[order.fulfillment_method ?? "pickup"] ?? "",
+          ...(order.product_order_items ?? []).map((item) => item.product_name),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return searchable.includes(term);
+      })
+      .sort((a, b) => {
+        const diff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        return orderSort === "recent" ? diff : -diff;
+      });
+  }, [orderSearch, orderSort, orders]);
 
   async function updateOrderStatus(order: ProductOrderData, status: ProductOrderData["status"]) {
     if (isDemo) {
@@ -2222,7 +2248,38 @@ function OrdersManagerTab({
 
       {orders.length ? (
         <div className="space-y-4">
-          {orders.map((order) => (
+          <div className="grid gap-3 rounded-3xl border border-border bg-card p-4 shadow-card md:grid-cols-[1fr_220px]">
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                Pesquisar pedido
+              </span>
+              <div className="mt-2 flex items-center gap-2 rounded-2xl border border-border bg-background px-4">
+                <Search className="h-4 w-4 text-magenta" />
+                <input
+                  value={orderSearch}
+                  onChange={(event) => setOrderSearch(event.target.value)}
+                  placeholder="Nome, WhatsApp, código ou produto"
+                  className="h-12 min-w-0 flex-1 bg-transparent text-sm outline-none"
+                />
+              </div>
+            </label>
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                Ordenar
+              </span>
+              <select
+                value={orderSort}
+                onChange={(event) => setOrderSort(event.target.value as typeof orderSort)}
+                className="admin-input mt-2"
+              >
+                <option value="recent">Mais recentes primeiro</option>
+                <option value="oldest">Mais antigos primeiro</option>
+              </select>
+            </label>
+          </div>
+
+          {visibleOrders.length ? (
+            visibleOrders.map((order) => (
             <article key={order.id} className="rounded-3xl border border-border bg-card p-5 shadow-card">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
@@ -2321,7 +2378,12 @@ function OrdersManagerTab({
                 ))}
               </div>
             </article>
-          ))}
+            ))
+          ) : (
+            <div className="rounded-3xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+              Nenhum pedido encontrado com essa busca.
+            </div>
+          )}
         </div>
       ) : (
         <div className="rounded-3xl border border-dashed border-border p-10 text-center">

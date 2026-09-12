@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { LoaderCircle, Menu, Minus, Moon, Plus, ShoppingBag, Sun, Trash2, X } from "lucide-react";
+import { LoaderCircle, Menu, Minus, Moon, Plus, ShoppingBag, Sun, Trash2, UserRound, X } from "lucide-react";
 
 import { BotaoLink } from "./Botao";
 import { Logo } from "./Logo";
@@ -16,6 +16,39 @@ const NAV_ITEMS = [
   { label: "Loja", href: "/produtos" },
   { label: "Contato", href: "/#localizacao" },
 ] as const;
+
+function ThemeButton({
+  isLight,
+  onClick,
+}: {
+  isLight: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/70 bg-card text-foreground/80 transition-colors hover:border-primary hover:text-magenta"
+      aria-label={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
+      title={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
+    >
+      {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+    </button>
+  );
+}
+
+function TrackOrderButton({ className = "" }: { className?: string }) {
+  return (
+    <a
+      href="/pedido"
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/55 text-foreground backdrop-blur-md transition-colors hover:border-primary hover:text-magenta sm:h-11 sm:w-11 lg:h-9 lg:w-9 ${className}`}
+      aria-label="Acompanhar pedido"
+      title="Acompanhar pedido"
+    >
+      <UserRound className="h-4 w-4" />
+    </a>
+  );
+}
 
 function CartButton() {
   const { data } = usePublicSiteData();
@@ -411,9 +444,12 @@ export function Header() {
             : "scale-100 py-2.5 sm:py-3"
         }`}
       >
-        <a href="/" className="min-w-0" aria-label="Bem Bonita — início">
-          <Logo />
-        </a>
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <a href="/" className="min-w-0" aria-label="Bem Bonita — início">
+            <Logo />
+          </a>
+          <ThemeButton isLight={isLight} onClick={toggleTheme} />
+        </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
           <nav className="hidden items-center gap-3 lg:flex" aria-label="Menu principal">
@@ -426,15 +462,7 @@ export function Header() {
                 {item.label}
               </a>
             ))}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-card text-foreground/80 transition-colors hover:border-primary hover:text-magenta"
-              aria-label={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
-              title={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
-            >
-              {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            </button>
+            <TrackOrderButton />
             <BotaoLink
               href="/produtos"
               className="px-4 py-2.5 text-xs"
@@ -444,15 +472,7 @@ export function Header() {
           </nav>
 
           <CartButton />
-
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-card/55 text-foreground backdrop-blur-md sm:h-11 sm:w-11 lg:hidden"
-            aria-label={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
-          >
-            {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-          </button>
+          <TrackOrderButton className="lg:hidden" />
 
           <button
             type="button"

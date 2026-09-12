@@ -262,8 +262,15 @@ function CheckoutPage() {
                   </div>
                 </div>
 
-                {needsAddress ? (
-                  <div className="grid gap-3 rounded-3xl border border-primary/20 bg-background/70 p-4">
+                <div className={`grid gap-3 rounded-3xl border p-4 ${needsAddress ? "border-primary/35 bg-background/70" : "border-border bg-background/50"}`}>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-magenta">Endereço de entrega</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      {needsAddress
+                        ? "Obrigatório para receber em casa por motoboy."
+                        : "Se for retirar no salão, pode deixar em branco."}
+                    </p>
+                  </div>
                     <label className="block">
                       <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Endereço completo</span>
                       <input value={deliveryAddress} onChange={(event) => setDeliveryAddress(event.target.value)} placeholder="Rua, número, complemento" className="mt-1 h-12 w-full rounded-2xl border border-border bg-card px-4 text-sm outline-none transition focus:border-primary" />
@@ -277,8 +284,7 @@ function CheckoutPage() {
                       <input value={deliveryReference} onChange={(event) => setDeliveryReference(event.target.value)} placeholder="Ex.: perto da praça, portão rosa..." className="mt-1 h-12 w-full rounded-2xl border border-border bg-card px-4 text-sm outline-none transition focus:border-primary" />
                     </label>
                     <p className="text-xs leading-relaxed text-muted-foreground">A taxa de entrega pode ser confirmada pelo WhatsApp antes do envio.</p>
-                  </div>
-                ) : null}
+                </div>
 
                 <div className="rounded-3xl bg-background/70 p-4">
                   <div className="flex items-center justify-between text-sm font-bold">
