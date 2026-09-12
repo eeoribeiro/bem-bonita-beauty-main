@@ -354,13 +354,15 @@ async function handlePagBankCheckout(request: Request) {
     return jsonResponse({ error: "PagBank não retornou o link de pagamento." }, { status: 502 });
   }
 
-  const orderResponse = await supabaseRest(supabaseUrl, supabaseKey, "product_orders?select=id", {
+  const orderId = crypto.randomUUID();
+  const orderResponse = await supabaseRest(supabaseUrl, supabaseKey, "product_orders", {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      prefer: "return=representation",
+      prefer: "return=minimal",
     },
     body: JSON.stringify({
+      id: orderId,
       reference_id: referenceId,
       pagbank_payment_url: paymentUrl,
       customer_name: customerName,
@@ -380,11 +382,10 @@ async function handlePagBankCheckout(request: Request) {
     );
   }
 
-  const [savedOrder] = (await orderResponse.json()) as Array<{ id: string }>;
   const itemsResponse = await supabaseRest(supabaseUrl, supabaseKey, "product_order_items", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(orderItems.map((item) => ({ ...item, order_id: savedOrder.id }))),
+    body: JSON.stringify(orderItems.map((item) => ({ ...item, order_id: orderId }))),
   });
 
   if (!itemsResponse.ok) {
@@ -405,7 +406,7 @@ async function handlePagBankCheckout(request: Request) {
     items: orderItems,
   });
 
-  return jsonResponse({ paymentUrl, referenceId, orderId: savedOrder.id });
+  return jsonResponse({ paymentUrl, referenceId, orderId });
 }
 
 export default {
