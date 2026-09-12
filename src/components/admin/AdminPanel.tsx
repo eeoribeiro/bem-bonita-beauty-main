@@ -85,11 +85,11 @@ type Modal = "services" | "portfolio" | "team_editor" | "new_photo" | null;
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
+  { id: "orders", label: "Pedidos", icon: ShoppingBag },
   { id: "photos", label: "Fotos gerais do site", icon: FileImage },
   { id: "space", label: "Nosso Espaço", icon: MapPin },
   { id: "services", label: "Serviços", icon: Scissors },
   { id: "products", label: "Produtos", icon: ShoppingBag },
-  { id: "orders", label: "Pedidos", icon: ShoppingBag },
   { id: "portfolio", label: "Galeria", icon: Images },
   { id: "feedbacks", label: "Feedbacks", icon: MessageSquareQuote },
   { id: "francielly", label: "Página da Francielly", icon: UserCheck },
@@ -221,7 +221,7 @@ export function AdminPanel({
   onLogout: () => Promise<unknown>;
   isDemo?: boolean;
 }) {
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>(getInitialAdminTab);
   const [modal, setModal] = useState<Modal>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [lightTheme, setLightTheme] = useState(false);
@@ -423,6 +423,7 @@ export function AdminPanel({
 
   function navigate(next: Tab) {
     setTab(next);
+    window.localStorage.setItem(adminTabStorageKey, next);
     setMenuOpen(false);
   }
 
@@ -2112,9 +2113,9 @@ function formatOrderDate(value: string) {
 const orderStatusLabels: Record<ProductOrderData["status"], string> = {
   pending: "Pedido recebido",
   paid: "Pagamento confirmado",
-  preparing: "Separando pedido",
-  ready: "Pronto para retirada/entrega",
-  out_for_delivery: "Saiu para entrega",
+  preparing: "Preparando pedido",
+  ready: "Pronto",
+  out_for_delivery: "Pronto / saiu para entrega",
   completed: "Concluído",
   cancelled: "Cancelado",
   refunded: "Devolvido/Reembolsado",
@@ -2124,12 +2125,18 @@ const orderStatusLabels: Record<ProductOrderData["status"], string> = {
 const selectableOrderStatuses: Array<{ value: ProductOrderData["status"]; label: string }> = [
   { value: "pending", label: "Pedido recebido" },
   { value: "paid", label: "Pagamento confirmado" },
-  { value: "preparing", label: "Separando pedido" },
-  { value: "ready", label: "Pronto para retirada/entrega" },
-  { value: "out_for_delivery", label: "Saiu para entrega" },
+  { value: "out_for_delivery", label: "Pronto / saiu para entrega" },
   { value: "completed", label: "Concluído" },
   { value: "cancelled", label: "Cancelado" },
 ];
+
+const adminTabStorageKey = "bem-bonita-admin-tab";
+
+function getInitialAdminTab(): Tab {
+  if (typeof window === "undefined") return "overview";
+  const saved = window.localStorage.getItem(adminTabStorageKey);
+  return tabs.some((item) => item.id === saved) ? (saved as Tab) : "overview";
+}
 
 const fulfillmentLabels: Record<string, string> = {
   pickup: "Retirar no salão",
