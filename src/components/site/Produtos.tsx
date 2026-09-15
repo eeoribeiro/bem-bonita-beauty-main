@@ -23,6 +23,7 @@ interface ProdutoItem {
   beneficios: string[];
   imagem: string;
   preco?: string | null;
+  precoPromocional?: string | null;
   destaque?: boolean;
 }
 
@@ -100,6 +101,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         beneficios: product.benefits,
         imagem: product.image_url ?? "",
         preco: product.price_text,
+        precoPromocional: product.promotional_price_text,
         destaque: product.featured,
       }))
     : isError
@@ -115,7 +117,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   }, []);
 
   function addToCart(product: ProdutoItem) {
-    if (!parsePrecoCentavos(product.preco)) {
+    if (!parsePrecoCentavos(product.precoPromocional || product.preco)) {
       setCheckoutMessage("Esse produto precisa ter preço cadastrado para vender online.");
       return;
     }
@@ -150,54 +152,6 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
             className="mx-auto text-center [&>span]:mx-auto"
           />
         </div>
-
-        {paginaCompleta ? (
-          <div className="mt-14 overflow-hidden rounded-3xl border border-border/70 bg-card p-6 shadow-card sm:p-10 lg:grid lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-12">
-            <div className="relative">
-              {isLoading || isFetching ? (
-                <div className="aspect-square w-full animate-pulse rounded-2xl bg-secondary/70 shadow-soft" />
-              ) : (
-                <img
-                  src={productsImage?.image_url ?? "/media/francielly-produtos.jpg"}
-                  width={640}
-                  height={640}
-                  loading="lazy"
-                  alt={
-                    productsImage?.alt_text ??
-                    "Francielly Soares com produtos Bem Bonita desenvolvidos para cabelos cacheados"
-                  }
-                  className="aspect-square w-full rounded-2xl object-cover shadow-soft"
-                />
-              )}
-              <span className="absolute bottom-4 left-4 rounded-xl bg-card/90 px-4 py-2 text-xs font-semibold text-magenta backdrop-blur">
-                ✨ Recomendado no Salão
-              </span>
-            </div>
-
-            <div className="mt-8 space-y-5 lg:mt-0">
-              <p className="eyebrow flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5 text-gold" />
-                Prescrição personalizada
-              </p>
-              <h3 className="text-2xl leading-tight sm:text-3xl">
-                Não sabe qual produto é o ideal para o seu cabelo?
-              </h3>
-              <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Cada cacho possui densidade, porosidade e espessura únicas. No Bem Bonita,
-                Francielly orienta você sobre a combinação exata de produtos para o melhor resultado em casa.
-              </p>
-              <BotaoLink
-                href={whatsappLink(`Olá, ${SALAO.nome}! Gostaria de uma orientação sobre os produtos ideais para o meu cabelo.`)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Pedir recomendação no WhatsApp
-              </BotaoLink>
-            </div>
-          </div>
-        ) : null}
 
         <div className={paginaCompleta ? "mt-16" : "mt-12"}>
           <div className="mb-7 flex flex-col gap-2 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
@@ -272,7 +226,14 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                       </span>
                       <h4 className="mt-3 font-display text-lg leading-snug sm:text-xl">{produto.nome}</h4>
                       <p className="mt-1 text-xs font-medium text-muted-foreground">{produto.subtitulo}</p>
-                      {produto.preco ? <p className="mt-3 text-sm font-semibold text-magenta">{produto.preco}</p> : null}
+                      {produto.precoPromocional ? (
+                        <div className="mt-3 flex flex-wrap items-baseline gap-2">
+                          {produto.preco ? <span className="text-xs text-muted-foreground line-through">{produto.preco}</span> : null}
+                          <span className="text-sm font-semibold text-magenta">{produto.precoPromocional}</span>
+                        </div>
+                      ) : produto.preco ? (
+                        <p className="mt-3 text-sm font-semibold text-magenta">{produto.preco}</p>
+                      ) : null}
                       <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-muted-foreground sm:line-clamp-none">{produto.descricao}</p>
 
                       <ul className="mt-4 space-y-1.5 border-t border-border/60 pt-3 text-xs text-foreground/80 sm:text-sm">
@@ -318,6 +279,54 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
             </div>
           ) : null}
         </div>
+        {paginaCompleta ? (
+          <div className="mt-14 overflow-hidden rounded-3xl border border-border/70 bg-card p-6 shadow-card sm:p-10 lg:grid lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-12">
+            <div className="relative">
+              {isLoading || isFetching ? (
+                <div className="aspect-square w-full animate-pulse rounded-2xl bg-secondary/70 shadow-soft" />
+              ) : (
+                <img
+                  src={productsImage?.image_url ?? "/media/francielly-produtos.jpg"}
+                  width={640}
+                  height={640}
+                  loading="lazy"
+                  alt={
+                    productsImage?.alt_text ??
+                    "Francielly Soares com produtos Bem Bonita desenvolvidos para cabelos cacheados"
+                  }
+                  className="aspect-square w-full rounded-2xl object-cover shadow-soft"
+                />
+              )}
+              <span className="absolute bottom-4 left-4 rounded-xl bg-card/90 px-4 py-2 text-xs font-semibold text-magenta backdrop-blur">
+                ✨ Recomendado no Salão
+              </span>
+            </div>
+
+            <div className="mt-8 space-y-5 lg:mt-0">
+              <p className="eyebrow flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-gold" />
+                Prescrição personalizada
+              </p>
+              <h3 className="text-2xl leading-tight sm:text-3xl">
+                Não sabe qual produto é o ideal para o seu cabelo?
+              </h3>
+              <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+                Cada cacho possui densidade, porosidade e espessura únicas. No Bem Bonita,
+                Francielly orienta você sobre a combinação exata de produtos para o melhor resultado em casa.
+              </p>
+              <BotaoLink
+                href={whatsappLink(`Olá, ${SALAO.nome}! Gostaria de uma orientação sobre os produtos ideais para o meu cabelo.`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Pedir recomendação no WhatsApp
+              </BotaoLink>
+            </div>
+          </div>
+        ) : null}
+
       </div>
     </section>
   );

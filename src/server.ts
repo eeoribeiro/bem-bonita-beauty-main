@@ -1,3 +1,4 @@
+import { deliveryFee, isValidCpf, normalizeCpf } from "./lib/checkout";
 import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
@@ -51,6 +52,7 @@ type CheckoutRequestItem = {
 };
 
 type CheckoutCustomer = {
+  cpf?: unknown;
   name?: unknown;
   phone?: unknown;
   email?: unknown;
@@ -67,6 +69,7 @@ type ProductRow = {
   name: string;
   image_url: string | null;
   price_text: string | null;
+  promotional_price_text: string | null;
   published: boolean;
 };
 
@@ -143,6 +146,7 @@ async function sendOrderEmailNotification(order: {
   deliveryNeighborhood: string;
   deliveryReference: string;
   totalAmount: number;
+  shippingAmount: number;
   paymentUrl: string;
   items: Array<{ product_name: string; quantity: number; total_amount: number }>;
 }) {
@@ -210,6 +214,7 @@ async function sendOrderEmailNotification(order: {
                 </table>
 
                 <div style="margin-top:22px;text-align:right;">
+                  <p style="margin:0 0 8px;color:#6f6270;font-size:13px;">Entrega: ${formatCurrencyFromCents(order.shippingAmount)}</p>
                   <p style="margin:0;color:#6f6270;font-size:13px;">Total do pedido</p>
                   <p style="margin:4px 0 0;color:#d8518b;font-size:26px;font-weight:800;">${formatCurrencyFromCents(order.totalAmount)}</p>
                 </div>
@@ -255,6 +260,7 @@ async function handlePagBankCheckout(request: Request) {
   }
 
   const customerName = cleanText(body.customer?.name, 120);
+  const customerCpf = normalizeCpf(cleanText(body.customer?.cpf, 30));
   const customerPhone = cleanText(body.customer?.phone, 30);
   const customerEmail = cleanText(body.customer?.email, 160);
   const contactPreferenceRaw = cleanText(body.customer?.contactPreference, 20);
@@ -273,6 +279,9 @@ async function handlePagBankCheckout(request: Request) {
       { error: "Informe nome e WhatsApp para registrar o pedido no admin." },
       { status: 400 },
     );
+  }
+  if (!isValidCpf(customerCpf)) {
+    return jsonResponse({ error: "Informe um CPF válido para continuar com o pagamento." }, { status: 400 });
   }
   if (contactPreference === "email" && !customerEmail.includes("@")) {
     return jsonResponse({ error: "Informe um e-mail válido para receber contato por e-mail." }, { status: 400 });
@@ -301,7 +310,7 @@ async function handlePagBankCheckout(request: Request) {
 
   const productIds = Array.from(new Set(cartItems.map((item) => item.id)));
   const query = new URL(`${supabaseUrl}/rest/v1/products`);
-  query.searchParams.set("select", "id,name,image_url,price_text,published");
+  query.searchParams.set("select", "id,name,image_url,price_text,promotional_price_text,published");
   query.searchParams.set("published", "eq.true");
   query.searchParams.set("id", `in.(${productIds.map((id) => `"${id.replace(/"/g, '\\"')}"`).join(",")})`);
 
@@ -318,7 +327,7 @@ async function handlePagBankCheckout(request: Request) {
   const checkoutItems = cartItems
     .map((item) => {
       const product = productsById.get(item.id);
-      const unitAmount = parsePriceToCents(product?.price_text);
+      const unitAmount = parsePriceToCents(product?.promotional_price_text || product?.price_text);
       if (!product || !unitAmount) return null;
       return {
         reference_id: product.id,
@@ -341,7 +350,8 @@ async function handlePagBankCheckout(request: Request) {
       image_url: product?.image_url ?? null,
     };
   });
-  const totalAmount = orderItems.reduce((total, item) => total + item.total_amount, 0);
+  const shippingAmount = deliveryFee(fulfillmentMethod);
+  const totalAmount = orderItems.reduce((total, item) => total + item.total_amount, 0) + shippingAmount;
 
   if (!checkoutItems.length) {
     return jsonResponse(
@@ -364,6 +374,9 @@ async function handlePagBankCheckout(request: Request) {
     body: JSON.stringify({
       reference_id: referenceId,
       items: checkoutItems,
+      customer: { name: customerName, tax_id: customerCpf, ...(customerEmail ? { email: customerEmail } : {}) },
+      customer_modifiable: true,
+      ...(shippingAmount ? { shipping: { type: "FIXED", amount: shippingAmount, address_modifiable: true } } : {}),
       payment_methods: [{ type: "CREDIT_CARD" }, { type: "DEBIT_CARD" }, { type: "PIX" }],
       redirect_url: successUrl,
       soft_descriptor: "BEMBONITA",
@@ -416,7 +429,7 @@ async function handlePagBankCheckout(request: Request) {
       delivery_reference: deliveryReference || null,
       status: "pending",
       total_amount: totalAmount,
-      notes: `Pedido iniciado pelo carrinho online. Preferência de contato: ${contactPreference === "email" ? "E-mail" : "WhatsApp"}. Cliente aceitou uso dos dados para este pedido. Confirme o pagamento no painel PagBank.`,
+      notes: `Pedido iniciado pelo carrinho online. Entrega: ${formatCurrencyFromCents(shippingAmount)}. Preferência de contato: ${contactPreference === "email" ? "E-mail" : "WhatsApp"}. Cliente aceitou uso dos dados para este pedido. Confirme o pagamento no painel PagBank.`,
     }),
   });
 
@@ -447,11 +460,12 @@ async function handlePagBankCheckout(request: Request) {
     customerName,
     customerPhone,
     customerEmail,
-    fulfillmentLabel: fulfillmentLabels[fulfillmentMethod] ?? fulfillmentLabels.pickup,
+    fulfillmentLabel: fulfillmentLabels[fulfillmentMethod] ?? "Retirar no salão",
     deliveryAddress,
     deliveryNeighborhood,
     deliveryReference,
     totalAmount,
+    shippingAmount,
     paymentUrl,
     items: orderItems,
   });

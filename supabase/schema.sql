@@ -130,6 +130,8 @@ create table if not exists public.products (
   featured boolean not null default false,
   sort_order integer not null default 0,
   published boolean not null default true,
+  price_text text not null default '',
+  promotional_price_text text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -152,6 +154,8 @@ create table if not exists public.services (
 
 alter table public.services add column if not exists price_text text not null default '';
 alter table public.services add column if not exists featured boolean not null default false;
+alter table public.products add column if not exists price_text text not null default '';
+alter table public.products add column if not exists promotional_price_text text not null default '';
 
 -- 5. Galeria de Resultados & Categorias
 create table if not exists public.portfolio_categories (
@@ -473,6 +477,10 @@ for select to authenticated using (public.is_admin());
 drop policy if exists "Admins update product orders" on public.product_orders;
 create policy "Admins update product orders" on public.product_orders
 for update to authenticated using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists "Admins delete product orders" on public.product_orders;
+create policy "Admins delete product orders" on public.product_orders
+for delete to authenticated using (public.is_admin());
 
 drop policy if exists "Anyone creates product order items" on public.product_order_items;
 create policy "Anyone creates product order items" on public.product_order_items

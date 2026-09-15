@@ -16,6 +16,10 @@ export function parsePrecoCentavos(preco?: string | null) {
   return Math.round(value * 100);
 }
 
+export function getProductPriceText(product: { price_text?: string | null; promotional_price_text?: string | null }) {
+  return product.promotional_price_text?.trim() || product.price_text?.trim() || "";
+}
+
 export function formatarMoeda(centavos: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",

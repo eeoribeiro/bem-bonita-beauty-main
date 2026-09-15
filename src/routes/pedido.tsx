@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CheckCircle2, LoaderCircle, PackageCheck, Search, ShoppingBag, Truck } from "lucide-react";
+import { LoaderCircle, PackageCheck, Search, ShoppingBag } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { BotaoFlutuanteWhatsApp } from "@/components/site/BotaoFlutuanteWhatsApp";
@@ -90,11 +90,11 @@ function PedidoPage() {
       <main className="page-transition px-5 pb-16 pt-28 sm:pt-32 lg:px-8 lg:pb-28 lg:pt-40">
         <section className="mx-auto max-w-5xl">
           <div className="rounded-[2rem] border border-border/70 bg-card p-6 text-center shadow-card sm:p-10">
-            <CheckCircle2 className="mx-auto h-12 w-12 text-magenta" />
-            <p className="eyebrow mt-5">Compra Bem Bonita</p>
-            <h1 className="mt-2 font-display text-4xl leading-tight sm:text-5xl">Pedido recebido</h1>
+            <PackageCheck className="mx-auto h-12 w-12 text-magenta" />
+            <p className="eyebrow mt-5">Loja Bem Bonita</p>
+            <h1 className="mt-2 font-display text-4xl leading-tight sm:text-5xl">Acompanhar pedido</h1>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Obrigada pela compra. Se você pagou pelo PagBank, o salão vai conferir o pagamento e atualizar o andamento no painel.
+              Consulte o status da sua compra com o código do pedido e o WhatsApp informado na compra.
             </p>
           </div>
 
@@ -162,9 +162,6 @@ function PedidoPage() {
           <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm">
             <Link to="/produtos" className="inline-flex items-center gap-2 rounded-full border border-primary/40 px-5 py-3 font-bold text-magenta">
               <ShoppingBag className="h-4 w-4" /> Voltar para loja
-            </Link>
-            <Link to="/checkout" className="inline-flex items-center gap-2 rounded-full border border-primary/40 px-5 py-3 font-bold text-magenta">
-              <Truck className="h-4 w-4" /> Ver checkout
             </Link>
           </div>
         </section>

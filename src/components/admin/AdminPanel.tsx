@@ -81,16 +81,15 @@ import type {
   TestimonialData,
 } from "@/lib/site-data";
 
-type Tab = "overview" | "photos" | "space" | "services" | "products" | "orders" | "team" | "portfolio" | "feedbacks" | "francielly" | "settings";
+type Tab = "overview" | "photos" | "space" | "services" | "store" | "team" | "portfolio" | "feedbacks" | "francielly" | "settings";
 type Modal = "services" | "portfolio" | "team_editor" | "new_photo" | null;
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
-  { id: "orders", label: "Pedidos", icon: ShoppingBag },
+  { id: "store", label: "Linha Bem Bonita", icon: ShoppingBag },
   { id: "photos", label: "Fotos gerais do site", icon: FileImage },
   { id: "space", label: "Nosso Espaço", icon: MapPin },
   { id: "services", label: "Serviços", icon: Scissors },
-  { id: "products", label: "Produtos", icon: ShoppingBag },
   { id: "portfolio", label: "Galeria", icon: Images },
   { id: "feedbacks", label: "Feedbacks", icon: MessageSquareQuote },
   { id: "francielly", label: "Página da Francielly", icon: UserCheck },
@@ -626,11 +625,17 @@ export function AdminPanel({
                   onError={showError}
                 />
               ) : null}
-              {tab === "products" ? (
-                <ProductsManagerTab products={products} setProducts={setProducts} isDemo={!supabaseConfigurado || isDemo} onReload={loadAll} onSuccess={showSuccess} onError={showError} />
-              ) : null}
-              {tab === "orders" ? (
-                <OrdersManagerTab orders={orders} ordersError={ordersError} isDemo={!supabaseConfigurado || isDemo} onReload={loadAll} onSuccess={showSuccess} onError={showError} />
+              {tab === "store" ? (
+                <StoreManagerTab
+                  products={products}
+                  setProducts={setProducts}
+                  orders={orders}
+                  ordersError={ordersError}
+                  isDemo={!supabaseConfigurado || isDemo}
+                  onReload={loadAll}
+                  onSuccess={showSuccess}
+                  onError={showError}
+                />
               ) : null}
               {tab === "feedbacks" ? (
                 <FeedbacksManagerTab testimonials={testimonials} setTestimonials={setTestimonials} isDemo={!supabaseConfigurado || isDemo} onReload={loadAll} onSuccess={showSuccess} onError={showError} />
@@ -2133,6 +2138,7 @@ const adminTabStorageKey = "bem-bonita-admin-tab";
 function getInitialAdminTab(): Tab {
   if (typeof window === "undefined") return "overview";
   const saved = window.localStorage.getItem(adminTabStorageKey);
+  if (saved === "products" || saved === "orders") return "store";
   return tabs.some((item) => item.id === saved) ? (saved as Tab) : "overview";
 }
 
@@ -2142,6 +2148,78 @@ const fulfillmentLabels: Record<string, string> = {
   shipping: "Entrega combinada",
   combine: "Combinar pelo WhatsApp",
 };
+
+function StoreManagerTab({
+  products,
+  setProducts,
+  orders,
+  ordersError,
+  isDemo,
+  onReload,
+  onSuccess,
+  onError,
+}: {
+  products: ProductData[];
+  setProducts: React.Dispatch<React.SetStateAction<ProductData[]>>;
+  orders: ProductOrderData[];
+  ordersError: string;
+  isDemo: boolean;
+  onReload: () => Promise<void>;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+}) {
+  const [view, setView] = useState<"products" | "orders">("products");
+
+  return (
+    <section className="space-y-7">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="eyebrow">Loja online</p>
+          <h1 className="mt-2 text-3xl font-display sm:text-4xl">Linha Bem Bonita</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Gerencie os produtos da linha, preços promocionais e pedidos feitos pelo checkout.
+          </p>
+        </div>
+        <div className="grid gap-2 rounded-2xl border border-border bg-card p-1 shadow-card sm:inline-grid sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setView("products")}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${view === "products" ? "bg-secondary text-magenta" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+          >
+            Produtos
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("orders")}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${view === "orders" ? "bg-secondary text-magenta" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+          >
+            Pedidos
+          </button>
+        </div>
+      </div>
+
+      {view === "products" ? (
+        <ProductsManagerTab
+          products={products}
+          setProducts={setProducts}
+          isDemo={isDemo}
+          onReload={onReload}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      ) : (
+        <OrdersManagerTab
+          orders={orders}
+          ordersError={ordersError}
+          isDemo={isDemo}
+          onReload={onReload}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      )}
+    </section>
+  );
+}
 
 function OrdersManagerTab({
   orders,
@@ -2215,14 +2293,26 @@ function OrdersManagerTab({
       return;
     }
 
-    const { error } = await getSupabaseClient().from("product_orders").delete().eq("id", order.id);
-    if (error) {
-      onError("Não foi possível excluir o pedido. Se aparecer erro de permissão, execute o SQL atualizado de pedidos.");
-      return;
-    }
+    try {
+      const { data, error } = await getSupabaseClient()
+        .from("product_orders")
+        .delete()
+        .eq("id", order.id)
+        .select("id");
+      if (error) {
+        onError("Não foi possível excluir o pedido. Verifique sua conexão e a permissão de exclusão no Supabase.");
+        return;
+      }
+      if (data?.length !== 1 || data[0]?.id !== order.id) {
+        onError("A exclusão não foi confirmada. O pedido pode já ter sido removido ou sua conta não tem permissão para excluí-lo. Atualize a lista e, se ele continuar aparecendo, verifique as permissões no Supabase.");
+        return;
+      }
 
-    await onReload();
-    onSuccess("Pedido excluído.");
+      await onReload();
+      onSuccess("Pedido excluído.");
+    } catch {
+      onError("Não foi possível confirmar a exclusão. Atualize a lista de pedidos antes de tentar novamente.");
+    }
   }
 
   return (
@@ -2424,6 +2514,7 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
     benefits: [],
     category: "",
     price_text: "",
+    promotional_price_text: "",
     image_url: null,
     storage_path: null,
     featured: false,
@@ -2476,6 +2567,7 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
       benefits: benefitsText.split("\n").map((item) => item.trim()).filter(Boolean),
       category: editing.category?.trim() ?? "",
       price_text: editing.price_text?.trim() ?? "",
+      promotional_price_text: editing.promotional_price_text?.trim() ?? "",
       image_url: editing.image_url,
       storage_path: editing.storage_path,
       featured: editing.featured,
@@ -2546,7 +2638,14 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
                 <span className={`rounded-full px-2 py-1 text-[10px] ${product.published ? "bg-emerald-500/15 text-emerald-300" : "bg-secondary text-muted-foreground"}`}>{product.published ? "Ativo" : "Oculto"}</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{product.subtitle || product.hair_type}</p>
-              {product.price_text ? <p className="mt-2 text-sm font-semibold text-magenta">{product.price_text}</p> : null}
+              {product.promotional_price_text ? (
+                <div className="mt-2 flex flex-wrap items-baseline gap-2">
+                  {product.price_text ? <span className="text-xs text-muted-foreground line-through">{product.price_text}</span> : null}
+                  <span className="text-sm font-semibold text-magenta">{product.promotional_price_text}</span>
+                </div>
+              ) : product.price_text ? (
+                <p className="mt-2 text-sm font-semibold text-magenta">{product.price_text}</p>
+              ) : null}
               <div className="mt-4 flex gap-2">
                 <button type="button" onClick={() => openEditor(product)} className="min-h-11 flex-1 rounded-xl bg-secondary px-3 py-2 text-xs font-semibold text-magenta">Editar</button>
                 <button type="button" onClick={() => void removeProduct(product)} className="min-h-11 rounded-xl border border-red-500/30 px-4 py-2 text-xs text-red-300">Excluir</button>
@@ -2567,8 +2666,9 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
       <ImageField label="Foto do produto" currentUrl={editing.image_url} uploading={uploadingProduct} onSelect={(file) => void selectProductImage(file)} />
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block"><span className="text-sm font-medium">Nome</span><input className="admin-input" value={editing.name} onChange={(event) => setEditing({ ...editing, name: event.target.value })} required /></label>
-        <label className="block"><span className="text-sm font-medium">Preço opcional</span><input className="admin-input" value={editing.price_text ?? ""} onChange={(event) => setEditing({ ...editing, price_text: event.target.value })} placeholder="Ex.: R$89,90" /></label>
+        <label className="block"><span className="text-sm font-medium">Preço normal</span><input className="admin-input" value={editing.price_text ?? ""} onChange={(event) => setEditing({ ...editing, price_text: event.target.value })} placeholder="Ex.: R$89,90" /></label>
       </div>
+      <label className="block"><span className="text-sm font-medium">Preço promocional</span><input className="admin-input" value={editing.promotional_price_text ?? ""} onChange={(event) => setEditing({ ...editing, promotional_price_text: event.target.value })} placeholder="Ex.: R$69,90" /><span className="mt-1 block text-xs text-muted-foreground">Quando preenchido, este preço aparece em destaque no site e é o valor usado no checkout.</span></label>
       <label className="block"><span className="text-sm font-medium">Subtítulo</span><input className="admin-input" value={editing.subtitle} onChange={(event) => setEditing({ ...editing, subtitle: event.target.value })} /></label>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">

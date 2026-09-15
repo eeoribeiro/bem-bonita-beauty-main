@@ -107,6 +107,7 @@ export type ProductData = {
   benefits: string[];
   category?: string | null;
   price_text?: string | null;
+  promotional_price_text?: string | null;
   image_url: string | null;
   storage_path: string | null;
   featured: boolean;

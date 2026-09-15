@@ -4,7 +4,7 @@ import { LoaderCircle, Menu, Minus, Moon, Plus, ShoppingBag, Sun, Trash2, UserRo
 
 import { BotaoLink } from "./Botao";
 import { Logo } from "./Logo";
-import { cartChangeEvent, formatarMoeda, parsePrecoCentavos, quantidadeCarrinho, readCart, saveCart, type CartItem } from "@/lib/cart";
+import { cartChangeEvent, formatarMoeda, getProductPriceText, parsePrecoCentavos, quantidadeCarrinho, readCart, saveCart, type CartItem } from "@/lib/cart";
 import { usePublicSiteData, type ProductData } from "@/lib/site-data";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -70,7 +70,7 @@ function CartButton() {
     .map((item) => {
       const product = productsById.get(item.id);
       if (!product) return null;
-      const unitAmount = parsePrecoCentavos(product.price_text);
+      const unitAmount = parsePrecoCentavos(getProductPriceText(product));
       return {
         ...item,
         product,

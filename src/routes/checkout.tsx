@@ -1,3 +1,4 @@
+import { deliveryFee, formatCpf, isValidCpf, normalizeCpf } from "@/lib/checkout";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, CreditCard, LoaderCircle, Lock, Minus, Plus, ShieldCheck, ShoppingBag, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -6,7 +7,7 @@ import { BotaoLink } from "@/components/site/Botao";
 import { BotaoFlutuanteWhatsApp } from "@/components/site/BotaoFlutuanteWhatsApp";
 import { Footer } from "@/components/site/Footer";
 import { Header } from "@/components/site/Header";
-import { cartChangeEvent, formatarMoeda, parsePrecoCentavos, quantidadeCarrinho, readCart, saveCart, type CartItem } from "@/lib/cart";
+import { cartChangeEvent, formatarMoeda, getProductPriceText, parsePrecoCentavos, quantidadeCarrinho, readCart, saveCart, type CartItem } from "@/lib/cart";
 import { usePublicSiteData, type ProductData } from "@/lib/site-data";
 
 export const Route = createFileRoute("/checkout")({
@@ -25,6 +26,7 @@ function CheckoutPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [customerCpf, setCustomerCpf] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [contactPreference, setContactPreference] = useState<"whatsapp" | "email">("whatsapp");
@@ -40,13 +42,15 @@ function CheckoutPage() {
     .map((item) => {
       const product = productsById.get(item.id);
       if (!product) return null;
-      const unitAmount = parsePrecoCentavos(product.price_text);
+      const unitAmount = parsePrecoCentavos(getProductPriceText(product));
       return { ...item, product, unitAmount, total: unitAmount * item.quantity };
     })
     .filter((item): item is CartItem & { product: ProductData; unitAmount: number; total: number } => Boolean(item));
   const cartTotal = cartProducts.reduce((total, item) => total + item.total, 0);
   const cartQuantity = quantidadeCarrinho(cart);
   const needsAddress = fulfillmentMethod === "motoboy";
+  const shippingAmount = cartProducts.length ? deliveryFee(fulfillmentMethod) : 0;
+  const orderTotal = cartTotal + shippingAmount;
 
   useEffect(() => {
     setCart(readCart());
@@ -78,7 +82,11 @@ function CheckoutPage() {
       return;
     }
     if (customerName.trim().length < 2 || customerPhone.trim().length < 8) {
-      setMessage("Preencha nome e WhatsApp para o pedido aparecer no admin.");
+      setMessage("Preencha seu nome e WhatsApp para continuar.");
+      return;
+    }
+    if (!isValidCpf(customerCpf)) {
+      setMessage("Informe um CPF válido para continuar com o pagamento.");
       return;
     }
     if (contactPreference === "email" && !customerEmail.includes("@")) {
@@ -104,6 +112,7 @@ function CheckoutPage() {
           items: cartProducts.map((item) => ({ id: item.id, quantity: item.quantity })),
           customer: {
             name: customerName,
+            cpf: normalizeCpf(customerCpf),
             phone: customerPhone,
             email: customerEmail,
             contactPreference,
@@ -225,6 +234,10 @@ function CheckoutPage() {
                   <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Ex.: Maria Silva" className="mt-1 h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none transition focus:border-primary" />
                 </label>
                 <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">CPF</span>
+                  <input inputMode="numeric" maxLength={14} value={customerCpf} onChange={(event) => setCustomerCpf(formatCpf(event.target.value))} placeholder="000.000.000-00" className="mt-1 h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none transition focus:border-primary" />
+                </label>
+                <label className="block">
                   <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">WhatsApp</span>
                   <input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="Ex.: (31) 99999-9999" className="mt-1 h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none transition focus:border-primary" />
                 </label>
@@ -252,7 +265,7 @@ function CheckoutPage() {
                   <div className="mt-2 grid gap-2">
                     {[
                       ["pickup", "Retirar no salão"],
-                      ["motoboy", "Receber em casa por motoboy"],
+                      ["motoboy", "Receber em casa por motoboy — R$ 7,00"],
                     ].map(([value, label]) => (
                       <label key={value} className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition ${fulfillmentMethod === value ? "border-primary bg-primary/10 text-foreground" : "border-border bg-background text-muted-foreground"}`}>
                         <input type="radio" name="fulfillment" value={value} checked={fulfillmentMethod === value} onChange={() => setFulfillmentMethod(value as typeof fulfillmentMethod)} />
@@ -262,14 +275,9 @@ function CheckoutPage() {
                   </div>
                 </div>
 
-                <div className={`grid gap-3 rounded-3xl border p-4 ${needsAddress ? "border-primary/35 bg-background/70" : "border-border bg-background/50"}`}>
+                {needsAddress ? <div className="grid gap-3 rounded-3xl border border-primary/35 bg-background/70 p-4">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-magenta">Endereço de entrega</p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      {needsAddress
-                        ? "Obrigatório para receber em casa por motoboy."
-                        : "Se for retirar no salão, pode deixar em branco."}
-                    </p>
                   </div>
                     <label className="block">
                       <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Endereço completo</span>
@@ -283,20 +291,22 @@ function CheckoutPage() {
                       <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Referência</span>
                       <input value={deliveryReference} onChange={(event) => setDeliveryReference(event.target.value)} placeholder="Ex.: perto da praça, portão rosa..." className="mt-1 h-12 w-full rounded-2xl border border-border bg-card px-4 text-sm outline-none transition focus:border-primary" />
                     </label>
-                    <p className="text-xs leading-relaxed text-muted-foreground">A taxa de entrega pode ser confirmada pelo WhatsApp antes do envio.</p>
-                </div>
+                    <p className="text-xs leading-relaxed text-muted-foreground">Taxa de entrega: R$ 7,00, incluída no total.</p>
+                </div> : null}
 
                 <div className="rounded-3xl bg-background/70 p-4">
+                  <div className="mb-2 flex justify-between text-sm text-muted-foreground"><span>Produtos</span><span>{formatarMoeda(cartTotal)}</span></div>
+                  <div className="mb-3 flex justify-between text-sm text-muted-foreground"><span>{needsAddress ? "Entrega por motoboy" : "Retirada no salão"}</span><span>{formatarMoeda(shippingAmount)}</span></div>
                   <div className="flex items-center justify-between text-sm font-bold">
                     <span>Total</span>
-                    <span className="text-lg text-magenta">{formatarMoeda(cartTotal)}</span>
+                    <span className="text-lg text-magenta">{formatarMoeda(orderTotal)}</span>
                   </div>
-                  <div className="mt-4 rounded-2xl border border-primary/20 bg-white/70 p-4 text-xs leading-relaxed text-muted-foreground">
+                  <div className="mt-4 rounded-2xl border border-primary/20 bg-card p-4 text-xs leading-relaxed text-foreground">
                     <div className="mb-2 flex items-center gap-2 font-bold text-foreground">
                       <ShieldCheck className="h-4 w-4 text-magenta" />
                       Pagamento seguro PagBank
                     </div>
-                    <p>Você paga em ambiente protegido do PagBank, com Pix ou cartão. A loja recebe o pedido e acompanha tudo pelo painel administrativo.</p>
+                    <p>Finalize o pagamento no ambiente protegido do PagBank, com Pix ou cartão.</p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 font-semibold text-magenta"><Lock className="h-3 w-3" /> Seguro</span>
                       <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 font-semibold text-magenta"><CreditCard className="h-3 w-3" /> Pix ou cartão</span>

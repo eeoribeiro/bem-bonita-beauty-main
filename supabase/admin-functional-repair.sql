@@ -46,6 +46,7 @@ create table if not exists public.services (
   name text not null,
   description text not null,
   price_text text not null default '',
+  promotional_price_text text not null default '',
   featured boolean not null default false,
   benefits text[] not null default '{}',
   image_url text,
@@ -59,6 +60,7 @@ create table if not exists public.services (
 
 alter table public.services
   add column if not exists price_text text not null default '',
+  add column if not exists promotional_price_text text not null default '',
   add column if not exists featured boolean not null default false,
   add column if not exists benefits text[] not null default '{}',
   add column if not exists image_url text,
