@@ -106,6 +106,7 @@ export type ProductData = {
   description: string;
   benefits: string[];
   category?: string | null;
+  product_options?: ProductOptionData[] | null;
   price_text?: string | null;
   promotional_price_text?: string | null;
   image_url: string | null;
@@ -113,6 +114,16 @@ export type ProductData = {
   featured: boolean;
   sort_order: number;
   published: boolean;
+};
+
+export type ProductOptionData = {
+  id: string;
+  name: string;
+  size?: string;
+  price_text: string;
+  image_url?: string | null;
+  storage_path?: string | null;
+  active?: boolean;
 };
 
 export type ProductOrderItemData = {

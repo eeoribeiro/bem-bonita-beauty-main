@@ -48,6 +48,7 @@ function isH3SwallowedErrorBody(body: string): boolean {
 
 type CheckoutRequestItem = {
   id?: unknown;
+  optionId?: unknown;
   quantity?: unknown;
 };
 
@@ -70,7 +71,17 @@ type ProductRow = {
   image_url: string | null;
   price_text: string | null;
   promotional_price_text: string | null;
+  product_options?: ProductOptionRow[] | null;
   published: boolean;
+};
+
+type ProductOptionRow = {
+  id?: unknown;
+  name?: unknown;
+  size?: unknown;
+  price_text?: unknown;
+  image_url?: unknown;
+  active?: unknown;
 };
 
 function jsonResponse(payload: unknown, init?: ResponseInit) {
@@ -300,6 +311,7 @@ async function handlePagBankCheckout(request: Request) {
   const cartItems = (body.items ?? [])
     .map((item) => ({
       id: typeof item.id === "string" ? item.id : "",
+      optionId: typeof item.optionId === "string" ? item.optionId : undefined,
       quantity: safeQuantity(item.quantity),
     }))
     .filter((item) => item.id);
@@ -310,7 +322,7 @@ async function handlePagBankCheckout(request: Request) {
 
   const productIds = Array.from(new Set(cartItems.map((item) => item.id)));
   const query = new URL(`${supabaseUrl}/rest/v1/products`);
-  query.searchParams.set("select", "id,name,image_url,price_text,promotional_price_text,published");
+  query.searchParams.set("select", "*");
   query.searchParams.set("published", "eq.true");
   query.searchParams.set("id", `in.(${productIds.map((id) => `"${id.replace(/"/g, '\\"')}"`).join(",")})`);
 
@@ -327,27 +339,37 @@ async function handlePagBankCheckout(request: Request) {
   const checkoutItems = cartItems
     .map((item) => {
       const product = productsById.get(item.id);
-      const unitAmount = parsePriceToCents(product?.promotional_price_text || product?.price_text);
+      const option = Array.isArray(product?.product_options)
+        ? product.product_options.find((productOption) => productOption.id === item.optionId && productOption.active !== false)
+        : undefined;
+      const optionName = typeof option?.name === "string" ? option.name.trim() : "";
+      const optionSize = typeof option?.size === "string" ? option.size.trim() : "";
+      const optionPrice = typeof option?.price_text === "string" ? option.price_text : "";
+      const unitAmount = parsePriceToCents(optionPrice || product?.promotional_price_text || product?.price_text);
       if (!product || !unitAmount) return null;
+      const displayName = optionName
+        ? `${product.name} — ${optionName}${optionSize ? ` ${optionSize}` : ""}`
+        : product.name;
       return {
         reference_id: product.id,
-        name: product.name.slice(0, 100),
+        option_id: item.optionId,
+        name: displayName.slice(0, 100),
         quantity: item.quantity,
         unit_amount: unitAmount,
+        image_url: typeof option?.image_url === "string" && option.image_url ? option.image_url : product.image_url,
       };
     })
-    .filter((item): item is { reference_id: string; name: string; quantity: number; unit_amount: number } =>
+    .filter((item): item is { reference_id: string; option_id?: string; name: string; quantity: number; unit_amount: number; image_url: string | null } =>
       Boolean(item),
     );
   const orderItems = checkoutItems.map((item) => {
-    const product = productsById.get(item.reference_id);
     return {
       product_id: item.reference_id,
       product_name: item.name,
       unit_amount: item.unit_amount,
       quantity: item.quantity,
       total_amount: item.unit_amount * item.quantity,
-      image_url: product?.image_url ?? null,
+      image_url: item.image_url ?? null,
     };
   });
   const shippingAmount = deliveryFee(fulfillmentMethod);

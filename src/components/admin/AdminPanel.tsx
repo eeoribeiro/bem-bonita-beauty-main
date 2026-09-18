@@ -74,6 +74,7 @@ import type {
   ProfessionalData,
   ProductOrderData,
   ProductData,
+  ProductOptionData,
   ServiceData,
   SiteImageData,
   SiteSettingsData,
@@ -2523,6 +2524,7 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
     description: "",
     benefits: [],
     category: productCategoryOptions[0],
+    product_options: [],
     price_text: "",
     promotional_price_text: "",
     image_url: null,
@@ -2535,12 +2537,59 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
   const [benefitsText, setBenefitsText] = useState("");
   const [savingProduct, setSavingProduct] = useState(false);
   const [uploadingProduct, setUploadingProduct] = useState(false);
+  const [uploadingOptionId, setUploadingOptionId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ProductData | null>(null);
 
   function openEditor(product?: ProductData) {
     const value = product ?? emptyProduct();
     setEditing({ ...value });
     setBenefitsText((value.benefits ?? []).join("\n"));
+  }
+
+  function normalizeProductOptions(options?: ProductOptionData[] | null) {
+    return (options ?? []).map((option) => ({
+      id: option.id || `option-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: option.name ?? "",
+      size: option.size ?? "",
+      price_text: option.price_text ?? "",
+      image_url: option.image_url ?? null,
+      storage_path: option.storage_path ?? null,
+      active: option.active !== false,
+    }));
+  }
+
+  function updateProductOption(optionId: string, patch: Partial<ProductOptionData>) {
+    setEditing((current) => current ? {
+      ...current,
+      product_options: normalizeProductOptions(current.product_options).map((option) =>
+        option.id === optionId ? { ...option, ...patch } : option,
+      ),
+    } : current);
+  }
+
+  function addProductOption() {
+    setEditing((current) => current ? {
+      ...current,
+      product_options: [
+        ...normalizeProductOptions(current.product_options),
+        {
+          id: `option-${Date.now()}`,
+          name: "",
+          size: "",
+          price_text: "",
+          image_url: null,
+          storage_path: null,
+          active: true,
+        },
+      ],
+    } : current);
+  }
+
+  function removeProductOption(optionId: string) {
+    setEditing((current) => current ? {
+      ...current,
+      product_options: normalizeProductOptions(current.product_options).filter((option) => option.id !== optionId),
+    } : current);
   }
 
   async function selectProductImage(file: File) {
@@ -2562,6 +2611,23 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
     }
   }
 
+  async function selectOptionImage(optionId: string, file: File) {
+    setUploadingOptionId(optionId);
+    try {
+      if (isDemo) {
+        updateProductOption(optionId, { image_url: URL.createObjectURL(file), storage_path: null });
+      } else {
+        const uploaded = await uploadImagem(file, "products/options");
+        updateProductOption(optionId, { image_url: uploaded.url, storage_path: uploaded.path });
+        onSuccess("Foto da opção enviada. Agora clique em salvar produto.");
+      }
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Falha no upload da foto da opção.");
+    } finally {
+      setUploadingOptionId(null);
+    }
+  }
+
   async function saveProduct(event: FormEvent) {
     event.preventDefault();
     if (!editing?.name.trim()) {
@@ -2576,6 +2642,14 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
       description: editing.description.trim(),
       benefits: benefitsText.split("\n").map((item) => item.trim()).filter(Boolean),
       category: editing.category?.trim() ?? "",
+      product_options: normalizeProductOptions(editing.product_options)
+        .map((option) => ({
+          ...option,
+          name: option.name.trim(),
+          size: option.size?.trim() ?? "",
+          price_text: option.price_text.trim(),
+        }))
+        .filter((option) => option.name || option.price_text || option.image_url),
       price_text: editing.price_text?.trim() ?? "",
       promotional_price_text: editing.promotional_price_text?.trim() ?? "",
       image_url: editing.image_url,
@@ -2710,6 +2784,61 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
           </select>
           <span className="mt-1 block text-xs text-muted-foreground">Essa categoria aparece como filtro na loja.</span>
         </label>
+      </div>
+      <div className="rounded-2xl border border-border bg-background/50 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="font-display text-xl">Opções dentro deste card</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Use quando um kit também puder vender shampoo, máscara, óleo ou outro item separado, cada um com foto, ml e preço.
+            </p>
+          </div>
+          <button type="button" onClick={addProductOption} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-secondary px-4 text-xs font-bold text-magenta">
+            <Plus className="h-4 w-4" />
+            Adicionar opção
+          </button>
+        </div>
+        <div className="mt-4 grid gap-4">
+          {normalizeProductOptions(editing.product_options).length ? normalizeProductOptions(editing.product_options).map((option, index) => (
+            <div key={option.id} className="rounded-2xl border border-border bg-card p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-magenta">Opção {index + 1}</span>
+                <button type="button" onClick={() => removeProductOption(option.id)} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-red-500/30 px-3 text-xs text-red-300">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Remover
+                </button>
+              </div>
+              <ImageField
+                label="Foto desta opção"
+                currentUrl={option.image_url}
+                uploading={uploadingOptionId === option.id}
+                onSelect={(file) => void selectOptionImage(option.id, file)}
+              />
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <label className="block">
+                  <span className="text-sm font-medium">Nome da opção</span>
+                  <input className="admin-input" value={option.name} onChange={(event) => updateProductOption(option.id, { name: event.target.value })} placeholder="Ex.: Shampoo" />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium">ML / tamanho</span>
+                  <input className="admin-input" value={option.size ?? ""} onChange={(event) => updateProductOption(option.id, { size: event.target.value })} placeholder="Ex.: 500ml" />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium">Preço</span>
+                  <input className="admin-input" value={option.price_text} onChange={(event) => updateProductOption(option.id, { price_text: event.target.value })} placeholder="Ex.: R$45,00" />
+                </label>
+              </div>
+              <label className="mt-3 flex items-center gap-2 rounded-xl border border-border p-3 text-sm">
+                <input type="checkbox" checked={option.active !== false} onChange={(event) => updateProductOption(option.id, { active: event.target.checked })} />
+                Mostrar essa opção no site
+              </label>
+            </div>
+          )) : (
+            <div className="rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
+              Nenhuma opção interna ainda. Se este card vender itens separados, clique em “Adicionar opção”.
+            </div>
+          )}
+        </div>
       </div>
       <label className="block"><span className="text-sm font-medium">Descrição</span><textarea rows={3} className="admin-input" value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} /></label>
       <label className="block"><span className="text-sm font-medium">Benefícios — um por linha</span><textarea rows={4} className="admin-input" value={benefitsText} onChange={(event) => setBenefitsText(event.target.value)} /></label>

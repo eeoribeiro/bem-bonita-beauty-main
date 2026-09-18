@@ -1,5 +1,6 @@
 export type CartItem = {
   id: string;
+  optionId?: string;
   quantity: number;
 };
 
@@ -37,6 +38,7 @@ export function readCart() {
     return parsed
       .map((item) => ({
         id: typeof item.id === "string" ? item.id : "",
+        optionId: typeof item.optionId === "string" ? item.optionId : undefined,
         quantity: Math.min(20, Math.max(1, Number(item.quantity) || 1)),
       }))
       .filter((item) => item.id);
@@ -53,4 +55,8 @@ export function saveCart(cart: CartItem[]) {
 
 export function quantidadeCarrinho(cart: CartItem[]) {
   return cart.reduce((total, item) => total + item.quantity, 0);
+}
+
+export function cartItemKey(item: Pick<CartItem, "id" | "optionId">) {
+  return `${item.id}::${item.optionId ?? "base"}`;
 }

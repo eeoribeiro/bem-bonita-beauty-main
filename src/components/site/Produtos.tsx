@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
 import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
-import { parsePrecoCentavos, quantidadeCarrinho, readCart, saveCart, type CartItem } from "@/lib/cart";
+import { cartItemKey, parsePrecoCentavos, quantidadeCarrinho, readCart, saveCart, type CartItem } from "@/lib/cart";
 import { SALAO, whatsappLink } from "@/lib/salao";
-import { usePublicSiteData } from "@/lib/site-data";
+import { usePublicSiteData, type ProductOptionData } from "@/lib/site-data";
 
 import finalizadorImg from "@/assets/produto-finalizador.jpg";
 import kitImg from "@/assets/produto-kit.jpg";
@@ -23,6 +23,7 @@ interface ProdutoItem {
   beneficios: string[];
   imagem: string;
   categoria?: string | null;
+  opcoes?: ProductOptionData[] | null;
   preco?: string | null;
   precoPromocional?: string | null;
   destaque?: boolean;
@@ -92,6 +93,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [checkoutMessage, setCheckoutMessage] = useState("");
   const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const productsImage = data?.images.find((image) => image.image_key === "products");
   const products = data
     ? data.products.map((product) => ({
@@ -103,6 +105,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         beneficios: product.benefits,
         imagem: product.image_url ?? "",
         categoria: product.category,
+        opcoes: product.product_options,
         preco: product.price_text,
         precoPromocional: product.promotional_price_text,
         destaque: product.featured,
@@ -125,24 +128,38 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
     setCart(readCart());
   }, []);
 
+  function getActiveOptions(product: ProdutoItem) {
+    return (product.opcoes ?? []).filter((option) => option.active !== false && option.name?.trim());
+  }
+
+  function getSelectedOption(product: ProdutoItem) {
+    const options = getActiveOptions(product);
+    if (!options.length) return null;
+    const selectedId = selectedOptions[product.id] ?? options[0]?.id;
+    return options.find((option) => option.id === selectedId) ?? options[0] ?? null;
+  }
+
   function addToCart(product: ProdutoItem) {
-    if (!parsePrecoCentavos(product.precoPromocional || product.preco)) {
+    const selectedOption = getSelectedOption(product);
+    const priceText = selectedOption?.price_text || product.precoPromocional || product.preco;
+    if (!parsePrecoCentavos(priceText)) {
       setCheckoutMessage("Esse produto precisa ter preço cadastrado para vender online.");
       return;
     }
+    const optionId = selectedOption?.id;
     const currentCart = readCart();
     const nextCart = (() => {
-      const existing = currentCart.find((item) => item.id === product.id);
+      const existing = currentCart.find((item) => cartItemKey(item) === cartItemKey({ id: product.id, optionId }));
       if (existing) {
         return currentCart.map((item) =>
-          item.id === product.id ? { ...item, quantity: Math.min(20, item.quantity + 1) } : item,
+          cartItemKey(item) === cartItemKey({ id: product.id, optionId }) ? { ...item, quantity: Math.min(20, item.quantity + 1) } : item,
         );
       }
-      return [...currentCart, { id: product.id, quantity: 1 }];
+      return [...currentCart, { id: product.id, optionId, quantity: 1 }];
     })();
     setCart(nextCart);
     saveCart(nextCart);
-    setCheckoutMessage(`${product.nome} foi adicionado ao carrinho.`);
+    setCheckoutMessage(`${selectedOption ? `${selectedOption.name} — ` : ""}${product.nome} foi adicionado ao carrinho.`);
     window.location.href = "/checkout";
   }
 
@@ -227,6 +244,12 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
               ))
             ) : produtosExibidos.length ? (
               produtosExibidos.map((produto, index) => (
+                (() => {
+                  const activeOptions = getActiveOptions(produto);
+                  const selectedOption = getSelectedOption(produto);
+                  const displayImage = selectedOption?.image_url || produto.imagem || kitImg;
+                  const displayPrice = selectedOption?.price_text || produto.precoPromocional || produto.preco;
+                  return (
                 <article
                   key={produto.id}
                   className={`group flex min-w-[72vw] max-w-[18rem] snap-center flex-col justify-between overflow-hidden rounded-3xl border bg-card shadow-card transition-all duration-300 hover:border-primary/50 hover:shadow-soft sm:min-w-0 sm:max-w-none ${
@@ -236,8 +259,8 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                   <div>
                     <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-secondary/25 sm:aspect-[3/4]">
                       <img
-                        src={produto.imagem || kitImg}
-                        alt={produto.nome}
+                        src={displayImage}
+                        alt={selectedOption ? `${produto.nome} - ${selectedOption.name}` : produto.nome}
                         loading={index < 3 ? "eager" : "lazy"}
                         fetchPriority={index < 3 ? "high" : "auto"}
                         decoding="async"
@@ -256,13 +279,33 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                       </span>
                       <h4 className="mt-3 font-display text-lg leading-snug sm:text-xl">{produto.nome}</h4>
                       <p className="mt-1 text-xs font-medium text-muted-foreground">{produto.subtitulo}</p>
-                      {produto.precoPromocional ? (
+                      {selectedOption ? (
+                        displayPrice ? <p className="mt-3 text-sm font-semibold text-magenta">{displayPrice}</p> : null
+                      ) : produto.precoPromocional ? (
                         <div className="mt-3 flex flex-wrap items-baseline gap-2">
                           {produto.preco ? <span className="text-xs text-muted-foreground line-through">{produto.preco}</span> : null}
                           <span className="text-sm font-semibold text-magenta">{produto.precoPromocional}</span>
                         </div>
-                      ) : produto.preco ? (
-                        <p className="mt-3 text-sm font-semibold text-magenta">{produto.preco}</p>
+                      ) : displayPrice ? (
+                        <p className="mt-3 text-sm font-semibold text-magenta">{displayPrice}</p>
+                      ) : null}
+                      {activeOptions.length ? (
+                        <div className="mt-4 rounded-2xl border border-border/70 bg-background/55 p-3">
+                          <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-gold">
+                            Escolha o item
+                            <select
+                              className="mt-2 h-10 w-full rounded-xl border border-border bg-card px-3 text-sm normal-case tracking-normal text-foreground outline-none focus:border-primary"
+                              value={selectedOption?.id ?? activeOptions[0]?.id}
+                              onChange={(event) => setSelectedOptions((current) => ({ ...current, [produto.id]: event.target.value }))}
+                            >
+                              {activeOptions.map((option) => (
+                                <option key={option.id} value={option.id}>
+                                  {option.name}{option.size ? ` — ${option.size}` : ""}{option.price_text ? ` — ${option.price_text}` : ""}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
                       ) : null}
                       <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-muted-foreground sm:line-clamp-none">{produto.descricao}</p>
 
@@ -295,6 +338,8 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                     </button>
                   </div>
                 </article>
+                  );
+                })()
               ))
             ) : (
               <div className="rounded-3xl border border-dashed border-primary/30 bg-card p-8 text-center text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">

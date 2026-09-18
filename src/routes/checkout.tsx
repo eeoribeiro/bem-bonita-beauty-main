@@ -7,7 +7,7 @@ import { BotaoLink } from "@/components/site/Botao";
 import { BotaoFlutuanteWhatsApp } from "@/components/site/BotaoFlutuanteWhatsApp";
 import { Footer } from "@/components/site/Footer";
 import { Header } from "@/components/site/Header";
-import { cartChangeEvent, formatarMoeda, getProductPriceText, parsePrecoCentavos, quantidadeCarrinho, readCart, saveCart, type CartItem } from "@/lib/cart";
+import { cartChangeEvent, cartItemKey, formatarMoeda, getProductPriceText, parsePrecoCentavos, quantidadeCarrinho, readCart, saveCart, type CartItem } from "@/lib/cart";
 import { usePublicSiteData, type ProductData } from "@/lib/site-data";
 
 export const Route = createFileRoute("/checkout")({
@@ -42,10 +42,11 @@ function CheckoutPage() {
     .map((item) => {
       const product = productsById.get(item.id);
       if (!product) return null;
-      const unitAmount = parsePrecoCentavos(getProductPriceText(product));
-      return { ...item, product, unitAmount, total: unitAmount * item.quantity };
+      const option = (product.product_options ?? []).find((productOption) => productOption.id === item.optionId);
+      const unitAmount = parsePrecoCentavos(option?.price_text || getProductPriceText(product));
+      return { ...item, product, option, unitAmount, total: unitAmount * item.quantity };
     })
-    .filter((item): item is CartItem & { product: ProductData; unitAmount: number; total: number } => Boolean(item));
+    .filter((item): item is CartItem & { product: ProductData; option?: NonNullable<ProductData["product_options"]>[number]; unitAmount: number; total: number } => Boolean(item));
   const cartTotal = cartProducts.reduce((total, item) => total + item.total, 0);
   const cartQuantity = quantidadeCarrinho(cart);
   const needsAddress = fulfillmentMethod === "motoboy" || fulfillmentMethod === "shipping";
@@ -63,11 +64,11 @@ function CheckoutPage() {
     };
   }, []);
 
-  function updateCartQuantity(id: string, quantity: number) {
+  function updateCartQuantity(key: string, quantity: number) {
     const next =
       quantity <= 0
-        ? cart.filter((item) => item.id !== id)
-        : cart.map((item) => (item.id === id ? { ...item, quantity: Math.min(20, quantity) } : item));
+        ? cart.filter((item) => cartItemKey(item) !== key)
+        : cart.map((item) => (cartItemKey(item) === key ? { ...item, quantity: Math.min(20, quantity) } : item));
     setCart(next);
     saveCart(next);
   }
@@ -109,7 +110,7 @@ function CheckoutPage() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          items: cartProducts.map((item) => ({ id: item.id, quantity: item.quantity })),
+          items: cartProducts.map((item) => ({ id: item.id, optionId: item.optionId, quantity: item.quantity })),
           customer: {
             name: customerName,
             cpf: normalizeCpf(customerCpf),
@@ -181,30 +182,33 @@ function CheckoutPage() {
               ) : cartProducts.length ? (
                 <div className="grid gap-3">
                   {cartProducts.map((item) => (
-                    <article key={item.id} className="rounded-2xl border border-border bg-background/70 p-3 sm:p-4">
+                    <article key={cartItemKey(item)} className="rounded-2xl border border-border bg-background/70 p-3 sm:p-4">
                       <div className="flex gap-3 sm:gap-4">
                         <img
-                          src={item.product.image_url ?? ""}
-                          alt={item.product.name}
+                          src={item.option?.image_url || item.product.image_url || ""}
+                          alt={item.option ? `${item.product.name} - ${item.option.name}` : item.product.name}
                           className="h-20 w-20 shrink-0 rounded-2xl bg-secondary object-cover sm:h-24 sm:w-24"
                         />
                         <div className="min-w-0 flex-1">
-                          <h3 className="line-clamp-2 text-sm font-bold sm:text-base">{item.product.name}</h3>
+                          <h3 className="line-clamp-2 text-sm font-bold sm:text-base">
+                            {item.product.name}
+                            {item.option ? <span className="block text-xs font-medium text-muted-foreground">{item.option.name}{item.option.size ? ` — ${item.option.size}` : ""}</span> : null}
+                          </h3>
                           <p className="mt-1 text-xs text-muted-foreground">{formatarMoeda(item.unitAmount)} cada</p>
                           <p className="mt-2 text-sm font-bold text-magenta">{formatarMoeda(item.total)}</p>
                         </div>
                       </div>
                       <div className="mt-4 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => updateCartQuantity(item.id, item.quantity - 1)} className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card" aria-label={`Diminuir ${item.product.name}`}>
+                          <button type="button" onClick={() => updateCartQuantity(cartItemKey(item), item.quantity - 1)} className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card" aria-label={`Diminuir ${item.product.name}`}>
                             <Minus className="h-4 w-4" />
                           </button>
                           <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
-                          <button type="button" onClick={() => updateCartQuantity(item.id, item.quantity + 1)} className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card" aria-label={`Aumentar ${item.product.name}`}>
+                          <button type="button" onClick={() => updateCartQuantity(cartItemKey(item), item.quantity + 1)} className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card" aria-label={`Aumentar ${item.product.name}`}>
                             <Plus className="h-4 w-4" />
                           </button>
                         </div>
-                        <button type="button" onClick={() => updateCartQuantity(item.id, 0)} className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-red-500/10 px-4 text-xs font-bold text-red-500">
+                        <button type="button" onClick={() => updateCartQuantity(cartItemKey(item), 0)} className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-red-500/10 px-4 text-xs font-bold text-red-500">
                           <Trash2 className="h-4 w-4" />
                           Remover
                         </button>

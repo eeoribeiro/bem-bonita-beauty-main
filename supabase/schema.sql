@@ -125,6 +125,8 @@ create table if not exists public.products (
   hair_type text not null default '',
   description text not null,
   benefits text[] not null default '{}',
+  category text not null default '',
+  product_options jsonb not null default '[]'::jsonb,
   image_url text,
   storage_path text,
   featured boolean not null default false,
@@ -154,6 +156,8 @@ create table if not exists public.services (
 
 alter table public.services add column if not exists price_text text not null default '';
 alter table public.services add column if not exists featured boolean not null default false;
+alter table public.products add column if not exists category text not null default '';
+alter table public.products add column if not exists product_options jsonb not null default '[]'::jsonb;
 alter table public.products add column if not exists price_text text not null default '';
 alter table public.products add column if not exists promotional_price_text text not null default '';
 
