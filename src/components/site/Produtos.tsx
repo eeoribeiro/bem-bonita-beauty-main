@@ -1,4 +1,4 @@
-import { CheckCircle2, MessageCircle, Sparkles, ShoppingBag } from "lucide-react";
+import { CheckCircle2, MessageCircle, Sparkles, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { BotaoLink } from "./Botao";
@@ -94,6 +94,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   const [checkoutMessage, setCheckoutMessage] = useState("");
   const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [modalProduct, setModalProduct] = useState<ProdutoItem | null>(null);
   const productsImage = data?.images.find((image) => image.image_key === "products");
   const products = data
     ? data.products.map((product) => ({
@@ -127,6 +128,20 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   useEffect(() => {
     setCart(readCart());
   }, []);
+
+  useEffect(() => {
+    if (!modalProduct) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setModalProduct(null);
+    };
+    window.addEventListener("keydown", closeWithEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeWithEscape);
+    };
+  }, [modalProduct]);
 
   function getActiveOptions(product: ProdutoItem) {
     return (product.opcoes ?? []).filter((option) => option.active !== false && option.name?.trim());
@@ -245,7 +260,6 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
             ) : produtosExibidos.length ? (
               produtosExibidos.map((produto, index) => (
                 (() => {
-                  const activeOptions = getActiveOptions(produto);
                   const selectedOption = getSelectedOption(produto);
                   const displayImage = selectedOption?.image_url || produto.imagem || kitImg;
                   const displayPrice = selectedOption?.price_text || produto.precoPromocional || produto.preco;
@@ -289,24 +303,6 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                       ) : displayPrice ? (
                         <p className="mt-3 text-sm font-semibold text-magenta">{displayPrice}</p>
                       ) : null}
-                      {activeOptions.length ? (
-                        <div className="mt-4 rounded-2xl border border-border/70 bg-background/55 p-3">
-                          <label className="block text-[11px] font-bold uppercase tracking-[0.18em] text-gold">
-                            Escolha o item
-                            <select
-                              className="mt-2 h-10 w-full rounded-xl border border-border bg-card px-3 text-sm normal-case tracking-normal text-foreground outline-none focus:border-primary"
-                              value={selectedOption?.id ?? activeOptions[0]?.id}
-                              onChange={(event) => setSelectedOptions((current) => ({ ...current, [produto.id]: event.target.value }))}
-                            >
-                              {activeOptions.map((option) => (
-                                <option key={option.id} value={option.id}>
-                                  {option.name}{option.size ? ` — ${option.size}` : ""}{option.price_text ? ` — ${option.price_text}` : ""}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                        </div>
-                      ) : null}
                       <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-muted-foreground sm:line-clamp-none">{produto.descricao}</p>
 
                       <ul className="mt-4 space-y-1.5 border-t border-border/60 pt-3 text-xs text-foreground/80 sm:text-sm">
@@ -324,14 +320,10 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                     <button
                       type="button"
                       onClick={() => {
-                        if (paginaCompleta) addToCart(produto);
+                        if (paginaCompleta) setModalProduct(produto);
                         else window.location.href = "/produtos";
                       }}
-                      className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-xs font-bold transition sm:text-sm ${
-                        produto.destaque
-                          ? "bg-primary text-primary-foreground shadow-soft hover:brightness-105"
-                          : "border border-primary/55 text-magenta hover:bg-primary hover:text-primary-foreground"
-                      }`}
+                      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-xs font-bold text-primary-foreground shadow-soft transition hover:brightness-105 sm:text-sm"
                     >
                       <ShoppingBag className="h-3.5 w-3.5" />
                       {paginaCompleta ? "Adicionar ao carrinho" : "Ver na loja"}
@@ -403,6 +395,127 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         ) : null}
 
       </div>
+      {modalProduct ? (() => {
+        const activeOptions = getActiveOptions(modalProduct);
+        const selectedOption = getSelectedOption(modalProduct);
+        const displayImage = selectedOption?.image_url || modalProduct.imagem || kitImg;
+        const displayPrice = selectedOption?.price_text || modalProduct.precoPromocional || modalProduct.preco;
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Detalhes de ${modalProduct.nome}`}
+            className="fixed inset-0 z-[220] flex items-center justify-center bg-black/45 p-4 backdrop-blur-md"
+            onMouseDown={(event) => event.target === event.currentTarget && setModalProduct(null)}
+          >
+            <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-border/70 bg-card shadow-2xl">
+              <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card/90 p-4 backdrop-blur sm:p-5">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-magenta">Produto Bem Bonita</p>
+                  <h2 className="mt-1 font-display text-2xl leading-tight sm:text-3xl">{modalProduct.nome}</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModalProduct(null)}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-background text-foreground transition hover:border-primary hover:text-magenta"
+                  aria-label="Fechar detalhes do produto"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[0.9fr_1.1fr] lg:p-8">
+                <div className="space-y-4">
+                  <div className="overflow-hidden rounded-[1.6rem] bg-secondary/30 shadow-card">
+                    <img
+                      src={displayImage}
+                      alt={selectedOption ? `${modalProduct.nome} - ${selectedOption.name}` : modalProduct.nome}
+                      className="aspect-[4/5] w-full object-cover object-center"
+                    />
+                  </div>
+                  <div className="rounded-3xl bg-secondary/60 p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold">Preço</p>
+                    <p className="mt-1 text-2xl font-bold text-magenta">{displayPrice || "Consulte"}</p>
+                    {selectedOption?.size ? (
+                      <p className="mt-1 text-sm text-muted-foreground">Tamanho: {selectedOption.size}</p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  <div>
+                    <span className="inline-flex rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold text-magenta">
+                      {modalProduct.categoria || modalProduct.curvatura}
+                    </span>
+                    {modalProduct.subtitulo ? <p className="mt-3 text-sm font-semibold text-foreground">{modalProduct.subtitulo}</p> : null}
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">{modalProduct.descricao}</p>
+                  </div>
+
+                  {activeOptions.length ? (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-foreground">Escolha o produto separado</p>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        {activeOptions.map((option) => {
+                          const checked = selectedOption?.id === option.id;
+                          return (
+                            <button
+                              key={option.id}
+                              type="button"
+                              onClick={() => setSelectedOptions((current) => ({ ...current, [modalProduct.id]: option.id }))}
+                              className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition ${
+                                checked
+                                  ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                                  : "border-border bg-background hover:border-primary/60"
+                              }`}
+                            >
+                              <img
+                                src={option.image_url || modalProduct.imagem || kitImg}
+                                alt={option.name}
+                                className="h-16 w-16 shrink-0 rounded-xl bg-secondary object-cover"
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className="block font-bold text-foreground">{option.name}</span>
+                                {option.size ? <span className="mt-0.5 block text-xs text-muted-foreground">{option.size}</span> : null}
+                                {option.price_text ? <span className="mt-1 block text-sm font-bold text-magenta">{option.price_text}</span> : null}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {modalProduct.beneficios.length ? (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-foreground">Benefícios</p>
+                      <ul className="mt-3 grid gap-2 text-sm text-foreground/80">
+                        {modalProduct.beneficios.map((beneficio) => (
+                          <li key={beneficio} className="flex gap-2">
+                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                            <span>{beneficio}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      addToCart(modalProduct);
+                      setModalProduct(null);
+                    }}
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-soft transition hover:brightness-105"
+                  >
+                    <ShoppingBag className="h-4 w-4" />
+                    Adicionar ao carrinho
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })() : null}
     </section>
   );
 }
