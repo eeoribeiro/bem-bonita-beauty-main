@@ -31,7 +31,7 @@ function CheckoutPage() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [contactPreference, setContactPreference] = useState<"whatsapp" | "email">("whatsapp");
   const [privacyConsent, setPrivacyConsent] = useState(false);
-  const [fulfillmentMethod, setFulfillmentMethod] = useState<"pickup" | "motoboy">("pickup");
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<"pickup" | "motoboy" | "shipping">("pickup");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryNeighborhood, setDeliveryNeighborhood] = useState("");
   const [deliveryReference, setDeliveryReference] = useState("");
@@ -48,7 +48,7 @@ function CheckoutPage() {
     .filter((item): item is CartItem & { product: ProductData; unitAmount: number; total: number } => Boolean(item));
   const cartTotal = cartProducts.reduce((total, item) => total + item.total, 0);
   const cartQuantity = quantidadeCarrinho(cart);
-  const needsAddress = fulfillmentMethod === "motoboy";
+  const needsAddress = fulfillmentMethod === "motoboy" || fulfillmentMethod === "shipping";
   const shippingAmount = cartProducts.length ? deliveryFee(fulfillmentMethod) : 0;
   const orderTotal = cartTotal + shippingAmount;
 
@@ -98,7 +98,7 @@ function CheckoutPage() {
       return;
     }
     if (needsAddress && deliveryAddress.trim().length < 8) {
-      setMessage("Preencha o endereço completo para receber em casa.");
+      setMessage("Preencha o endereço completo para entrega.");
       return;
     }
 
@@ -266,6 +266,7 @@ function CheckoutPage() {
                     {[
                       ["pickup", "Retirar no salão"],
                       ["motoboy", "Receber em casa por motoboy — R$ 7,00"],
+                      ["shipping", "Receber pelos Correios — frete a combinar"],
                     ].map(([value, label]) => (
                       <label key={value} className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition ${fulfillmentMethod === value ? "border-primary bg-primary/10 text-foreground" : "border-border bg-background text-muted-foreground"}`}>
                         <input type="radio" name="fulfillment" value={value} checked={fulfillmentMethod === value} onChange={() => setFulfillmentMethod(value as typeof fulfillmentMethod)} />
@@ -291,12 +292,19 @@ function CheckoutPage() {
                       <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Referência</span>
                       <input value={deliveryReference} onChange={(event) => setDeliveryReference(event.target.value)} placeholder="Ex.: perto da praça, portão rosa..." className="mt-1 h-12 w-full rounded-2xl border border-border bg-card px-4 text-sm outline-none transition focus:border-primary" />
                     </label>
-                    <p className="text-xs leading-relaxed text-muted-foreground">Taxa de entrega: R$ 7,00, incluída no total.</p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      {fulfillmentMethod === "motoboy"
+                        ? "Taxa de entrega: R$ 7,00, incluída no total."
+                        : "Envio pelos Correios: o salão confirma o frete antes da postagem."}
+                    </p>
                 </div> : null}
 
                 <div className="rounded-3xl bg-background/70 p-4">
                   <div className="mb-2 flex justify-between text-sm text-muted-foreground"><span>Produtos</span><span>{formatarMoeda(cartTotal)}</span></div>
-                  <div className="mb-3 flex justify-between text-sm text-muted-foreground"><span>{needsAddress ? "Entrega por motoboy" : "Retirada no salão"}</span><span>{formatarMoeda(shippingAmount)}</span></div>
+                  <div className="mb-3 flex justify-between text-sm text-muted-foreground">
+                    <span>{fulfillmentMethod === "motoboy" ? "Entrega por motoboy" : fulfillmentMethod === "shipping" ? "Correios" : "Retirada no salão"}</span>
+                    <span>{fulfillmentMethod === "shipping" ? "A combinar" : formatarMoeda(shippingAmount)}</span>
+                  </div>
                   <div className="flex items-center justify-between text-sm font-bold">
                     <span>Total</span>
                     <span className="text-lg text-magenta">{formatarMoeda(orderTotal)}</span>

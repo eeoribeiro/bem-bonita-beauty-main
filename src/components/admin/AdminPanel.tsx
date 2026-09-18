@@ -188,6 +188,16 @@ const hairTypeOptions = [
   "Cabelos coloridos",
 ] as const;
 
+const productCategoryOptions = [
+  "Kits da linha Bem Bonita",
+  "Óleo",
+  "Shampoo",
+  "Máscara",
+  "Finalizadores",
+  "Perfumes",
+  "Outros",
+] as const;
+
 const franciellyExtraSlots = [
   {
     slot: 1,
@@ -2512,7 +2522,7 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
     hair_type: "",
     description: "",
     benefits: [],
-    category: "",
+    category: productCategoryOptions[0],
     price_text: "",
     promotional_price_text: "",
     image_url: null,
@@ -2685,7 +2695,21 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
             ))}
           </select>
         </label>
-        <label className="block"><span className="text-sm font-medium">Categoria / linha</span><input className="admin-input" value={editing.category ?? ""} onChange={(event) => setEditing({ ...editing, category: event.target.value })} placeholder="Ex.: Cachos, Força, Reviveme" /></label>
+        <label className="block">
+          <span className="text-sm font-medium">Categoria do produto</span>
+          <select
+            className="admin-input"
+            value={editing.category || productCategoryOptions[0]}
+            onChange={(event) => setEditing({ ...editing, category: event.target.value })}
+          >
+            {productCategoryOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <span className="mt-1 block text-xs text-muted-foreground">Essa categoria aparece como filtro na loja.</span>
+        </label>
       </div>
       <label className="block"><span className="text-sm font-medium">Descrição</span><textarea rows={3} className="admin-input" value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} /></label>
       <label className="block"><span className="text-sm font-medium">Benefícios — um por linha</span><textarea rows={4} className="admin-input" value={benefitsText} onChange={(event) => setBenefitsText(event.target.value)} /></label>

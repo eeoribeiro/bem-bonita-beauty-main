@@ -22,6 +22,7 @@ interface ProdutoItem {
   descricao: string;
   beneficios: string[];
   imagem: string;
+  categoria?: string | null;
   preco?: string | null;
   precoPromocional?: string | null;
   destaque?: boolean;
@@ -90,6 +91,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   const carouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [checkoutMessage, setCheckoutMessage] = useState("");
+  const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
   const productsImage = data?.images.find((image) => image.image_key === "products");
   const products = data
     ? data.products.map((product) => ({
@@ -100,6 +102,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         descricao: product.description,
         beneficios: product.benefits,
         imagem: product.image_url ?? "",
+        categoria: product.category,
         preco: product.price_text,
         precoPromocional: product.promotional_price_text,
         destaque: product.featured,
@@ -107,8 +110,14 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
     : isError
       ? produtosLinha
       : [];
+  const categorias = Array.from(
+    new Set(products.map((product) => product.categoria?.trim()).filter((category): category is string => Boolean(category))),
+  );
+  const produtosFiltrados = paginaCompleta && categoriaAtiva !== "todas"
+    ? products.filter((product) => product.categoria?.trim() === categoriaAtiva)
+    : products;
   const produtosExibidos = paginaCompleta
-    ? products
+    ? produtosFiltrados
     : [...products].sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque))).slice(0, 3);
   const cartQuantity = quantidadeCarrinho(cart);
 
@@ -164,11 +173,32 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
             <span className="rounded-full bg-card px-4 py-2 text-xs font-semibold text-magenta shadow-card sm:text-right">
               {paginaCompleta
                 ? cartQuantity
-                  ? `${cartQuantity} item(ns) no carrinho da navbar`
-                  : "Carrinho na navbar"
+                  ? `${cartQuantity} item(ns) na sacola`
+                  : "Escolha seus produtos"
                 : "Compra online na loja completa"}
             </span>
           </div>
+          {paginaCompleta && categorias.length ? (
+            <div className="-mx-5 mb-7 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+              <button
+                type="button"
+                onClick={() => setCategoriaAtiva("todas")}
+                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition ${categoriaAtiva === "todas" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary hover:text-foreground"}`}
+              >
+                Todas
+              </button>
+              {categorias.map((categoria) => (
+                <button
+                  key={categoria}
+                  type="button"
+                  onClick={() => setCategoriaAtiva(categoria)}
+                  className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition ${categoriaAtiva === categoria ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:border-primary hover:text-foreground"}`}
+                >
+                  {categoria}
+                </button>
+              ))}
+            </div>
+          ) : null}
           {checkoutMessage ? (
             <p className="mb-5 w-fit rounded-2xl bg-card px-4 py-3 text-xs font-medium text-muted-foreground shadow-card">
               {checkoutMessage}
@@ -222,7 +252,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
 
                     <div className="p-4 sm:p-6">
                       <span className="inline-block rounded-full bg-secondary px-3 py-1 text-[11px] font-medium text-magenta">
-                        {produto.curvatura}
+                        {produto.categoria || produto.curvatura}
                       </span>
                       <h4 className="mt-3 font-display text-lg leading-snug sm:text-xl">{produto.nome}</h4>
                       <p className="mt-1 text-xs font-medium text-muted-foreground">{produto.subtitulo}</p>

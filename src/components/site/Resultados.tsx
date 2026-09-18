@@ -35,6 +35,24 @@ const cachos = [
   },
 ];
 
+const trancas = [
+  {
+    imagem: "/media/penteado-trancas-rosa.jpg",
+    alt: "Penteado com tranças laterais e detalhes delicados",
+    titulo: "Tranças laterais personalizadas",
+  },
+  {
+    imagem: "/media/penteado-trancas-douradas.jpg",
+    alt: "Tranças com detalhes dourados em cabelo cacheado",
+    titulo: "Tranças com detalhes dourados",
+  },
+  {
+    imagem: "/media/penteado-trancas-coloridas.jpg",
+    alt: "Penteado com tranças coloridas e acabamento criativo",
+    titulo: "Tranças criativas e coloridas",
+  },
+];
+
 function normalizarFiltro(value?: string | null) {
   return (value ?? "")
     .normalize("NFD")
@@ -48,6 +66,7 @@ export function Resultados() {
   const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
   const fallbackCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const portfolioCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
+  const trancasCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const portfolio = data?.portfolio ?? [];
   const servicos = data?.services ?? [];
   const filtrosServico = useMemo(() => {
@@ -235,6 +254,50 @@ export function Resultados() {
             ))}
           </div>
         )}
+
+        <div className="mt-16 rounded-[2rem] border border-border/70 bg-card/60 p-5 shadow-card sm:p-8">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <TituloSecao
+              eyebrow="Penteados"
+              titulo="Galeria de tranças"
+              texto="Inspirações de tranças e penteados personalizados feitos para valorizar textura, detalhe e movimento."
+            />
+            <BotaoLink
+              href={SALAO.instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              variante="outline"
+              className="shrink-0"
+            >
+              <Instagram className="h-4 w-4" />
+              Ver no Instagram
+            </BotaoLink>
+          </div>
+          <div
+            ref={trancasCarouselRef}
+            className="-mx-5 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3"
+          >
+            {trancas.map((item) => (
+              <figure
+                key={item.titulo}
+                className="group min-w-[78vw] snap-center overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card sm:min-w-0"
+              >
+                <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
+                  <img
+                    src={item.imagem}
+                    alt={item.alt}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
+                </div>
+                <figcaption className="px-4 py-4 text-sm font-semibold text-card-foreground">
+                  {item.titulo}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
 
       </div>
     </section>

@@ -267,7 +267,7 @@ async function handlePagBankCheckout(request: Request) {
   const contactPreference = ["whatsapp", "email"].includes(contactPreferenceRaw) ? contactPreferenceRaw : "whatsapp";
   const privacyConsent = body.customer?.privacyConsent === true;
   const fulfillmentMethodRaw = cleanText(body.customer?.fulfillmentMethod, 30);
-  const fulfillmentMethod = ["pickup", "motoboy"].includes(fulfillmentMethodRaw)
+  const fulfillmentMethod = ["pickup", "motoboy", "shipping"].includes(fulfillmentMethodRaw)
     ? fulfillmentMethodRaw
     : "pickup";
   const deliveryAddress = cleanText(body.customer?.deliveryAddress, 240);
@@ -290,9 +290,9 @@ async function handlePagBankCheckout(request: Request) {
     return jsonResponse({ error: "Aceite o uso dos dados para finalizar o pedido." }, { status: 400 });
   }
 
-  if (fulfillmentMethod === "motoboy" && deliveryAddress.length < 8) {
+  if ((fulfillmentMethod === "motoboy" || fulfillmentMethod === "shipping") && deliveryAddress.length < 8) {
     return jsonResponse(
-      { error: "Informe o endereço para receber em casa." },
+      { error: "Informe o endereço completo para entrega." },
       { status: 400 },
     );
   }
@@ -409,6 +409,7 @@ async function handlePagBankCheckout(request: Request) {
   const fulfillmentLabels: Record<string, string> = {
     pickup: "Retirar no salão",
     motoboy: "Receber em casa por motoboy",
+    shipping: "Receber pelos Correios",
   };
   const orderResponse = await supabaseRest(supabaseUrl, supabaseKey, "product_orders", {
     method: "POST",
