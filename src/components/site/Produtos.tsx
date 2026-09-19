@@ -133,16 +133,33 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
 
   useEffect(() => {
     if (!modalProduct) return;
+    const scrollY = window.scrollY;
     const previousOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousPosition = document.body.style.position;
+    const previousTop = document.body.style.top;
+    const previousWidth = document.body.style.width;
+    const previousTouchAction = document.body.style.touchAction;
+    document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    document.body.style.touchAction = "none";
     setModalQuantity(1);
     setModalNotice("");
-    const closeWithEscape = (event: KeyboardEvent) => {
+    const closeWithEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") setModalProduct(null);
     };
     window.addEventListener("keydown", closeWithEscape);
     return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
       document.body.style.overflow = previousOverflow;
+      document.body.style.position = previousPosition;
+      document.body.style.top = previousTop;
+      document.body.style.width = previousWidth;
+      document.body.style.touchAction = previousTouchAction;
+      window.scrollTo(0, scrollY);
       window.removeEventListener("keydown", closeWithEscape);
     };
   }, [modalProduct]);
