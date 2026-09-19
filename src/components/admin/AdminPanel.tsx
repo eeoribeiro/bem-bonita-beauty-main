@@ -2552,6 +2552,7 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
       name: option.name ?? "",
       size: option.size ?? "",
       price_text: option.price_text ?? "",
+      stock: Number(option.stock ?? 20),
       image_url: option.image_url ?? null,
       storage_path: option.storage_path ?? null,
       active: option.active !== false,
@@ -2577,6 +2578,7 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
           name: "",
           size: "",
           price_text: "",
+          stock: 20,
           image_url: null,
           storage_path: null,
           active: true,
@@ -2648,6 +2650,7 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
           name: option.name.trim(),
           size: option.size?.trim() ?? "",
           price_text: option.price_text.trim(),
+          stock: Math.max(0, Number(option.stock ?? 20) || 0),
         }))
         .filter((option) => option.name || option.price_text || option.image_url),
       price_text: editing.price_text?.trim() ?? "",
@@ -2814,7 +2817,7 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
                 uploading={uploadingOptionId === option.id}
                 onSelect={(file) => void selectOptionImage(option.id, file)}
               />
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="mt-4 grid gap-3 sm:grid-cols-4">
                 <label className="block">
                   <span className="text-sm font-medium">Nome da opção</span>
                   <input className="admin-input" value={option.name} onChange={(event) => updateProductOption(option.id, { name: event.target.value })} placeholder="Ex.: Shampoo" />
@@ -2826,6 +2829,10 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
                 <label className="block">
                   <span className="text-sm font-medium">Preço</span>
                   <input className="admin-input" value={option.price_text} onChange={(event) => updateProductOption(option.id, { price_text: event.target.value })} placeholder="Ex.: R$45,00" />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium">Estoque</span>
+                  <input type="number" min={0} className="admin-input" value={option.stock ?? 20} onChange={(event) => updateProductOption(option.id, { stock: Number(event.target.value) || 0 })} />
                 </label>
               </div>
               <label className="mt-3 flex items-center gap-2 rounded-xl border border-border p-3 text-sm">
@@ -2896,6 +2903,10 @@ function PhotosTab({
         created_at: photo.created_at ?? "Recente",
         label: photo.title || "Foto do portfólio",
         badge: "Portfólio",
+        sort_order: photo.sort_order,
+        display_mode: photo.display_mode ?? "contain",
+        focus_x: photo.focus_x ?? 50,
+        focus_y: photo.focus_y ?? 50,
         source: "space" as const,
       }))
     : images.map((image) => ({
@@ -3009,6 +3020,9 @@ function PhotosTab({
             image_url: fakeUrl,
             storage_path: null,
             alt_text: title,
+            display_mode: "contain",
+            focus_x: 50,
+            focus_y: 50,
             sort_order: prev.length ? Math.max(...prev.map((photo) => photo.sort_order), 0) + 1 : 1,
             published: true,
             created_at: "Agora mesmo",
@@ -3029,6 +3043,9 @@ function PhotosTab({
           image_url: uploaded.url,
           storage_path: uploaded.path,
           alt_text: title,
+          display_mode: "contain",
+          focus_x: 50,
+          focus_y: 50,
           sort_order: sortOrder,
           published: true,
         });
@@ -3074,6 +3091,18 @@ function PhotosTab({
     } catch (error) {
       onError(error instanceof Error ? error.message : "Não foi possível remover a foto.");
       await onReload();
+    }
+  }
+
+  async function updateSpacePhoto(id: string, patch: Partial<SpacePhotoData>) {
+    setSpacePhotos?.((prev) => prev.map((photo) => (photo.id === id ? { ...photo, ...patch } : photo)));
+    if (isDemo) return;
+    const { error } = await getSupabaseClient().from("space_photos").update(patch).eq("id", id);
+    if (error) {
+      onError(error.message);
+      await onReload();
+    } else {
+      onSuccess("Foto do Nosso Espaço atualizada.");
     }
   }
 
@@ -3251,7 +3280,8 @@ function PhotosTab({
                 <img
                   src={img.image_url}
                   alt={img.alt_text}
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  className={`h-full w-full transition duration-300 group-hover:scale-105 ${mode === "space" && img.display_mode !== "cover" ? "object-contain" : "object-cover"}`}
+                  style={mode === "space" ? { objectPosition: `${img.focus_x ?? 50}% ${img.focus_y ?? 50}%` } : undefined}
                 />
               </div>
               <div className="mt-3">
@@ -3261,6 +3291,55 @@ function PhotosTab({
                   <span className="font-mono text-[10px] text-magenta uppercase">{img.badge}</span>
                 </div>
               </div>
+
+              {mode === "space" ? (
+                <div className="mt-3 space-y-3 rounded-2xl border border-border bg-card/60 p-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ordem</span>
+                      <input
+                        type="number"
+                        className="admin-input mt-1 h-10"
+                        value={img.sort_order ?? 0}
+                        onChange={(event) => void updateSpacePhoto(img.id, { sort_order: Number(event.target.value) || 0 })}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Exibição</span>
+                      <select
+                        className="admin-input mt-1 h-10"
+                        value={img.display_mode ?? "contain"}
+                        onChange={(event) => void updateSpacePhoto(img.id, { display_mode: event.target.value as SpacePhotoData["display_mode"] })}
+                      >
+                        <option value="contain">Foto inteira</option>
+                        <option value="cover">Recorte com foco</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label className="block">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Foco horizontal</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={img.focus_x ?? 50}
+                      onChange={(event) => void updateSpacePhoto(img.id, { focus_x: Number(event.target.value) })}
+                      className="w-full accent-primary"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Foco vertical</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={img.focus_y ?? 50}
+                      onChange={(event) => void updateSpacePhoto(img.id, { focus_y: Number(event.target.value) })}
+                      className="w-full accent-primary"
+                    />
+                  </label>
+                </div>
+              ) : null}
 
               <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5">
                 <button

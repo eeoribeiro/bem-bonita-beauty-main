@@ -219,11 +219,18 @@ create table if not exists public.space_photos (
   image_url text not null,
   storage_path text,
   alt_text text not null default 'Foto do espaço Bem Bonita',
+  display_mode text not null default 'contain',
+  focus_x integer not null default 50,
+  focus_y integer not null default 50,
   sort_order integer not null default 0,
   published boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.space_photos add column if not exists display_mode text not null default 'contain';
+alter table public.space_photos add column if not exists focus_x integer not null default 50;
+alter table public.space_photos add column if not exists focus_y integer not null default 50;
 
 -- 7. Depoimentos de Clientes
 create table if not exists public.testimonials (

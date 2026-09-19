@@ -1,11 +1,14 @@
 import { Maximize2, Sparkles, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { usePublicSiteData } from "@/lib/site-data";
 
 type FotoEspaco = {
   url: string;
   titulo: string;
+  displayMode?: "contain" | "cover" | null;
+  focusX?: number | null;
+  focusY?: number | null;
 };
 
 export function Sobre() {
@@ -18,10 +21,22 @@ export function Sobre() {
       .map((image) => ({
         url: image.image_url,
         titulo: image.alt_text || image.title || "Foto do espaço Bem Bonita",
+        displayMode: image.display_mode ?? "contain",
+        focusX: image.focus_x ?? 50,
+        focusY: image.focus_y ?? 50,
       }))
       .filter((foto, index, lista) => lista.findIndex((item) => item.url === foto.url) === index) ?? [];
 
   const carregando = isLoading || isFetching;
+
+  useEffect(() => {
+    if (!selectedPhoto) return;
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedPhoto(null);
+    };
+    window.addEventListener("keydown", closeWithEscape);
+    return () => window.removeEventListener("keydown", closeWithEscape);
+  }, [selectedPhoto]);
 
   return (
     <section
@@ -53,13 +68,13 @@ export function Sobre() {
             ))}
           </div>
         ) : fotosEspaco.length ? (
-          <div className="mt-12 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
+          <div className="mt-12 columns-2 gap-4 sm:columns-3 sm:gap-5 lg:columns-4">
             {fotosEspaco.map((foto, index) => (
               <button
                 key={foto.url}
                 type="button"
                 onClick={() => setSelectedPhoto(foto)}
-                className="group relative block aspect-[4/5] overflow-hidden rounded-[2rem] border border-white/70 bg-card p-2 shadow-[0_18px_55px_rgba(200,100,140,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 dark:border-white/10 dark:bg-white/5"
+                className="group relative mb-4 block w-full break-inside-avoid overflow-hidden rounded-[2rem] border border-white/70 bg-card p-2 shadow-[0_18px_55px_rgba(200,100,140,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 dark:border-white/10 dark:bg-white/5"
                 aria-label={`Ampliar foto do espaço: ${foto.titulo}`}
               >
                 <img
@@ -68,7 +83,8 @@ export function Sobre() {
                   loading={index < 3 ? "eager" : "lazy"}
                   fetchPriority={index < 3 ? "high" : "auto"}
                   decoding="async"
-                  className="h-full w-full rounded-[1.5rem] object-cover transition duration-500 group-hover:scale-[1.03]"
+                  className={`h-auto w-full rounded-[1.5rem] transition duration-500 group-hover:scale-[1.01] ${foto.displayMode === "cover" ? "aspect-[4/5] object-cover" : "object-contain"}`}
+                  style={{ objectPosition: `${foto.focusX ?? 50}% ${foto.focusY ?? 50}%` }}
                 />
                 <span className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
                   <Maximize2 className="h-4 w-4" aria-hidden="true" />
@@ -104,11 +120,7 @@ export function Sobre() {
             >
               <X className="h-5 w-5" />
             </button>
-            <img
-              src={selectedPhoto.url}
-              alt={selectedPhoto.titulo}
-              className="max-h-[86vh] w-full rounded-2xl object-contain"
-            />
+            <img src={selectedPhoto.url} alt={selectedPhoto.titulo} className="max-h-[86vh] w-full rounded-2xl object-contain" />
           </div>
         </div>
       ) : null}

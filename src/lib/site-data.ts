@@ -66,6 +66,9 @@ export type SpacePhotoData = {
   image_url: string;
   storage_path: string | null;
   alt_text: string;
+  display_mode?: "contain" | "cover" | null;
+  focus_x?: number | null;
+  focus_y?: number | null;
   sort_order: number;
   published: boolean;
   created_at?: string;
@@ -121,6 +124,7 @@ export type ProductOptionData = {
   name: string;
   size?: string;
   price_text: string;
+  stock?: number | null;
   image_url?: string | null;
   storage_path?: string | null;
   active?: boolean;

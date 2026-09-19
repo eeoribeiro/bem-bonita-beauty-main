@@ -1,4 +1,4 @@
-import { CheckCircle2, MessageCircle, Sparkles, ShoppingBag, X } from "lucide-react";
+import { CheckCircle2, MessageCircle, Minus, Plus, Sparkles, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { BotaoLink } from "./Botao";
@@ -95,6 +95,8 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [modalProduct, setModalProduct] = useState<ProdutoItem | null>(null);
+  const [modalQuantity, setModalQuantity] = useState(1);
+  const [modalNotice, setModalNotice] = useState("");
   const productsImage = data?.images.find((image) => image.image_key === "products");
   const products = data
     ? data.products.map((product) => ({
@@ -133,6 +135,8 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
     if (!modalProduct) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    setModalQuantity(1);
+    setModalNotice("");
     const closeWithEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setModalProduct(null);
     };
@@ -154,7 +158,18 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
     return options.find((option) => option.id === selectedId) ?? options[0] ?? null;
   }
 
-  function addToCart(product: ProdutoItem) {
+  function getOptionStock(option: ProductOptionData | null) {
+    return Math.max(0, Number(option?.stock ?? 20) || 0);
+  }
+
+  function getUnitPriceText(priceText?: string | null, sizeText?: string | null) {
+    const cents = parsePrecoCentavos(priceText);
+    const size = Number((sizeText ?? "").replace(/[^\d,]/g, "").replace(",", "."));
+    if (!cents || !Number.isFinite(size) || size <= 0) return "";
+    return `${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((cents / 100) / size)}/ml`;
+  }
+
+  function addToCart(product: ProdutoItem, quantity = 1, redirect = true) {
     const selectedOption = getSelectedOption(product);
     const priceText = selectedOption?.price_text || product.precoPromocional || product.preco;
     if (!parsePrecoCentavos(priceText)) {
@@ -162,19 +177,28 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
       return;
     }
     const optionId = selectedOption?.id;
+    const amount = Math.min(Math.max(1, quantity), getOptionStock(selectedOption) || 1);
     const currentCart = readCart();
     const nextCart = (() => {
       const existing = currentCart.find((item) => cartItemKey(item) === cartItemKey({ id: product.id, optionId }));
       if (existing) {
         return currentCart.map((item) =>
-          cartItemKey(item) === cartItemKey({ id: product.id, optionId }) ? { ...item, quantity: Math.min(20, item.quantity + 1) } : item,
+          cartItemKey(item) === cartItemKey({ id: product.id, optionId }) ? { ...item, quantity: Math.min(getOptionStock(selectedOption) || 20, item.quantity + amount) } : item,
         );
       }
-      return [...currentCart, { id: product.id, optionId, quantity: 1 }];
+      return [...currentCart, { id: product.id, optionId, quantity: amount }];
     })();
     setCart(nextCart);
     saveCart(nextCart);
     setCheckoutMessage(`${selectedOption ? `${selectedOption.name} — ` : ""}${product.nome} foi adicionado ao carrinho.`);
+    setModalNotice("Produto adicionado à sacola.");
+    if (redirect) window.location.href = "/checkout";
+  }
+
+  function buyNow(product: ProdutoItem) {
+    const selectedOption = getSelectedOption(product);
+    const amount = Math.min(Math.max(1, modalQuantity), getOptionStock(selectedOption) || 1);
+    saveCart([{ id: product.id, optionId: selectedOption?.id, quantity: amount }]);
     window.location.href = "/checkout";
   }
 
@@ -400,6 +424,12 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         const selectedOption = getSelectedOption(modalProduct);
         const displayImage = selectedOption?.image_url || modalProduct.imagem || kitImg;
         const displayPrice = selectedOption?.price_text || modalProduct.precoPromocional || modalProduct.preco;
+        const stock = getOptionStock(selectedOption);
+        const disabled = stock <= 0 || !parsePrecoCentavos(displayPrice);
+        const unitPrice = getUnitPriceText(displayPrice, selectedOption?.size);
+        const relatedProducts = products
+          .filter((product) => product.id !== modalProduct.id && product.categoria && product.categoria === modalProduct.categoria)
+          .slice(0, 6);
         return (
           <div
             role="dialog"
@@ -436,9 +466,13 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                   <div className="rounded-3xl bg-secondary/60 p-4">
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold">Preço</p>
                     <p className="mt-1 text-2xl font-bold text-magenta">{displayPrice || "Consulte"}</p>
+                    {unitPrice ? <p className="mt-1 text-xs text-muted-foreground">{unitPrice}</p> : null}
                     {selectedOption?.size ? (
                       <p className="mt-1 text-sm text-muted-foreground">Tamanho: {selectedOption.size}</p>
                     ) : null}
+                    <p className={`mt-2 text-xs font-semibold ${stock ? "text-emerald-600" : "text-red-500"}`}>
+                      {stock ? `${stock} disponível(is)` : "Sem estoque"}
+                    </p>
                   </div>
                 </div>
 
@@ -451,19 +485,49 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">{modalProduct.descricao}</p>
                   </div>
 
+                  {relatedProducts.length ? (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-foreground">Produtos relacionados</p>
+                      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                        {[modalProduct, ...relatedProducts].map((product) => (
+                          <button
+                            key={product.id}
+                            type="button"
+                            aria-current={product.id === modalProduct.id ? "true" : undefined}
+                            onClick={() => {
+                              setModalProduct(product);
+                              setModalQuantity(1);
+                            }}
+                            className={`min-w-[8.5rem] rounded-2xl border p-2 text-left transition ${
+                              product.id === modalProduct.id ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/60"
+                            }`}
+                          >
+                            <img src={product.imagem || kitImg} alt={product.nome} className="aspect-square w-full rounded-xl object-cover" />
+                            <span className="mt-2 block line-clamp-2 text-xs font-bold">{product.nome}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
                   {activeOptions.length ? (
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-foreground">Escolha o produto separado</p>
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
                         {activeOptions.map((option) => {
                           const checked = selectedOption?.id === option.id;
+                          const optionStock = getOptionStock(option);
                           return (
                             <button
                               key={option.id}
                               type="button"
+                              disabled={optionStock <= 0}
+                              aria-pressed={checked}
                               onClick={() => setSelectedOptions((current) => ({ ...current, [modalProduct.id]: option.id }))}
                               className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition ${
-                                checked
+                                optionStock <= 0
+                                  ? "cursor-not-allowed border-border bg-muted/40 opacity-55"
+                                  : checked
                                   ? "border-primary bg-primary/10 ring-2 ring-primary/20"
                                   : "border-border bg-background hover:border-primary/60"
                               }`}
@@ -474,9 +538,10 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                                 className="h-16 w-16 shrink-0 rounded-xl bg-secondary object-cover"
                               />
                               <span className="min-w-0 flex-1">
-                                <span className="block font-bold text-foreground">{option.name}</span>
-                                {option.size ? <span className="mt-0.5 block text-xs text-muted-foreground">{option.size}</span> : null}
+                                <span className={`block font-bold text-foreground ${optionStock <= 0 ? "line-through" : ""}`}>{option.name}</span>
+                                {option.size ? <span className={`mt-0.5 block text-xs text-muted-foreground ${optionStock <= 0 ? "line-through" : ""}`}>{option.size}</span> : null}
                                 {option.price_text ? <span className="mt-1 block text-sm font-bold text-magenta">{option.price_text}</span> : null}
+                                <span className="mt-0.5 block text-[11px] text-muted-foreground">{optionStock ? `${optionStock} em estoque` : "Sem estoque"}</span>
                               </span>
                             </button>
                           );
@@ -499,17 +564,49 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                     </div>
                   ) : null}
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      addToCart(modalProduct);
-                      setModalProduct(null);
-                    }}
-                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-soft transition hover:brightness-105"
-                  >
-                    <ShoppingBag className="h-4 w-4" />
-                    Adicionar ao carrinho
-                  </button>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-foreground">Quantidade</p>
+                    <div className="mt-2 flex w-fit items-center rounded-full border border-border bg-background p-1">
+                      <button type="button" onClick={() => setModalQuantity((value) => Math.max(1, value - 1))} className="flex h-10 w-10 items-center justify-center rounded-full bg-card" aria-label="Diminuir quantidade">
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="w-12 text-center text-sm font-bold">{modalQuantity}</span>
+                      <button type="button" onClick={() => setModalQuantity((value) => Math.min(stock || 1, value + 1))} className="flex h-10 w-10 items-center justify-center rounded-full bg-card" aria-label="Aumentar quantidade">
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {modalProduct.opcoes?.length && modalProduct.precoPromocional ? (
+                    <div className="rounded-2xl border border-primary/25 bg-primary/10 p-4 text-sm">
+                      {activeOptions.length ? "Esse item faz parte deste card/kit. " : ""}
+                      <button type="button" onClick={() => setSelectedOptions((current) => ({ ...current, [modalProduct.id]: activeOptions[0]?.id ?? "" }))} className="font-bold text-magenta hover:underline">
+                        Ver opções do kit completo por {modalProduct.precoPromocional}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {modalNotice ? <p className="rounded-2xl bg-secondary px-4 py-3 text-xs font-semibold text-magenta">{modalNotice}</p> : null}
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => buyNow(modalProduct)}
+                      className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-soft transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Comprar agora
+                    </button>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => addToCart(modalProduct, modalQuantity, false)}
+                      className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-primary bg-card px-5 text-sm font-bold text-magenta transition hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <ShoppingBag className="h-4 w-4" />
+                      Adicionar ao carrinho
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
