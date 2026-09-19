@@ -1,5 +1,5 @@
 import { CheckCircle2, MessageCircle, Minus, Plus, Sparkles, ShoppingBag, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 
 import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
@@ -200,6 +200,25 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
     const amount = Math.min(Math.max(1, modalQuantity), getOptionStock(selectedOption) || 1);
     saveCart([{ id: product.id, optionId: selectedOption?.id, quantity: amount }]);
     window.location.href = "/checkout";
+  }
+
+  function trapModalFocus(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   return (
@@ -437,6 +456,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
             aria-label={`Detalhes de ${modalProduct.nome}`}
             className="fixed inset-0 z-[220] flex items-center justify-center bg-black/45 p-4 backdrop-blur-md"
             onMouseDown={(event) => event.target === event.currentTarget && setModalProduct(null)}
+            onKeyDown={trapModalFocus}
           >
             <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-border/70 bg-card shadow-2xl">
               <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card/90 p-4 backdrop-blur sm:p-5">
