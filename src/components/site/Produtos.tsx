@@ -1,5 +1,6 @@
 import { CheckCircle2, MessageCircle, Minus, Plus, Sparkles, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 
 import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
@@ -466,16 +467,17 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         const relatedProducts = products
           .filter((product) => product.id !== modalProduct.id && product.categoria && product.categoria === modalProduct.categoria)
           .slice(0, 6);
-        return (
+        if (typeof document === "undefined") return null;
+        return createPortal(
           <div
             role="dialog"
             aria-modal="true"
             aria-label={`Detalhes de ${modalProduct.nome}`}
-            className="fixed inset-0 z-[220] flex items-center justify-center bg-black/45 p-4 backdrop-blur-md"
+            className="fixed inset-0 z-[220] flex h-[100dvh] items-center justify-center overflow-hidden bg-black/45 p-3 backdrop-blur-md sm:p-5"
             onMouseDown={(event) => event.target === event.currentTarget && setModalProduct(null)}
             onKeyDown={trapModalFocus}
           >
-            <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-border/70 bg-card shadow-2xl">
+            <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-border/70 bg-card shadow-2xl sm:max-h-[calc(100dvh-2.5rem)]">
               <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card/90 p-4 backdrop-blur sm:p-5">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-magenta">Produto Bem Bonita</p>
@@ -647,7 +649,8 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body,
         );
       })() : null}
     </section>
