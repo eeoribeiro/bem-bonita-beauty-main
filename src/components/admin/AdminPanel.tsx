@@ -2895,14 +2895,14 @@ function PhotosTab({
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; storage_path: string | null; title: string; source: "site" | "space" } | null>(null);
   const visibleHistory = mode === "space"
-    ? spacePhotos.map((photo) => ({
+    ? [...spacePhotos].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((photo, index) => ({
         id: photo.id,
         image_url: photo.image_url,
         alt_text: photo.alt_text || photo.title || "Foto do espaço Bem Bonita",
         storage_path: photo.storage_path,
         created_at: photo.created_at ?? "Recente",
         label: photo.title || "Foto do portfólio",
-        badge: "Portfólio",
+        badge: index === 0 ? "Foto destaque" : "Portfólio",
         sort_order: photo.sort_order,
         display_mode: photo.display_mode ?? "contain",
         focus_x: photo.focus_x ?? 50,
@@ -3253,7 +3253,7 @@ function PhotosTab({
               {mode === "space" ? "Fotos do portfólio" : "Histórico de Fotos Cadastradas"}
             </h2>
             <p className="text-xs text-muted-foreground mt-1">
-              {mode === "space" ? "Somente as fotos adicionadas aqui aparecem na aba “Nosso Espaço” do site." : "Registro de todas as fotos ativas no salão. Você pode copiar o link ou consultar as imagens."}
+              {mode === "space" ? "A foto com menor ordem vira a imagem grande de destaque no topo da seção “Nosso Espaço”. As demais aparecem no mosaico abaixo." : "Registro de todas as fotos ativas no salão. Você pode copiar o link ou consultar as imagens."}
             </p>
           </div>
           <span className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full font-medium">

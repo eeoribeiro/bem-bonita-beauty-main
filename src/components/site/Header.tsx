@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { LoaderCircle, Menu, Minus, Moon, Plus, ShoppingBag, Sun, Trash2, UserRound, X } from "lucide-react";
+import { LoaderCircle, Menu, Minus, Plus, ShoppingBag, Trash2, UserRound, X } from "lucide-react";
 
 import { BotaoLink } from "./Botao";
 import { Logo } from "./Logo";
 import { cartChangeEvent, formatarMoeda, getProductPriceText, parsePrecoCentavos, quantidadeCarrinho, readCart, saveCart, type CartItem } from "@/lib/cart";
 import { usePublicSiteData, type ProductData } from "@/lib/site-data";
-import { useTheme } from "@/hooks/use-theme";
 
 const NAV_ITEMS = [
   { label: "Início", href: "/#inicio" },
@@ -16,26 +15,6 @@ const NAV_ITEMS = [
   { label: "Loja", href: "/produtos" },
   { label: "Contato", href: "/#localizacao" },
 ] as const;
-
-function ThemeButton({
-  isLight,
-  onClick,
-}: {
-  isLight: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/70 bg-card text-foreground/80 transition-colors hover:border-primary hover:text-magenta"
-      aria-label={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
-      title={isLight ? "Ativar modo escuro" : "Ativar modo claro"}
-    >
-      {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-    </button>
-  );
-}
 
 function TrackOrderButton({ className = "" }: { className?: string }) {
   return (
@@ -410,9 +389,10 @@ function CartButton() {
 export function Header() {
   const [aberto, setAberto] = useState(false);
   const [rolou, setRolou] = useState(false);
-  const { toggleTheme, isLight } = useTheme();
 
   useEffect(() => {
+    document.documentElement.classList.remove("light");
+    window.localStorage.setItem("bem-bonita-theme", "dark");
     const onScroll = () => setRolou(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -448,7 +428,6 @@ export function Header() {
           <a href="/" className="min-w-0" aria-label="Bem Bonita — início">
             <Logo />
           </a>
-          <ThemeButton isLight={isLight} onClick={toggleTheme} />
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
