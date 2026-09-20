@@ -2919,6 +2919,7 @@ function PhotosTab({
         badge: image.image_key,
         source: "site" as const,
       }));
+  const highlightPhoto = mode === "space" ? visibleHistory[0] : null;
 
   const mainSlots = [
     {
@@ -3007,10 +3008,10 @@ function PhotosTab({
     setNewTitle("");
   }
 
-  async function handleCreateSpacePortfolioPhoto(file: File) {
-    setUploading("space_portfolio");
+  async function handleCreateSpacePortfolioPhoto(file: File, asHighlight = false) {
+    setUploading(asHighlight ? "space_highlight" : "space_portfolio");
     try {
-      const title = newTitle.trim() || "Foto do portfólio do Espaço Bem Bonita";
+      const title = newTitle.trim() || (asHighlight ? "Foto grande do topo do Nosso Espaço" : "Foto do portfólio do Espaço Bem Bonita");
       if (isDemo) {
         const fakeUrl = URL.createObjectURL(file);
         setSpacePhotos?.((prev) => [
@@ -3023,19 +3024,23 @@ function PhotosTab({
             display_mode: "contain",
             focus_x: 50,
             focus_y: 50,
-            sort_order: prev.length ? Math.max(...prev.map((photo) => photo.sort_order), 0) + 1 : 1,
+            sort_order: asHighlight
+              ? (prev.length ? Math.min(...prev.map((photo) => photo.sort_order), 0) - 1 : 0)
+              : (prev.length ? Math.max(...prev.map((photo) => photo.sort_order), 0) + 1 : 1),
             published: true,
             created_at: "Agora mesmo",
           },
           ...prev,
         ]);
-        onSuccess("Foto adicionada ao portfólio em tempo real!");
+        onSuccess(asHighlight ? "Foto destaque atualizada em tempo real!" : "Foto adicionada ao portfólio em tempo real!");
         setNewTitle("");
         return;
       }
 
       const uploaded = await uploadImagem(file, "space", "space-photos");
-      const sortOrder = spacePhotos.length ? Math.max(...spacePhotos.map((photo) => photo.sort_order), 0) + 1 : 1;
+      const sortOrder = asHighlight
+        ? (spacePhotos.length ? Math.min(...spacePhotos.map((photo) => photo.sort_order), 0) - 1 : 0)
+        : (spacePhotos.length ? Math.max(...spacePhotos.map((photo) => photo.sort_order), 0) + 1 : 1);
       const { error } = await getSupabaseClient()
         .from("space_photos")
         .insert({
@@ -3051,7 +3056,7 @@ function PhotosTab({
         });
       if (error) throw error;
       await onReload();
-      onSuccess("Foto adicionada ao portfólio do Nosso Espaço.");
+      onSuccess(asHighlight ? "Foto grande do topo atualizada no Nosso Espaço." : "Foto adicionada ao portfólio do Nosso Espaço.");
       setNewTitle("");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Não foi possível enviar a imagem.");
@@ -3165,6 +3170,74 @@ function PhotosTab({
                 }}
               />
             </label>
+          </div>
+        </div>
+      ) : null}
+
+      {mode === "space" ? (
+        <div className="rounded-[2rem] border border-primary/45 bg-primary/10 p-5 shadow-card sm:p-7">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
+            <div>
+              <p className="eyebrow flex items-center gap-2 text-primary">
+                <Images className="h-3.5 w-3.5" />
+                Foto grande do topo do site
+              </p>
+              <h2 className="mt-2 font-display text-2xl">Imagem destaque do “Nosso Espaço”</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                Esta é exatamente a foto grande que aparece ao lado do texto “Nosso espaço” no site.
+                Para trocar, envie uma nova foto destaque ou deixe outra foto com a menor Ordem.
+              </p>
+              <div className="mt-4 rounded-2xl border border-border bg-background/70 p-4 text-sm">
+                <p className="font-semibold text-foreground">Como controlar:</p>
+                <p className="mt-1 text-muted-foreground">
+                  A foto com o menor número no campo <strong>Ordem</strong> vira destaque. As outras ficam no mosaico “a casa por dentro”.
+                </p>
+              </div>
+              <label className="mt-5 inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:-translate-y-0.5">
+                {uploading === "space_highlight" ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {uploading === "space_highlight" ? "Enviando destaque..." : "Enviar nova foto destaque"}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                  disabled={Boolean(uploading)}
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void handleCreateSpacePortfolioPhoto(file, true);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+            <div className="rounded-[1.7rem] border border-border bg-background p-3 shadow-card">
+              {highlightPhoto ? (
+                <>
+                  <div className="relative overflow-hidden rounded-[1.35rem] bg-secondary">
+                    <img
+                      src={highlightPhoto.image_url}
+                      alt={highlightPhoto.alt_text}
+                      className="aspect-[4/3] w-full object-cover"
+                      style={{ objectPosition: `${highlightPhoto.focus_x ?? 50}% ${highlightPhoto.focus_y ?? 50}%` }}
+                    />
+                    <span className="absolute left-4 top-4 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow-soft">
+                      Foto destaque atual
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground">{highlightPhoto.label}</span>
+                    <span>Ordem: {highlightPhoto.sort_order ?? 0}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex min-h-64 items-center justify-center rounded-[1.35rem] border border-dashed border-primary/35 bg-secondary/40 p-6 text-center text-sm text-muted-foreground">
+                  Nenhuma foto destaque ainda. Envie uma foto para aparecer no topo do “Nosso Espaço”.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : null}
