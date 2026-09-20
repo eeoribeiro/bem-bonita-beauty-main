@@ -75,7 +75,7 @@ export function Agendamento() {
   };
 
   return (
-    <section id="agendamento" className="relative overflow-hidden bg-ink py-20 lg:py-28 text-ink-foreground">
+    <section id="agendamento" className="relative overflow-hidden bg-background py-20 text-foreground lg:py-28">
       <div
         aria-hidden
         className="absolute -left-20 top-10 h-80 w-80 rounded-full bg-primary/20 blur-3xl pointer-events-none"
@@ -94,7 +94,7 @@ export function Agendamento() {
           <h2 className="mt-4 text-3xl sm:text-5xl font-display leading-tight">
             Pronta para viver a sua transformação?
           </h2>
-          <p className="mt-4 text-sm sm:text-base leading-relaxed text-ink-foreground/75">
+          <p className="mt-4 text-sm sm:text-base leading-relaxed text-muted-foreground">
             Preencha os dados abaixo para preparar seu atendimento sob medida. Você será direcionada
             diretamente ao WhatsApp com a mensagem pronta para envio.
           </p>
@@ -214,7 +214,7 @@ export function Agendamento() {
           <BotaoLink
             href="#localizacao"
             variante="outline"
-            className="border-ink-foreground/35 text-ink-foreground hover:bg-ink-foreground/10 text-xs"
+            className="border-border text-foreground hover:bg-secondary text-xs"
           >
             <MapPin className="h-4 w-4" />
             Ver endereço e como chegar no Lanna Shopping

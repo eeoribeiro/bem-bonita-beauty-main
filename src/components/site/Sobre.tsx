@@ -1,4 +1,4 @@
-import { Maximize2, Sparkles, X } from "lucide-react";
+import { ArrowRight, Maximize2, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { usePublicSiteData } from "@/lib/site-data";
@@ -41,25 +41,38 @@ export function Sobre() {
   return (
     <section
       id="nosso-espaco"
-      className="bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--secondary)/0.55)_100%)] py-20 lg:py-28"
+      className="relative overflow-hidden bg-background py-20 text-foreground lg:py-28"
     >
+      <div aria-hidden className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-full bg-primary/15 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -right-28 bottom-10 h-96 w-96 rounded-full bg-gold/10 blur-3xl" />
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="eyebrow mx-auto flex w-fit items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
-            Nosso Espaço
-          </p>
-          <h2 className="mt-3 font-display text-3xl leading-tight sm:text-4xl">
-            Nosso Espaço
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Um portfólio visual do salão, pensado para mostrar o ambiente, os detalhes e a
-            experiência de cuidado que as clientes encontram por aqui.
-          </p>
+        <div className="relative grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-end">
+          <div>
+            <p className="eyebrow flex w-fit items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
+              Nosso Espaço
+            </p>
+            <h2 className="mt-3 font-display text-4xl leading-tight sm:text-5xl lg:text-[4.6rem]">
+              Um cantinho pensado para você se sentir bem
+            </h2>
+          </div>
+          <div className="rounded-[2rem] border border-border bg-card/70 p-5 shadow-card backdrop-blur sm:p-6">
+            <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Um portfólio visual do salão, pensado para mostrar o ambiente, os detalhes e a
+              experiência de cuidado que as clientes encontram por aqui.
+            </p>
+            <a
+              href="#agendamento"
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-soft transition hover:brightness-105"
+            >
+              Quero conhecer o espaço
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
         </div>
 
         {carregando ? (
-          <div className="mt-12 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
+          <div className="mt-12 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
@@ -68,29 +81,31 @@ export function Sobre() {
             ))}
           </div>
         ) : fotosEspaco.length ? (
-          <div className="mt-12 columns-2 gap-4 sm:columns-3 sm:gap-5 lg:columns-4">
-            {fotosEspaco.map((foto, index) => (
-              <button
-                key={foto.url}
-                type="button"
-                onClick={() => setSelectedPhoto(foto)}
-                className="group relative mb-4 block w-full break-inside-avoid overflow-hidden rounded-[2rem] border border-white/70 bg-card p-2 shadow-[0_18px_55px_rgba(200,100,140,0.18)] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 dark:border-white/10 dark:bg-white/5"
-                aria-label={`Ampliar foto do espaço: ${foto.titulo}`}
-              >
-                <img
-                  src={foto.url}
-                  alt={foto.titulo}
-                  loading={index < 3 ? "eager" : "lazy"}
-                  fetchPriority={index < 3 ? "high" : "auto"}
-                  decoding="async"
-                  className={`h-auto w-full rounded-[1.5rem] transition duration-500 group-hover:scale-[1.01] ${foto.displayMode === "cover" ? "aspect-[4/5] object-cover" : "object-contain"}`}
-                  style={{ objectPosition: `${foto.focusX ?? 50}% ${foto.focusY ?? 50}%` }}
-                />
-                <span className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
-                  <Maximize2 className="h-4 w-4" aria-hidden="true" />
-                </span>
-              </button>
-            ))}
+          <div className="relative mt-12 rounded-[2.5rem] border border-border bg-card/55 p-3 shadow-[0_28px_90px_-55px_rgba(216,27,114,0.55)] backdrop-blur sm:p-4 lg:p-5">
+            <div className="columns-2 gap-3 sm:columns-3 sm:gap-4 lg:columns-4">
+              {fotosEspaco.map((foto, index) => (
+                <button
+                  key={foto.url}
+                  type="button"
+                  onClick={() => setSelectedPhoto(foto)}
+                  className="group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-[1.7rem] border border-border/75 bg-background p-2 text-left shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 sm:mb-4"
+                  aria-label={`Ampliar foto do espaço: ${foto.titulo}`}
+                >
+                  <img
+                    src={foto.url}
+                    alt={foto.titulo}
+                    loading={index < 4 ? "eager" : "lazy"}
+                    fetchPriority={index < 4 ? "high" : "auto"}
+                    decoding="async"
+                    className={`h-auto w-full rounded-[1.25rem] transition duration-500 group-hover:scale-[1.01] ${foto.displayMode === "cover" ? "aspect-[4/5] object-cover" : "object-contain"}`}
+                    style={{ objectPosition: `${foto.focusX ?? 50}% ${foto.focusY ?? 50}%` }}
+                  />
+                  <span className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-background/90 text-magenta opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
+                    <Maximize2 className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="mx-auto mt-12 max-w-2xl rounded-[2rem] border border-dashed border-primary/35 bg-card p-8 text-center shadow-card">

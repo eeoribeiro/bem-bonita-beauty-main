@@ -28,7 +28,7 @@ const reels = [
 
 export function InstagramReels() {
   return (
-    <section className="overflow-hidden bg-foreground py-16 text-background lg:py-24">
+    <section className="overflow-hidden bg-background py-16 text-foreground lg:py-24">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
@@ -36,7 +36,7 @@ export function InstagramReels() {
             <h2 className="mt-3 font-display text-4xl leading-tight sm:text-5xl">
               Nos acompanhe no Instagram também
             </h2>
-            <p className="mt-4 text-sm leading-relaxed text-background/70 sm:text-base">
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
               Veja vídeos, bastidores, resultados recentes e novidades do Salão Bem Bonita direto no Instagram.
             </p>
           </div>
@@ -45,7 +45,7 @@ export function InstagramReels() {
             target="_blank"
             rel="noopener noreferrer"
             variante="outline"
-            className="border-background/25 text-background hover:bg-background hover:text-foreground"
+            className="border-border text-foreground hover:bg-secondary"
           >
             <Instagram className="h-4 w-4" />
             Ver perfil completo
@@ -60,7 +60,7 @@ export function InstagramReels() {
               href={reel.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative min-w-[74vw] snap-center overflow-hidden rounded-[2rem] border border-background/10 bg-background/10 shadow-[0_24px_70px_-35px_rgba(236,102,171,0.85)] sm:min-w-0"
+              className="group relative min-w-[74vw] snap-center overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_24px_70px_-35px_rgba(236,102,171,0.85)] sm:min-w-0"
             >
               <img
                 src={reel.imagem}
