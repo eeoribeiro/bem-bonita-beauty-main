@@ -1,4 +1,4 @@
-import { ArrowRight, Maximize2, Sparkles, X } from "lucide-react";
+import { Maximize2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { usePublicSiteData } from "@/lib/site-data";
@@ -28,6 +28,8 @@ export function Sobre() {
       .filter((foto, index, lista) => lista.findIndex((item) => item.url === foto.url) === index) ?? [];
 
   const carregando = isLoading || isFetching;
+  const fotoDestaque = fotosEspaco[0] ?? null;
+  const fotosGaleria = fotosEspaco.length > 1 ? fotosEspaco.slice(1) : fotosEspaco;
 
   useEffect(() => {
     if (!selectedPhoto) return;
@@ -41,54 +43,72 @@ export function Sobre() {
   return (
     <section
       id="nosso-espaco"
-      className="relative overflow-hidden bg-background py-20 text-foreground lg:py-28"
+      className="relative overflow-hidden bg-[#181113] py-20 text-white lg:py-28"
     >
-      <div aria-hidden className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-full bg-primary/15 blur-3xl" />
-      <div aria-hidden className="pointer-events-none absolute -right-28 bottom-10 h-96 w-96 rounded-full bg-gold/10 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -left-28 top-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -right-28 top-0 h-96 w-96 rounded-full bg-gold/10 blur-3xl" />
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
-        <div className="relative grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-end">
-          <div>
-            <p className="eyebrow flex w-fit items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
-              Nosso Espaço
-            </p>
-            <h2 className="mt-3 font-display text-4xl leading-tight sm:text-5xl lg:text-[4.6rem]">
-              Um cantinho pensado para você se sentir bem
+        <div className="relative grid min-h-[34rem] gap-10 lg:grid-cols-[0.78fr_1.22fr] lg:items-center">
+          <div className="max-w-xl pt-8 lg:pt-16">
+            <h2 className="font-display text-4xl leading-tight text-white sm:text-5xl lg:text-[3.45rem]">
+              Nosso espaço
             </h2>
-          </div>
-          <div className="rounded-[2rem] border border-border bg-card/70 p-5 shadow-card backdrop-blur sm:p-6">
-            <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Um portfólio visual do salão, pensado para mostrar o ambiente, os detalhes e a
-              experiência de cuidado que as clientes encontram por aqui.
+            <p className="mt-5 max-w-md text-base leading-8 text-white/72">
+              Poucos metros quadrados, mas cada estação foi pensada com carinho: mármore branco,
+              ripas de madeira e um cantinho reservado pra cada cliente.
             </p>
-            <a
-              href="#agendamento"
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-soft transition hover:brightness-105"
-            >
-              Quero conhecer o espaço
-              <ArrowRight className="h-4 w-4" />
-            </a>
+            <div className="mt-8 flex items-center gap-4 text-sm text-white/76">
+              <span className="h-px w-11 bg-gold" aria-hidden="true" />
+              <span>{fotosEspaco.length || 0} registros do dia a dia do salão</span>
+            </div>
           </div>
+
+          {fotoDestaque ? (
+            <button
+              type="button"
+              onClick={() => setSelectedPhoto(fotoDestaque)}
+              className="group relative overflow-hidden rounded-[1.2rem] border border-white/35 bg-white/5 shadow-[0_26px_90px_-45px_rgba(255,170,210,0.55)] transition duration-300 hover:-translate-y-1 hover:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
+              aria-label={`Ampliar foto do espaço: ${fotoDestaque.titulo}`}
+            >
+              <img
+                src={fotoDestaque.url}
+                alt={fotoDestaque.titulo}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+                className="aspect-[4/5] w-full object-cover transition duration-700 group-hover:scale-[1.025] lg:max-h-[44rem]"
+                style={{ objectPosition: `${fotoDestaque.focusX ?? 50}% ${fotoDestaque.focusY ?? 50}%` }}
+              />
+              <span className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
+                <Maximize2 className="h-4 w-4" aria-hidden="true" />
+              </span>
+            </button>
+          ) : null}
+        </div>
+
+        <div className="mt-14 flex items-center gap-5 text-xs text-white/68">
+          <span className="shrink-0">a casa por dentro</span>
+          <span className="h-px flex-1 bg-white/14" aria-hidden="true" />
         </div>
 
         {carregando ? (
-          <div className="mt-12 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="aspect-[4/5] animate-pulse rounded-[2rem] border border-border/60 bg-secondary/70 shadow-card"
+                className="aspect-[4/5] animate-pulse rounded-[1.5rem] border border-white/10 bg-white/10 shadow-card"
               />
             ))}
           </div>
-        ) : fotosEspaco.length ? (
-          <div className="relative mt-12 rounded-[2.5rem] border border-border bg-card/55 p-3 shadow-[0_28px_90px_-55px_rgba(216,27,114,0.55)] backdrop-blur sm:p-4 lg:p-5">
+        ) : fotosGaleria.length ? (
+          <div className="relative mt-8">
             <div className="columns-2 gap-3 sm:columns-3 sm:gap-4 lg:columns-4">
-              {fotosEspaco.map((foto, index) => (
+              {fotosGaleria.map((foto, index) => (
                 <button
                   key={foto.url}
                   type="button"
                   onClick={() => setSelectedPhoto(foto)}
-                  className="group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-[1.7rem] border border-border/75 bg-background p-2 text-left shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30 sm:mb-4"
+                  className="group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-[1.35rem] border border-white/12 bg-white/[0.04] p-2 text-left shadow-[0_18px_58px_-38px_rgba(0,0,0,0.9)] transition duration-300 hover:-translate-y-1 hover:border-primary/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:mb-4"
                   aria-label={`Ampliar foto do espaço: ${foto.titulo}`}
                 >
                   <img
@@ -97,10 +117,10 @@ export function Sobre() {
                     loading={index < 4 ? "eager" : "lazy"}
                     fetchPriority={index < 4 ? "high" : "auto"}
                     decoding="async"
-                    className={`h-auto w-full rounded-[1.25rem] transition duration-500 group-hover:scale-[1.01] ${foto.displayMode === "cover" ? "aspect-[4/5] object-cover" : "object-contain"}`}
+                    className={`h-auto w-full rounded-[1rem] transition duration-500 group-hover:scale-[1.01] ${foto.displayMode === "cover" ? "aspect-[4/5] object-cover" : "object-contain"}`}
                     style={{ objectPosition: `${foto.focusX ?? 50}% ${foto.focusY ?? 50}%` }}
                   />
-                  <span className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-background/90 text-magenta opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
+                  <span className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
                     <Maximize2 className="h-4 w-4" aria-hidden="true" />
                   </span>
                 </button>
