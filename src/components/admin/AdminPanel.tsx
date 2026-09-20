@@ -3111,6 +3111,72 @@ function PhotosTab({
     }
   }
 
+  async function saveSpacePhotoOrder(orderedIds: string[], message: string) {
+    const currentPhotos = [...spacePhotos].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const orderedPhotos = orderedIds
+      .map((id) => currentPhotos.find((photo) => photo.id === id))
+      .filter(Boolean) as SpacePhotoData[];
+    const remainingPhotos = currentPhotos.filter((photo) => !orderedIds.includes(photo.id));
+    const normalizedPhotos = [...orderedPhotos, ...remainingPhotos].map((photo, index) => ({
+      ...photo,
+      sort_order: index + 1,
+    }));
+
+    setSpacePhotos?.(normalizedPhotos);
+    if (isDemo) {
+      onSuccess(message);
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+    const results = await Promise.all(
+      normalizedPhotos.map((photo) =>
+        supabase.from("space_photos").update({ sort_order: photo.sort_order }).eq("id", photo.id),
+      ),
+    );
+    const failed = results.find((result) => result.error);
+    if (failed?.error) {
+      onError(failed.error.message);
+      await onReload();
+      return;
+    }
+    onSuccess(message);
+  }
+
+  function moveSpacePhoto(id: string, direction: "up" | "down") {
+    const orderedIds = [...spacePhotos]
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      .map((photo) => photo.id);
+    const index = orderedIds.indexOf(id);
+    const nextIndex = direction === "up" ? index - 1 : index + 1;
+    if (index < 0 || nextIndex < 0 || nextIndex >= orderedIds.length) return;
+    const nextIds = [...orderedIds];
+    [nextIds[index], nextIds[nextIndex]] = [nextIds[nextIndex], nextIds[index]];
+    void saveSpacePhotoOrder(nextIds, "Ordem das fotos atualizada.");
+  }
+
+  function setSpacePhotoPosition(id: string, position: number) {
+    const orderedIds = [...spacePhotos]
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      .map((photo) => photo.id);
+    const currentIndex = orderedIds.indexOf(id);
+    const nextIndex = Math.max(0, Math.min(position - 1, orderedIds.length - 1));
+    if (currentIndex < 0 || currentIndex === nextIndex) return;
+    const nextIds = [...orderedIds];
+    const [selectedId] = nextIds.splice(currentIndex, 1);
+    nextIds.splice(nextIndex, 0, selectedId);
+    void saveSpacePhotoOrder(nextIds, "Posição da foto atualizada.");
+  }
+
+  function makeSpacePhotoHighlight(id: string) {
+    const orderedIds = [...spacePhotos]
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      .map((photo) => photo.id);
+    if (orderedIds[0] === id) return;
+    const nextIds = [id, ...orderedIds.filter((photoId) => photoId !== id)];
+    void saveSpacePhotoOrder(nextIds, "Foto definida como destaque do topo.");
+  }
+
   return (
     <section className="space-y-12">
       {/* Topo da Aba */}
@@ -3367,28 +3433,69 @@ function PhotosTab({
 
               {mode === "space" ? (
                 <div className="mt-3 space-y-3 rounded-2xl border border-border bg-card/60 p-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <label className="block">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Ordem</span>
-                      <input
-                        type="number"
-                        className="admin-input mt-1 h-10"
-                        value={img.sort_order ?? 0}
-                        onChange={(event) => void updateSpacePhoto(img.id, { sort_order: Number(event.target.value) || 0 })}
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Exibição</span>
-                      <select
-                        className="admin-input mt-1 h-10"
-                        value={img.display_mode ?? "contain"}
-                        onChange={(event) => void updateSpacePhoto(img.id, { display_mode: event.target.value as SpacePhotoData["display_mode"] })}
+                  <div className="rounded-2xl border border-primary/25 bg-primary/10 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                          Posição no site
+                        </span>
+                        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                          #{visibleHistory.findIndex((photo) => photo.id === img.id) + 1}
+                          {visibleHistory[0]?.id === img.id ? " — foto grande do topo" : " — mosaico"}
+                        </p>
+                      </div>
+                      {visibleHistory[0]?.id !== img.id ? (
+                        <button
+                          type="button"
+                          onClick={() => makeSpacePhotoHighlight(img.id)}
+                          className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-[10px] font-bold text-primary-foreground transition hover:-translate-y-0.5"
+                        >
+                          Tornar destaque
+                        </button>
+                      ) : null}
+                    </div>
+                    <select
+                      className="admin-input mt-3 h-11 text-sm font-semibold"
+                      value={visibleHistory.findIndex((photo) => photo.id === img.id) + 1}
+                      onChange={(event) => setSpacePhotoPosition(img.id, Number(event.target.value))}
+                      aria-label={`Posição da foto ${img.label} no site`}
+                    >
+                      {visibleHistory.map((photo, index) => (
+                        <option key={photo.id} value={index + 1}>
+                          {index + 1} {index === 0 ? "— destaque do topo" : "— mosaico"}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => moveSpacePhoto(img.id, "up")}
+                        disabled={visibleHistory[0]?.id === img.id}
+                        className="inline-flex items-center justify-center gap-1 rounded-xl border border-border bg-background px-3 py-2 text-[11px] font-bold text-foreground transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        <option value="contain">Foto inteira</option>
-                        <option value="cover">Recorte com foco</option>
-                      </select>
-                    </label>
+                        <ArrowUp className="h-3.5 w-3.5" /> Subir
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveSpacePhoto(img.id, "down")}
+                        disabled={visibleHistory[visibleHistory.length - 1]?.id === img.id}
+                        className="inline-flex items-center justify-center gap-1 rounded-xl border border-border bg-background px-3 py-2 text-[11px] font-bold text-foreground transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <ArrowDown className="h-3.5 w-3.5" /> Descer
+                      </button>
+                    </div>
                   </div>
+                  <label className="block">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Exibição da foto</span>
+                    <select
+                      className="admin-input mt-1 h-11 text-sm"
+                      value={img.display_mode ?? "contain"}
+                      onChange={(event) => void updateSpacePhoto(img.id, { display_mode: event.target.value as SpacePhotoData["display_mode"] })}
+                    >
+                      <option value="contain">Foto inteira</option>
+                      <option value="cover">Recorte com foco</option>
+                    </select>
+                  </label>
                   <label className="block">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Foco horizontal</span>
                     <input
