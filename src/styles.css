@@ -270,6 +270,22 @@
   box-shadow: 0 0 0 3px oklch(0.72 0.19 355 / 0.18);
 }
 
+/* Entrada em cascata das fotos do portfólio (Nosso Espaço) */
+@keyframes bb-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.bb-fade-up {
+  animation: bb-fade-up 0.65s ease both;
+}
+
 /* Animações discretas ao rolar a página */
 @utility reveal {
   opacity: 0;
@@ -293,6 +309,10 @@
     opacity: 1;
     transform: none;
     transition: none;
+  }
+
+  .bb-fade-up {
+    animation: none;
   }
 }
 
