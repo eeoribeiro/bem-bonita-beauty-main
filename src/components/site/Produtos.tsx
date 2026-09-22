@@ -387,7 +387,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                       className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-xs font-bold text-primary-foreground shadow-soft transition hover:brightness-105 sm:text-sm"
                     >
                       <ShoppingBag className="h-3.5 w-3.5" />
-                      {paginaCompleta ? "Adicionar ao carrinho" : "Ver na loja"}
+                      Ver mais
                     </button>
                   </div>
                 </article>
