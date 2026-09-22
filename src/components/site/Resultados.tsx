@@ -61,13 +61,24 @@ function normalizarFiltro(value?: string | null) {
     .toLowerCase();
 }
 
+// Categoria reservada para a "Galeria de tranças" (gerenciada na aba própria do admin).
+const BRAIDS_CATEGORY = "trancas";
+
 export function Resultados() {
   const { data, isLoading } = usePublicSiteData();
   const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
   const fallbackCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const portfolioCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const trancasCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
-  const portfolio = data?.portfolio ?? [];
+  const portfolioBruto = data?.portfolio ?? [];
+  const trancasSalvas = portfolioBruto
+    .filter((item) => item.category === BRAIDS_CATEGORY)
+    .map((item) => ({
+      imagem: item.image_url,
+      alt: item.alt_text,
+      titulo: item.title,
+    }));
+  const portfolio = portfolioBruto.filter((item) => item.category !== BRAIDS_CATEGORY);
   const servicos = data?.services ?? [];
   const filtrosServico = useMemo(() => {
     const filtros = servicos
@@ -277,7 +288,7 @@ export function Resultados() {
             ref={trancasCarouselRef}
             className="-mx-5 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3"
           >
-            {trancas.map((item) => (
+            {(trancasSalvas.length ? trancasSalvas : trancas).map((item) => (
               <figure
                 key={item.titulo}
                 className="group min-w-[78vw] snap-center overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card sm:min-w-0"

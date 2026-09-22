@@ -82,7 +82,7 @@ import type {
   TestimonialData,
 } from "@/lib/site-data";
 
-type Tab = "overview" | "photos" | "space" | "services" | "store" | "team" | "portfolio" | "feedbacks" | "francielly" | "settings";
+type Tab = "overview" | "photos" | "space" | "services" | "store" | "team" | "portfolio" | "braids" | "feedbacks" | "francielly" | "settings";
 type Modal = "services" | "portfolio" | "team_editor" | "new_photo" | null;
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
@@ -92,6 +92,7 @@ const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "space", label: "Nosso Espaço", icon: MapPin },
   { id: "services", label: "Serviços", icon: Scissors },
   { id: "portfolio", label: "Galeria", icon: Images },
+  { id: "braids", label: "Galeria de Tranças", icon: Sparkles },
   { id: "feedbacks", label: "Feedbacks", icon: MessageSquareQuote },
   { id: "francielly", label: "Página da Francielly", icon: UserCheck },
   { id: "settings", label: "Informações do Site", icon: Settings },
@@ -158,6 +159,14 @@ const emptyProfessional = (): Omit<ProfessionalData, "id" | "sort_order"> => ({
   whatsapp: "5531996792131",
   instagram: "@salaobembonita_cielly",
   active: true,
+});
+
+// Categoria reservada para a galeria de tranças (seção separada da galeria principal).
+const BRAIDS_CATEGORY = "trancas";
+
+const emptyBraidsPhoto = (): Omit<PortfolioData, "id" | "sort_order"> => ({
+  ...emptyPortfolio(),
+  category: BRAIDS_CATEGORY,
 });
 
 const emptyPortfolio = (): Omit<PortfolioData, "id" | "sort_order"> => ({
@@ -617,10 +626,20 @@ export function AdminPanel({
               ) : null}
               {tab === "portfolio" ? (
                 <PortfolioOverviewTab
-                  items={portfolio}
+                  items={portfolio.filter((item) => item.category !== BRAIDS_CATEGORY)}
                   categories={categories}
                   services={services}
                   onOpenManager={() => setModal("portfolio")}
+                />
+              ) : null}
+              {tab === "braids" ? (
+                <BraidsManager
+                  items={portfolio}
+                  setPortfolio={setPortfolio}
+                  isDemo={!supabaseConfigurado || isDemo}
+                  onReload={loadAll}
+                  onSuccess={showSuccess}
+                  onError={showError}
                 />
               ) : null}
               {tab === "settings" && settings ? (
@@ -700,7 +719,7 @@ export function AdminPanel({
       {modal === "portfolio" ? (
         <AdminModal title="Gerenciar e Reordenar Galeria" onClose={() => setModal(null)}>
                 <PortfolioManager
-                  items={portfolio}
+                  items={portfolio.filter((item) => item.category !== BRAIDS_CATEGORY)}
                   setPortfolio={setPortfolio}
                   categories={categories}
                   setCategories={setCategories}
@@ -4499,6 +4518,360 @@ function ServicesManager({
   );
 }
 
+function BraidsManager({
+  items,
+  setPortfolio,
+  isDemo,
+  onReload,
+  onSuccess,
+  onError,
+}: {
+  items: PortfolioData[];
+  setPortfolio: React.Dispatch<React.SetStateAction<PortfolioData[]>>;
+  isDemo: boolean;
+  onReload: () => Promise<void>;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyBraidsPhoto());
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<PortfolioData | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const braidsPhotos = useMemo(
+    () =>
+      items
+        .filter((item) => item.category === BRAIDS_CATEGORY)
+        .sort((a, b) => a.sort_order - b.sort_order),
+    [items],
+  );
+
+  function edit(item?: PortfolioData) {
+    setEditingId(item?.id ?? null);
+    setForm(
+      item
+        ? {
+            title: item.title,
+            description: item.description,
+            category: item.category,
+            category_id: null,
+            service_id: null,
+            service_name: null,
+            hair_type: item.hair_type ?? "Todos os tipos de cabelo",
+            photo_label: item.photo_label ?? "",
+            image_zoom: item.image_zoom ?? 1,
+            image_position_x: item.image_position_x ?? 50,
+            image_position_y: item.image_position_y ?? 50,
+            image_url: item.image_url,
+            storage_path: item.storage_path,
+            alt_text: item.alt_text,
+            published: item.published,
+          }
+        : emptyBraidsPhoto(),
+    );
+  }
+
+  async function selectImage(file: File) {
+    setUploading(true);
+    try {
+      if (isDemo) {
+        const fakeUrl = URL.createObjectURL(file);
+        setForm((current) => ({ ...current, image_url: fakeUrl, storage_path: null }));
+        setUploading(false);
+        return;
+      }
+      const uploaded = await uploadImagem(file, "portfolio");
+      setForm((current) => ({ ...current, image_url: uploaded.url, storage_path: uploaded.path }));
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Falha no upload.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function applyNewOrder(reorderedList: PortfolioData[]) {
+    const withUpdatedOrder = reorderedList.map((p, idx) => ({ ...p, sort_order: idx + 1 }));
+    setPortfolio((prev) => prev.map((p) => withUpdatedOrder.find((item) => item.id === p.id) ?? p));
+
+    if (isDemo) {
+      onSuccess("Ordem da galeria de tranças atualizada.");
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseClient();
+      for (const [idx, item] of withUpdatedOrder.entries()) {
+        await supabase.from("portfolio_items").update({ sort_order: 10000 + idx }).eq("id", item.id);
+      }
+      for (const item of withUpdatedOrder) {
+        await supabase.from("portfolio_items").update({ sort_order: item.sort_order }).eq("id", item.id);
+      }
+      await onReload();
+      onSuccess("Ordem da galeria de tranças atualizada.");
+    } catch {
+      onError("Não foi possível salvar a nova ordem.");
+    }
+  }
+
+  async function move(item: PortfolioData, direction: "up" | "down") {
+    const currentIndex = braidsPhotos.findIndex((p) => p.id === item.id);
+    if (currentIndex === -1) return;
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= braidsPhotos.length) return;
+
+    const itemsCopy = [...braidsPhotos];
+    const movedItem = itemsCopy.splice(currentIndex, 1)[0]!;
+    itemsCopy.splice(targetIndex, 0, movedItem);
+    await applyNewOrder(itemsCopy);
+  }
+
+  function handleDrop(targetIndex: number) {
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const itemsCopy = [...braidsPhotos];
+    const movedItem = itemsCopy.splice(draggedIndex, 1)[0]!;
+    itemsCopy.splice(targetIndex, 0, movedItem);
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    void applyNewOrder(itemsCopy);
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!form.image_url) {
+      onError("Escolha uma imagem para a galeria de tranças.");
+      return;
+    }
+
+    setSaving(true);
+    const nextOrder = editingId
+      ? (braidsPhotos.find((p) => p.id === editingId)?.sort_order ?? braidsPhotos.length + 1)
+      : braidsPhotos.length + 1;
+
+    const payload = {
+      ...form,
+      sort_order: nextOrder,
+    };
+
+    if (isDemo) {
+      if (editingId) {
+        setPortfolio((prev) => prev.map((p) => (p.id === editingId ? { ...payload, id: editingId } : p)));
+      } else {
+        const newId = `braid-${Date.now()}`;
+        setPortfolio((prev) => [...prev, { ...payload, id: newId }]);
+      }
+      onSuccess(editingId ? "Foto atualizada com sucesso." : "Nova foto adicionada ao final da galeria de tranças!");
+      edit();
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const query = editingId
+        ? getSupabaseClient().from("portfolio_items").update(payload).eq("id", editingId)
+        : getSupabaseClient().from("portfolio_items").insert(payload);
+      const { error } = await query.select("id, sort_order").single();
+      if (error) onError("Não foi possível salvar a foto.");
+      else {
+        onSuccess(editingId ? "Foto atualizada." : "Nova foto adicionada à galeria de tranças.");
+        edit();
+        await onReload();
+      }
+    } catch {
+      onError("Erro ao salvar foto.");
+    }
+    setSaving(false);
+  }
+
+  async function confirmRemove() {
+    if (!pendingDelete) return;
+    const item = pendingDelete;
+    setPendingDelete(null);
+
+    if (isDemo) {
+      setPortfolio((prev) => prev.filter((p) => p.id !== item.id));
+      onSuccess("Foto excluída com sucesso.");
+      return;
+    }
+
+    try {
+      const { error } = await getSupabaseClient().from("portfolio_items").delete().eq("id", item.id);
+      if (error) onError("Não foi possível excluir a foto.");
+      else {
+        await removerImagem(item.storage_path);
+        onSuccess("Foto excluída.");
+        await onReload();
+      }
+    } catch {
+      onError("Erro ao excluir foto.");
+    }
+  }
+
+  return (
+    <section className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="eyebrow">Galeria de Tranças</p>
+          <h1 className="mt-2 text-3xl sm:text-4xl font-display">Fotos de tranças e penteados</h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
+            {braidsPhotos.length} foto(s) nesta seção. Estas fotos aparecem apenas no bloco “Galeria de tranças” do site —
+            são totalmente separadas da galeria principal da aba “Galeria”.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-8 2xl:grid-cols-[1.35fr_0.65fr]">
+        <div>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-display">Fotos cadastradas ({braidsPhotos.length})</h3>
+          </div>
+
+          {braidsPhotos.length ? (
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              {braidsPhotos.map((item, index) => {
+                const isDragging = draggedIndex === index;
+                const isOver = dragOverIndex === index;
+
+                return (
+                  <article
+                    key={item.id}
+                    draggable
+                    onDragStart={() => setDraggedIndex(index)}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (dragOverIndex !== index) setDragOverIndex(index);
+                    }}
+                    onDrop={() => handleDrop(index)}
+                    onDragEnd={() => {
+                      setDraggedIndex(null);
+                      setDragOverIndex(null);
+                    }}
+                    className={`group relative overflow-hidden rounded-3xl border bg-background shadow-card transition-all duration-200 cursor-grab active:cursor-grabbing ${
+                      isDragging ? "opacity-40 scale-[0.98] border-dashed border-magenta" : ""
+                    } ${isOver ? "border-primary ring-2 ring-primary/40 -translate-y-1" : "border-border"}`}
+                  >
+                    <div className="relative aspect-[4/5] w-full overflow-hidden">
+                      <img src={item.image_url} alt={item.alt_text} className="h-full w-full object-cover" />
+                      <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white backdrop-blur">
+                        <GripVertical className="h-3.5 w-3.5" />
+                        <span className="font-bold">#{index + 1}</span>
+                      </div>
+                    </div>
+                    <div className="p-4 sm:p-5">
+                      <p className="truncate text-base font-medium">{item.title}</p>
+                      <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => void move(item, "up")}
+                            aria-label="Mover para cima"
+                            title="Mover para cima"
+                            className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
+                          >
+                            <ArrowUp className="h-3 w-3" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === braidsPhotos.length - 1}
+                            onClick={() => void move(item, "down")}
+                            aria-label="Mover para baixo"
+                            title="Mover para baixo"
+                            className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary/80 text-foreground transition hover:bg-secondary disabled:opacity-30"
+                          >
+                            <ArrowDown className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => edit(item)}
+                            aria-label={`Editar ${item.title}`}
+                            title="Editar foto"
+                            className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-magenta"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPendingDelete(item)}
+                            aria-label={`Excluir ${item.title}`}
+                            title="Excluir foto"
+                            className="flex h-11 w-11 items-center justify-center rounded-full bg-red-950/40 text-red-300"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-5 rounded-3xl border border-dashed border-primary/30 bg-card p-8 text-center text-sm text-muted-foreground">
+              Nenhuma foto de trança cadastrada ainda. Use o formulário ao lado para adicionar a primeira.
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={submit} className="space-y-4 rounded-2xl border border-border bg-background p-4 sm:p-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-display">{editingId ? "Editar foto" : "Adicionar foto"}</h3>
+            {editingId ? (
+              <button type="button" onClick={() => edit()} className="text-xs text-muted-foreground hover:text-magenta">
+                Cancelar edição
+              </button>
+            ) : (
+              <span className="text-[11px] text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">Será inserida como última</span>
+            )}
+          </div>
+          <ImageField currentUrl={form.image_url} uploading={uploading} onSelect={(file) => void selectImage(file)} />
+          <Field
+            label="Título"
+            value={form.title}
+            onChange={(value) => setForm({ ...form, title: value })}
+            placeholder="Ex: Tranças laterais personalizadas"
+            required
+          />
+          <Field
+            label="Texto alternativo (acessibilidade / SEO)"
+            value={form.alt_text}
+            onChange={(value) => setForm({ ...form, alt_text: value })}
+            placeholder="Ex: Penteado com tranças laterais e detalhes delicados"
+            required
+          />
+          <Toggle
+            label="Exibir no site"
+            checked={form.published}
+            onChange={(published) => setForm({ ...form, published })}
+          />
+          <Botao type="submit" disabled={saving || uploading} className="w-full">
+            {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Adicionar à galeria de tranças"}
+          </Botao>
+        </form>
+      </div>
+
+      {pendingDelete ? (
+        <ConfirmModal
+          title="Excluir foto"
+          message={`Deseja excluir a foto “${pendingDelete.title}”? Esta ação não pode ser desfeita.`}
+          onConfirm={() => void confirmRemove()}
+          onClose={() => setPendingDelete(null)}
+        />
+      ) : null}
+    </section>
+  );
+}
+
 function PortfolioManager({
   items,
   setPortfolio,
@@ -4707,7 +5080,8 @@ function PortfolioManager({
 
   async function applyNewOrder(reorderedList: PortfolioData[]) {
     const withUpdatedOrder = reorderedList.map((p, idx) => ({ ...p, sort_order: idx + 1 }));
-    setPortfolio(withUpdatedOrder);
+    // Mescla preservando itens de outras seções (ex.: galeria de tranças) que não estão nesta lista.
+    setPortfolio((prev) => prev.map((p) => withUpdatedOrder.find((item) => item.id === p.id) ?? p));
 
     if (isDemo) {
       onSuccess("Ordem da galeria atualizada.");
@@ -4838,8 +5212,7 @@ function PortfolioManager({
     setPendingDeleteItem(null);
 
     if (isDemo) {
-      const remaining = items.filter((p) => p.id !== item.id);
-      setPortfolio(remaining.map((p, idx) => ({ ...p, sort_order: idx + 1 })));
+      setPortfolio((prev) => prev.filter((p) => p.id !== item.id));
       onSuccess("Foto excluída com sucesso.");
       return;
     }
