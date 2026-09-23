@@ -347,23 +347,32 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                         </span>
                       ) : null}
                     </div>
+                    <div className="border-b border-border/60 bg-gradient-to-r from-primary/15 via-card to-gold/10 px-4 py-3 sm:px-6">
+                      {selectedOption ? (
+                        displayPrice ? (
+                          <p className="text-base font-black leading-none text-magenta sm:text-lg">{displayPrice}</p>
+                        ) : null
+                      ) : produto.precoPromocional ? (
+                        <div className="flex flex-wrap items-end gap-2">
+                          {produto.preco ? <span className="text-xs font-semibold text-muted-foreground line-through">{produto.preco}</span> : null}
+                          <span className="text-base font-black leading-none text-magenta sm:text-lg">{produto.precoPromocional}</span>
+                        </div>
+                      ) : displayPrice ? (
+                        <p className="text-base font-black leading-none text-magenta sm:text-lg">{displayPrice}</p>
+                      ) : (
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Consulte disponibilidade</p>
+                      )}
+                    </div>
 
                     <div className="p-4 sm:p-6">
                       <span className="inline-block rounded-full bg-secondary px-3 py-1 text-[11px] font-medium text-magenta">
                         {produto.categoria || produto.curvatura}
                       </span>
                       <h4 className="mt-3 font-display text-lg leading-snug sm:text-xl">{produto.nome}</h4>
-                      <p className="mt-1 text-xs font-medium text-muted-foreground">{produto.subtitulo}</p>
-                      {selectedOption ? (
-                        displayPrice ? <p className="mt-3 text-sm font-semibold text-magenta">{displayPrice}</p> : null
-                      ) : produto.precoPromocional ? (
-                        <div className="mt-3 flex flex-wrap items-baseline gap-2">
-                          {produto.preco ? <span className="text-xs text-muted-foreground line-through">{produto.preco}</span> : null}
-                          <span className="text-sm font-semibold text-magenta">{produto.precoPromocional}</span>
-                        </div>
-                      ) : displayPrice ? (
-                        <p className="mt-3 text-sm font-semibold text-magenta">{displayPrice}</p>
-                      ) : null}
+                      <div className="mt-2 inline-flex max-w-full items-start gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-bold leading-relaxed text-foreground shadow-[0_12px_30px_rgba(224,72,154,0.08)] sm:text-sm">
+                        <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
+                        <span>{produto.subtitulo}</span>
+                      </div>
                       <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-muted-foreground sm:line-clamp-none">{produto.descricao}</p>
 
                       <ul className="mt-4 space-y-1.5 border-t border-border/60 pt-3 text-xs text-foreground/80 sm:text-sm">
