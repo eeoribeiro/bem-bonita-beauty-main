@@ -482,38 +482,38 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
             role="dialog"
             aria-modal="true"
             aria-label={`Detalhes de ${modalProduct.nome}`}
-            className="fixed inset-0 z-[220] flex h-[100dvh] items-center justify-center overflow-hidden bg-black/45 p-3 backdrop-blur-md sm:p-5"
+            className="fixed inset-0 z-[220] flex h-[100dvh] items-center justify-center overflow-hidden bg-black/45 p-4 backdrop-blur-md sm:p-5"
             onMouseDown={(event) => event.target === event.currentTarget && setModalProduct(null)}
             onKeyDown={trapModalFocus}
           >
-            <div className="max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-border/70 bg-card shadow-2xl sm:max-h-[calc(100dvh-2.5rem)]">
-              <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card/90 p-4 backdrop-blur sm:p-5">
+            <div className="max-h-[calc(100dvh-3rem)] w-[92vw] max-w-[26rem] overflow-y-auto rounded-[1.5rem] border border-border/70 bg-card shadow-2xl sm:max-h-[calc(100dvh-2.5rem)] sm:w-full sm:max-w-5xl sm:rounded-[2rem]">
+              <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-card/90 p-3 backdrop-blur sm:gap-4 sm:p-5">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-magenta">Produto Bem Bonita</p>
-                  <h2 className="mt-1 font-display text-2xl leading-tight sm:text-3xl">{modalProduct.nome}</h2>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-magenta sm:text-xs sm:tracking-[0.22em]">Produto Bem Bonita</p>
+                  <h2 className="mt-1 font-display text-xl leading-tight sm:text-3xl">{modalProduct.nome}</h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setModalProduct(null)}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-background text-foreground transition hover:border-primary hover:text-magenta"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-background text-foreground transition hover:border-primary hover:text-magenta sm:h-11 sm:w-11"
                   aria-label="Fechar detalhes do produto"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[0.9fr_1.1fr] lg:p-8">
-                <div className="space-y-4">
-                  <div className="overflow-hidden rounded-[1.6rem] bg-secondary/30 shadow-card">
+              <div className="grid gap-4 p-3 sm:gap-6 sm:p-6 lg:grid-cols-[0.9fr_1.1fr] lg:p-8">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="overflow-hidden rounded-[1.25rem] bg-secondary/30 shadow-card sm:rounded-[1.6rem]">
                     <img
                       src={displayImage}
                       alt={selectedOption ? `${modalProduct.nome} - ${selectedOption.name}` : modalProduct.nome}
-                      className="aspect-[4/5] w-full object-cover object-center"
+                      className="aspect-[4/3] max-h-[34dvh] w-full object-cover object-center sm:aspect-[4/5] sm:max-h-none"
                     />
                   </div>
-                  <div className="rounded-3xl bg-secondary/60 p-4">
+                  <div className="rounded-2xl bg-secondary/60 p-3 sm:rounded-3xl sm:p-4">
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold">Preço</p>
-                    <p className="mt-1 text-2xl font-bold text-magenta">{displayPrice || "Consulte"}</p>
+                    <p className="mt-1 text-xl font-bold text-magenta sm:text-2xl">{displayPrice || "Consulte"}</p>
                     {unitPrice ? <p className="mt-1 text-xs text-muted-foreground">{unitPrice}</p> : null}
                     {selectedOption?.size ? (
                       <p className="mt-1 text-sm text-muted-foreground">Tamanho: {selectedOption.size}</p>
@@ -524,7 +524,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                   </div>
                 </div>
 
-                <div className="space-y-5">
+                <div className="space-y-4 sm:space-y-5">
                   <div>
                     <span className="inline-flex rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold text-magenta">
                       {modalProduct.categoria || modalProduct.curvatura}
