@@ -81,7 +81,7 @@ function PaginaFrancielly() {
             </Link>
 
             <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12">
-              <div className="order-1">
+              <div className="order-2 lg:order-1">
                 <p className="eyebrow flex items-center gap-2">
                   <Sparkles className="h-3.5 w-3.5 text-gold" />
                   {pageEyebrow}
@@ -111,7 +111,7 @@ function PaginaFrancielly() {
                 </div>
               </div>
 
-              <div className="order-2 relative">
+              <div className="order-1 relative lg:order-2">
                 <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] border border-border/70 shadow-soft sm:rounded-[2.5rem]">
                   <SafeImage
                     src={fotoPrincipal}

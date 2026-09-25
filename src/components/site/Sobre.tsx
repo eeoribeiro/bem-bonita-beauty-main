@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Maximize2, Sparkles, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { usePublicSiteData } from "@/lib/site-data";
 
@@ -40,61 +40,37 @@ export function Sobre() {
     return () => window.removeEventListener("keydown", closeWithEscape);
   }, [selectedPhoto]);
 
-  const activeIndex = selectedPhoto ? fotosEspaco.findIndex((foto) => foto.url === selectedPhoto.url) : -1;
-
-  const showPhotoAt = useCallback(
-    (index: number) => {
-      if (!fotosEspaco.length) return;
-      const normalized = (index + fotosEspaco.length) % fotosEspaco.length;
-      const foto = fotosEspaco[normalized];
-      if (foto) setSelectedPhoto(foto);
-    },
-    [fotosEspaco],
-  );
-
-  const stepPhoto = useCallback(
-    (direction: 1 | -1) => {
-      if (activeIndex === -1) return;
-      showPhotoAt(activeIndex + direction);
-    },
-    [activeIndex, showPhotoAt],
-  );
-
-  useEffect(() => {
-    if (!selectedPhoto || fotosEspaco.length < 2) return;
-    const handleArrows = (event: KeyboardEvent) => {
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        stepPhoto(1);
-      } else if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        stepPhoto(-1);
-      }
-    };
-    window.addEventListener("keydown", handleArrows);
-    return () => window.removeEventListener("keydown", handleArrows);
-  }, [selectedPhoto, fotosEspaco.length, stepPhoto]);
-
   return (
     <section
       id="nosso-espaco"
-      className="relative overflow-hidden bg-[#181113] py-20 text-white lg:py-28"
+      className="relative overflow-hidden bg-[#160f12] py-20 text-white lg:py-28"
     >
-      <div aria-hidden className="pointer-events-none absolute -left-28 top-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-      <div aria-hidden className="pointer-events-none absolute -right-28 top-0 h-96 w-96 rounded-full bg-gold/10 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -left-28 top-24 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -right-24 top-4 h-[28rem] w-[28rem] rounded-full bg-gold/10 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/25 to-transparent" />
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
-        <div className="relative grid min-h-[34rem] gap-10 lg:grid-cols-[0.78fr_1.22fr] lg:items-center">
-          <div className="max-w-xl pt-8 lg:pt-16">
-            <h2 className="font-display text-4xl leading-tight text-white sm:text-5xl lg:text-[3.45rem]">
+        <div className="relative grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:gap-12">
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.045] p-6 shadow-[0_28px_90px_-55px_rgba(0,0,0,0.9)] backdrop-blur sm:p-8 lg:p-10">
+            <p className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.22em] text-primary">
+              <Sparkles className="h-3.5 w-3.5 text-gold" />
+              Ambiente Bem Bonita
+            </p>
+            <h2 className="mt-5 font-display text-4xl leading-tight text-white sm:text-5xl lg:text-[3.45rem]">
               Nosso espaço
             </h2>
-            <p className="mt-5 max-w-md text-base leading-8 text-white/72">
+            <p className="mt-5 text-base leading-8 text-white/76">
               Poucos metros quadrados, mas cada estação foi pensada com carinho: mármore branco,
               ripas de madeira e um cantinho reservado pra cada cliente.
             </p>
-            <div className="mt-8 flex items-center gap-4 text-sm text-white/76">
-              <span className="h-px w-11 bg-gold" aria-hidden="true" />
-              <span>{fotosEspaco.length || 0} registros do dia a dia do salão</span>
+            <div className="mt-7 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
+                <span className="block font-display text-3xl text-primary">{fotosEspaco.length || 0}</span>
+                <span className="mt-1 block text-white/66">registros reais</span>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
+                <span className="block font-display text-3xl text-gold">1</span>
+                <span className="mt-1 block text-white/66">cantinho reservado</span>
+              </div>
             </div>
           </div>
 
@@ -102,7 +78,7 @@ export function Sobre() {
             <button
               type="button"
               onClick={() => setSelectedPhoto(fotoDestaque)}
-              className="group relative overflow-hidden rounded-[1.2rem] border border-white/35 bg-white/5 shadow-[0_26px_90px_-45px_rgba(255,170,210,0.55)] transition duration-300 hover:-translate-y-1 hover:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
+              className="group relative overflow-hidden rounded-[2rem] border border-white/18 bg-white/5 p-2 shadow-[0_35px_110px_-50px_rgba(255,170,210,0.65)] transition duration-300 hover:-translate-y-1 hover:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
               aria-label={`Ampliar foto do espaço: ${fotoDestaque.titulo}`}
             >
               <img
@@ -111,17 +87,20 @@ export function Sobre() {
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
-                className="aspect-[4/5] w-full object-cover transition duration-700 group-hover:scale-[1.025] lg:max-h-[44rem]"
+                className="aspect-[4/5] w-full rounded-[1.55rem] object-cover transition duration-700 group-hover:scale-[1.02] lg:max-h-[44rem]"
                 style={{ objectPosition: `${fotoDestaque.focusX ?? 50}% ${fotoDestaque.focusY ?? 50}%` }}
               />
-              <span className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
+              <span className="absolute left-5 top-5 rounded-full bg-black/55 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-white shadow-lg backdrop-blur">
+                Foto destaque
+              </span>
+              <span className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
                 <Maximize2 className="h-4 w-4" aria-hidden="true" />
               </span>
             </button>
           ) : null}
         </div>
 
-        <div className="mt-14 flex items-center gap-5 text-xs text-white/68">
+        <div className="mt-16 flex items-center gap-5 text-xs font-bold uppercase tracking-[0.2em] text-white/68">
           <span className="shrink-0">a casa por dentro</span>
           <span className="h-px flex-1 bg-white/14" aria-hidden="true" />
         </div>
@@ -137,13 +116,15 @@ export function Sobre() {
           </div>
         ) : fotosGaleria.length ? (
           <div className="relative mt-8">
-            <div className="columns-2 gap-3 sm:columns-3 sm:gap-4 lg:columns-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
               {fotosGaleria.map((foto, index) => (
                 <button
                   key={foto.url}
                   type="button"
                   onClick={() => setSelectedPhoto(foto)}
-                  className="bb-fade-up group relative mb-3 block w-full break-inside-avoid overflow-hidden rounded-[1.35rem] border border-white/12 bg-white/[0.04] p-2 text-left shadow-[0_18px_58px_-38px_rgba(0,0,0,0.9)] transition duration-300 hover:-translate-y-1 hover:border-primary/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:mb-4"
+                  className={`bb-fade-up group relative overflow-hidden rounded-[1.35rem] border border-white/12 bg-white/[0.045] p-2 text-left shadow-[0_18px_58px_-38px_rgba(0,0,0,0.9)] transition duration-300 hover:-translate-y-1 hover:border-primary/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 ${
+                    index % 7 === 0 ? "sm:row-span-2" : ""
+                  }`}
                   style={{ animationDelay: `${Math.min(index, 11) * 60}ms` }}
                   aria-label={`Ampliar foto do espaço: ${foto.titulo}`}
                 >
@@ -153,7 +134,13 @@ export function Sobre() {
                     loading={index < 4 ? "eager" : "lazy"}
                     fetchPriority={index < 4 ? "high" : "auto"}
                     decoding="async"
-                    className={`h-auto w-full rounded-[1rem] transition duration-500 group-hover:scale-[1.045] ${foto.displayMode === "cover" ? "aspect-[4/5] object-cover" : "object-contain"}`}
+                    className={`w-full rounded-[1rem] transition duration-500 group-hover:scale-[1.035] ${
+                      index % 7 === 0
+                        ? "h-full min-h-72 object-cover"
+                        : foto.displayMode === "cover"
+                        ? "aspect-[4/5] object-cover"
+                        : "aspect-[4/5] object-contain"
+                    }`}
                     style={{ objectPosition: `${foto.focusX ?? 50}% ${foto.focusY ?? 50}%` }}
                   />
                   <span className="pointer-events-none absolute inset-x-3 bottom-3 z-[1] flex items-center gap-2 rounded-xl bg-gradient-to-t from-black/75 via-black/45 to-transparent px-3 pb-2.5 pt-7 text-left opacity-0 transition duration-300 group-hover:opacity-100">
@@ -192,26 +179,6 @@ export function Sobre() {
             >
               <X className="h-5 w-5" />
             </button>
-            {fotosEspaco.length > 1 ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => stepPhoto(-1)}
-                  className="absolute left-6 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-black/90"
-                  aria-label="Foto anterior"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => stepPhoto(1)}
-                  className="absolute right-6 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-black/90"
-                  aria-label="Próxima foto"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </>
-            ) : null}
             <img
               src={selectedPhoto.url}
               alt={selectedPhoto.titulo}
@@ -219,11 +186,6 @@ export function Sobre() {
             />
             <div className="mt-2 flex items-center justify-center gap-3 pb-1 text-sm text-muted-foreground">
               <span className="text-foreground">{selectedPhoto.titulo}</span>
-              {fotosEspaco.length > 1 ? (
-                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-                  {activeIndex + 1} / {fotosEspaco.length}
-                </span>
-              ) : null}
             </div>
           </div>
         </div>

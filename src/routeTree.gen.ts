@@ -19,6 +19,7 @@ import { Route as PedidoRouteImport } from './routes/pedido'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as ServicosRouteImport } from './routes/servicos'
+import { Route as ProdutosProdutoIdRouteImport } from './routes/produtos.$produtoId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +71,11 @@ const ServicosRoute = ServicosRouteImport.update({
   path: '/servicos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProdutosProdutoIdRoute = ProdutosProdutoIdRouteImport.update({
+  id: '/$produtoId',
+  path: '/$produtoId',
+  getParentRoute: () => ProdutosRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,8 +86,9 @@ export interface FileRoutesByFullPath {
   '/francielly': typeof FranciellyRoute
   '/pedido': typeof PedidoRoute
   '/privacidade': typeof PrivacidadeRoute
-  '/produtos': typeof ProdutosRoute
+  '/produtos': typeof ProdutosRouteWithChildren
   '/servicos': typeof ServicosRoute
+  '/produtos/$produtoId': typeof ProdutosProdutoIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -92,8 +99,9 @@ export interface FileRoutesByTo {
   '/francielly': typeof FranciellyRoute
   '/pedido': typeof PedidoRoute
   '/privacidade': typeof PrivacidadeRoute
-  '/produtos': typeof ProdutosRoute
+  '/produtos': typeof ProdutosRouteWithChildren
   '/servicos': typeof ServicosRoute
+  '/produtos/$produtoId': typeof ProdutosProdutoIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -105,8 +113,9 @@ export interface FileRoutesById {
   '/francielly': typeof FranciellyRoute
   '/pedido': typeof PedidoRoute
   '/privacidade': typeof PrivacidadeRoute
-  '/produtos': typeof ProdutosRoute
+  '/produtos': typeof ProdutosRouteWithChildren
   '/servicos': typeof ServicosRoute
+  '/produtos/$produtoId': typeof ProdutosProdutoIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/produtos'
     | '/servicos'
+    | '/produtos/$produtoId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/produtos'
     | '/servicos'
+    | '/produtos/$produtoId'
   id:
     | '__root__'
     | '/'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/produtos'
     | '/servicos'
+    | '/produtos/$produtoId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -156,7 +168,7 @@ export interface RootRouteChildren {
   FranciellyRoute: typeof FranciellyRoute
   PedidoRoute: typeof PedidoRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
-  ProdutosRoute: typeof ProdutosRoute
+  ProdutosRoute: typeof ProdutosRouteWithChildren
   ServicosRoute: typeof ServicosRoute
 }
 
@@ -232,8 +244,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/produtos/$produtoId': {
+      id: '/produtos/$produtoId'
+      path: '/$produtoId'
+      fullPath: '/produtos/$produtoId'
+      preLoaderRoute: typeof ProdutosProdutoIdRouteImport
+      parentRoute: typeof ProdutosRoute
+    }
   }
 }
+
+interface ProdutosRouteChildren {
+  ProdutosProdutoIdRoute: typeof ProdutosProdutoIdRoute
+}
+
+const ProdutosRouteChildren: ProdutosRouteChildren = {
+  ProdutosProdutoIdRoute: ProdutosProdutoIdRoute,
+}
+
+const ProdutosRouteWithChildren = ProdutosRoute._addFileChildren(
+  ProdutosRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -244,7 +275,7 @@ const rootRouteChildren: RootRouteChildren = {
   FranciellyRoute: FranciellyRoute,
   PedidoRoute: PedidoRoute,
   PrivacidadeRoute: PrivacidadeRoute,
-  ProdutosRoute: ProdutosRoute,
+  ProdutosRoute: ProdutosRouteWithChildren,
   ServicosRoute: ServicosRoute,
 }
 export const routeTree = rootRouteImport
