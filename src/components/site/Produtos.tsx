@@ -1,5 +1,6 @@
-import { CheckCircle2, MessageCircle, Sparkles, ShoppingBag } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CheckCircle2, MessageCircle, Minus, Plus, Sparkles, ShoppingBag, X } from "lucide-react";
+import { useEffect, useState, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 
 import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
@@ -7,8 +8,10 @@ import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
 import { cartItemKey, parsePrecoCentavos, quantidadeCarrinho, readCart, saveCart, type CartItem } from "@/lib/cart";
 import {
   fallbackProductImage,
+  getActiveOptions,
   getOptionStock,
   getSelectedOption,
+  getUnitPriceText,
   mapProductData,
   produtosLinha,
   type ProdutoItem,
@@ -23,6 +26,9 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   const [checkoutMessage, setCheckoutMessage] = useState("");
   const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [modalProduct, setModalProduct] = useState<ProdutoItem | null>(null);
+  const [modalQuantity, setModalQuantity] = useState(1);
+  const [modalNotice, setModalNotice] = useState("");
   const productsImage = data?.images.find((image) => image.image_key === "products");
   const products = data
     ? mapProductData(data.products)
@@ -43,6 +49,39 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   useEffect(() => {
     setCart(readCart());
   }, []);
+
+  useEffect(() => {
+    if (!modalProduct) return;
+    const scrollY = window.scrollY;
+    const previousOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousPosition = document.body.style.position;
+    const previousTop = document.body.style.top;
+    const previousWidth = document.body.style.width;
+    const previousTouchAction = document.body.style.touchAction;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    document.body.style.touchAction = "none";
+    setModalQuantity(1);
+    setModalNotice("");
+    const closeWithEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setModalProduct(null);
+    };
+    window.addEventListener("keydown", closeWithEscape);
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousOverflow;
+      document.body.style.position = previousPosition;
+      document.body.style.top = previousTop;
+      document.body.style.width = previousWidth;
+      document.body.style.touchAction = previousTouchAction;
+      window.scrollTo(0, scrollY);
+      window.removeEventListener("keydown", closeWithEscape);
+    };
+  }, [modalProduct]);
 
   function addToCart(product: ProdutoItem, quantity = 1, redirect = true) {
     const selectedOption = getSelectedOption(product, selectedOptions);
@@ -66,7 +105,38 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
     setCart(nextCart);
     saveCart(nextCart);
     setCheckoutMessage(`${selectedOption ? `${selectedOption.name} — ` : ""}${product.nome} foi adicionado ao carrinho.`);
+    setModalNotice("Produto adicionado à sacola.");
     if (redirect) window.location.href = "/checkout";
+  }
+
+  function buyNow(product: ProdutoItem) {
+    const selectedOption = getSelectedOption(product, selectedOptions);
+    const amount = Math.min(Math.max(1, modalQuantity), getOptionStock(selectedOption) || 1);
+    const item: CartItem = selectedOption?.id
+      ? { id: product.id, optionId: selectedOption.id, quantity: amount }
+      : { id: product.id, quantity: amount };
+    saveCart([item]);
+    window.location.href = "/checkout";
+  }
+
+  function trapModalFocus(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!first || !last) return;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   return (
@@ -220,7 +290,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                     <button
                       type="button"
                       onClick={() => {
-                        if (paginaCompleta) window.location.href = `/produtos/${encodeURIComponent(produto.id)}`;
+                        if (paginaCompleta) setModalProduct(produto);
                         else window.location.href = "/produtos";
                       }}
                       className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-3 text-xs font-bold text-primary-foreground shadow-soft transition hover:brightness-105 sm:text-sm"
@@ -295,6 +365,203 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
         ) : null}
 
       </div>
+      {modalProduct ? (() => {
+        const activeOptions = getActiveOptions(modalProduct);
+        const selectedOption = getSelectedOption(modalProduct, selectedOptions);
+        const displayImage = selectedOption?.image_url || modalProduct.imagem || fallbackProductImage;
+        const displayPrice = selectedOption?.price_text || modalProduct.precoPromocional || modalProduct.preco;
+        const stock = getOptionStock(selectedOption);
+        const disabled = stock <= 0 || !parsePrecoCentavos(displayPrice);
+        const unitPrice = getUnitPriceText(displayPrice, selectedOption?.size);
+        const relatedProducts = products
+          .filter((product) => product.id !== modalProduct.id && product.categoria && product.categoria === modalProduct.categoria)
+          .slice(0, 6);
+        if (typeof document === "undefined") return null;
+        return createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Detalhes de ${modalProduct.nome}`}
+            className="fixed inset-0 z-[220] flex h-[100dvh] items-center justify-center overflow-hidden bg-black/45 p-4 backdrop-blur-md sm:p-5"
+            onMouseDown={(event) => event.target === event.currentTarget && setModalProduct(null)}
+            onKeyDown={trapModalFocus}
+          >
+            <div className="max-h-[calc(100dvh-3rem)] w-[92vw] max-w-[26rem] overflow-y-auto rounded-[1.5rem] border border-border/70 bg-card shadow-2xl sm:max-h-[calc(100dvh-2.5rem)] sm:w-full sm:max-w-5xl sm:rounded-[2rem]">
+              <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-card/90 p-3 backdrop-blur sm:gap-4 sm:p-5">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-magenta sm:text-xs sm:tracking-[0.22em]">Produto Bem Bonita</p>
+                  <h2 className="mt-1 font-display text-xl leading-tight sm:text-3xl">{modalProduct.nome}</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModalProduct(null)}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-background text-foreground transition hover:border-primary hover:text-magenta sm:h-11 sm:w-11"
+                  aria-label="Fechar detalhes do produto"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid gap-4 p-3 sm:gap-6 sm:p-6 lg:grid-cols-[0.9fr_1.1fr] lg:p-8">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="overflow-hidden rounded-[1.25rem] bg-secondary/30 shadow-card sm:rounded-[1.6rem]">
+                    <img
+                      src={displayImage}
+                      alt={selectedOption ? `${modalProduct.nome} - ${selectedOption.name}` : modalProduct.nome}
+                      className="aspect-[4/3] max-h-[34dvh] w-full object-cover object-center sm:aspect-[4/5] sm:max-h-none"
+                    />
+                  </div>
+                  <div className="rounded-2xl bg-secondary/60 p-3 sm:rounded-3xl sm:p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold">Preço</p>
+                    <p className="mt-1 text-xl font-bold text-magenta sm:text-2xl">{displayPrice || "Consulte"}</p>
+                    {unitPrice ? <p className="mt-1 text-xs text-muted-foreground">{unitPrice}</p> : null}
+                    {selectedOption?.size ? (
+                      <p className="mt-1 text-sm text-muted-foreground">Tamanho: {selectedOption.size}</p>
+                    ) : null}
+                    <p className={`mt-2 text-xs font-semibold ${stock ? "text-emerald-600" : "text-red-500"}`}>
+                      {stock ? `${stock} disponível(is)` : "Sem estoque"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 sm:space-y-5">
+                  <div>
+                    <span className="inline-flex rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold text-magenta">
+                      {modalProduct.categoria || modalProduct.curvatura}
+                    </span>
+                    {modalProduct.subtitulo ? <p className="mt-3 text-sm font-semibold text-foreground">{modalProduct.subtitulo}</p> : null}
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">{modalProduct.descricao}</p>
+                  </div>
+
+                  {relatedProducts.length ? (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-foreground">Produtos relacionados</p>
+                      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                        {[modalProduct, ...relatedProducts].map((product) => (
+                          <button
+                            key={product.id}
+                            type="button"
+                            aria-current={product.id === modalProduct.id ? "true" : undefined}
+                            onClick={() => {
+                              setModalProduct(product);
+                              setModalQuantity(1);
+                            }}
+                            className={`min-w-[8.5rem] rounded-2xl border p-2 text-left transition ${
+                              product.id === modalProduct.id ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/60"
+                            }`}
+                          >
+                            <img src={product.imagem || fallbackProductImage} alt={product.nome} className="aspect-square w-full rounded-xl object-cover" />
+                            <span className="mt-2 block line-clamp-2 text-xs font-bold">{product.nome}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {activeOptions.length ? (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-foreground">Escolha o produto separado</p>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        {activeOptions.map((option) => {
+                          const checked = selectedOption?.id === option.id;
+                          const optionStock = getOptionStock(option);
+                          return (
+                            <button
+                              key={option.id}
+                              type="button"
+                              disabled={optionStock <= 0}
+                              aria-pressed={checked}
+                              onClick={() => setSelectedOptions((current) => ({ ...current, [modalProduct.id]: option.id }))}
+                              className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition ${
+                                optionStock <= 0
+                                  ? "cursor-not-allowed border-border bg-muted/40 opacity-55"
+                                  : checked
+                                  ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                                  : "border-border bg-background hover:border-primary/60"
+                              }`}
+                            >
+                              <img
+                                src={option.image_url || modalProduct.imagem || fallbackProductImage}
+                                alt={option.name}
+                                className="h-16 w-16 shrink-0 rounded-xl bg-secondary object-cover"
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className={`block font-bold text-foreground ${optionStock <= 0 ? "line-through" : ""}`}>{option.name}</span>
+                                {option.size ? <span className={`mt-0.5 block text-xs text-muted-foreground ${optionStock <= 0 ? "line-through" : ""}`}>{option.size}</span> : null}
+                                {option.price_text ? <span className="mt-1 block text-sm font-bold text-magenta">{option.price_text}</span> : null}
+                                <span className="mt-0.5 block text-[11px] text-muted-foreground">{optionStock ? `${optionStock} em estoque` : "Sem estoque"}</span>
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {modalProduct.beneficios.length ? (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-foreground">Benefícios</p>
+                      <ul className="mt-3 grid gap-2 text-sm text-foreground/80">
+                        {modalProduct.beneficios.map((beneficio) => (
+                          <li key={beneficio} className="flex gap-2">
+                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                            <span>{beneficio}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-foreground">Quantidade</p>
+                    <div className="mt-2 flex w-fit items-center rounded-full border border-border bg-background p-1">
+                      <button type="button" onClick={() => setModalQuantity((value) => Math.max(1, value - 1))} className="flex h-10 w-10 items-center justify-center rounded-full bg-card" aria-label="Diminuir quantidade">
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="w-12 text-center text-sm font-bold">{modalQuantity}</span>
+                      <button type="button" onClick={() => setModalQuantity((value) => Math.min(stock || 1, value + 1))} className="flex h-10 w-10 items-center justify-center rounded-full bg-card" aria-label="Aumentar quantidade">
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {modalProduct.opcoes?.length && modalProduct.precoPromocional ? (
+                    <div className="rounded-2xl border border-primary/25 bg-primary/10 p-4 text-sm">
+                      {activeOptions.length ? "Esse item faz parte deste card/kit. " : ""}
+                      <button type="button" onClick={() => setSelectedOptions((current) => ({ ...current, [modalProduct.id]: activeOptions[0]?.id ?? "" }))} className="font-bold text-magenta hover:underline">
+                        Ver opções do kit completo por {modalProduct.precoPromocional}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {modalNotice ? <p className="rounded-2xl bg-secondary px-4 py-3 text-xs font-semibold text-magenta">{modalNotice}</p> : null}
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => buyNow(modalProduct)}
+                      className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-soft transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Comprar agora
+                    </button>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => addToCart(modalProduct, modalQuantity, false)}
+                      className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-primary bg-card px-5 text-sm font-bold text-magenta transition hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <ShoppingBag className="h-4 w-4" />
+                      Adicionar ao carrinho
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        );
+      })() : null}
     </section>
   );
 }
