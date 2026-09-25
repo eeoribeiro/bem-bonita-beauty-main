@@ -80,7 +80,7 @@ export function Sobre() {
             <button
               type="button"
               onClick={() => setSelectedPhoto(fotoDestaque)}
-              className="group relative overflow-hidden rounded-[2rem] border border-white/18 bg-white/5 p-2 shadow-[0_35px_110px_-50px_rgba(255,170,210,0.65)] transition duration-300 hover:-translate-y-1 hover:border-primary/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
+              className="group relative overflow-hidden rounded-[2rem] bg-white/5 shadow-[0_35px_110px_-50px_rgba(255,170,210,0.65)] transition duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/40"
               aria-label={`Ampliar foto do espaço: ${fotoDestaque.titulo}`}
             >
               <img
@@ -89,7 +89,7 @@ export function Sobre() {
                 loading="eager"
                 fetchPriority="high"
                 decoding="async"
-                className="aspect-[4/5] w-full rounded-[1.55rem] object-cover transition duration-700 group-hover:scale-[1.02] lg:max-h-[44rem]"
+                className="aspect-[4/5] w-full object-cover transition duration-700 group-hover:scale-[1.02] lg:max-h-[44rem]"
                 style={{
                   objectPosition: `${fotoDestaque.focusX ?? 50}% ${fotoDestaque.focusY ?? 50}%`,
                   transform: `scale(${fotoDestaque.zoom ?? 1})`,
@@ -139,7 +139,7 @@ export function Sobre() {
                     loading={index < 4 ? "eager" : "lazy"}
                     fetchPriority={index < 4 ? "high" : "auto"}
                     decoding="async"
-                    className={`w-full rounded-[1rem] transition duration-500 ${
+                    className={`w-full transition duration-500 ${
                       index % 7 === 0
                         ? "h-full min-h-72 object-cover"
                         : foto.displayMode === "cover"
@@ -178,7 +178,7 @@ export function Sobre() {
           onMouseDown={(event) => event.target === event.currentTarget && setSelectedPhoto(null)}
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
         >
-          <div className="relative max-h-[92vh] w-full max-w-5xl overflow-auto rounded-3xl bg-card p-3 shadow-2xl">
+          <div className="relative max-h-[92vh] w-full max-w-5xl overflow-auto rounded-3xl bg-card shadow-2xl">
             <button
               type="button"
               onClick={() => setSelectedPhoto(null)}

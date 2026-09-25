@@ -97,6 +97,32 @@ export function mapProductData(products: ProductData[]): ProdutoItem[] {
   }));
 }
 
+export function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+export function produtoSlug(produto: ProdutoItem) {
+  const base = normalizeText(produto.nome)
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+  return base || produto.id;
+}
+
+export function findProdutoBySlug(products: ProdutoItem[], slug: string) {
+  const wanted = normalizeText(slug).replace(/\/$/, "");
+  if (!wanted) return undefined;
+  return (
+    products.find((produto) => produtoSlug(produto) === wanted) ??
+    products.find((produto) => produto.id === slug) ??
+    products.find((produto) => produto.id === wanted)
+  );
+}
+
 export function getActiveOptions(product: ProdutoItem) {
   return (product.opcoes ?? []).filter((option) => option.active !== false && option.name?.trim());
 }
