@@ -43,6 +43,8 @@ import {
   UserPlus,
   Users,
   X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
@@ -2912,9 +2914,38 @@ function PhotosTab({
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("highlight");
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [zoomAvailable, setZoomAvailable] = useState<boolean | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; storage_path: string | null; title: string; source: "site" | "space" } | null>(null);
-  const visibleHistory = mode === "space"
-    ? [...spacePhotos].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((photo, index) => ({
+
+  useEffect(() => {
+    if (mode !== "space") return;
+    let cancelled = false;
+    void (async () => {
+      const { error } = await getSupabaseClient().from("space_photos").select("id,image_zoom").limit(1);
+      if (!cancelled) setZoomAvailable(!error);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
+  type PhotoHistoryRow = {
+    id: string;
+    image_url: string;
+    alt_text: string;
+    storage_path: string | null;
+    created_at: string;
+    label: string;
+    badge: string;
+    sort_order: number;
+    display_mode: "contain" | "cover";
+    focus_x: number;
+    focus_y: number;
+    image_zoom: number;
+    source: "site" | "space";
+  };
+
+  const visibleHistory: PhotoHistoryRow[] = mode === "space"
+    ? [...spacePhotos].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((photo, index): PhotoHistoryRow => ({
         id: photo.id,
         image_url: photo.image_url,
         alt_text: photo.alt_text || photo.title || "Foto do espaço Bem Bonita",
@@ -2926,9 +2957,10 @@ function PhotosTab({
         display_mode: photo.display_mode ?? "contain",
         focus_x: photo.focus_x ?? 50,
         focus_y: photo.focus_y ?? 50,
-        source: "space" as const,
+        image_zoom: photo.image_zoom ?? 1,
+        source: "space",
       }))
-    : images.map((image) => ({
+    : images.map((image): PhotoHistoryRow => ({
         id: image.id,
         image_url: image.image_url,
         alt_text: image.alt_text,
@@ -2936,7 +2968,12 @@ function PhotosTab({
         created_at: image.created_at ?? "Recente",
         label: image.alt_text || image.image_key,
         badge: image.image_key,
-        source: "site" as const,
+        sort_order: 0,
+        display_mode: "contain",
+        focus_x: 50,
+        focus_y: 50,
+        image_zoom: 1,
+        source: "site",
       }));
   const highlightPhoto = mode === "space" ? visibleHistory[0] : null;
 
@@ -3130,6 +3167,13 @@ function PhotosTab({
     }
   }
 
+  async function adjustSpacePhotoZoom(id: string, delta: number) {
+    if (zoomAvailable === false) return;
+    const current = spacePhotos.find((photo) => photo.id === id);
+    const nextZoom = Math.min(1.8, Math.max(1, Number((current?.image_zoom ?? 1) + delta)));
+    await updateSpacePhoto(id, { image_zoom: nextZoom });
+  }
+
   async function saveSpacePhotoOrder(orderedIds: string[], message: string) {
     const currentPhotos = [...spacePhotos].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     const orderedPhotos = orderedIds
@@ -3170,7 +3214,10 @@ function PhotosTab({
     const nextIndex = direction === "up" ? index - 1 : index + 1;
     if (index < 0 || nextIndex < 0 || nextIndex >= orderedIds.length) return;
     const nextIds = [...orderedIds];
-    [nextIds[index], nextIds[nextIndex]] = [nextIds[nextIndex], nextIds[index]];
+    const currentId = nextIds[index];
+    const targetId = nextIds[nextIndex];
+    if (!currentId || !targetId) return;
+    [nextIds[index], nextIds[nextIndex]] = [targetId, currentId];
     void saveSpacePhotoOrder(nextIds, "Ordem das fotos atualizada.");
   }
 
@@ -3183,6 +3230,7 @@ function PhotosTab({
     if (currentIndex < 0 || currentIndex === nextIndex) return;
     const nextIds = [...orderedIds];
     const [selectedId] = nextIds.splice(currentIndex, 1);
+    if (!selectedId) return;
     nextIds.splice(nextIndex, 0, selectedId);
     void saveSpacePhotoOrder(nextIds, "Posição da foto atualizada.");
   }
@@ -3306,7 +3354,10 @@ function PhotosTab({
                       src={highlightPhoto.image_url}
                       alt={highlightPhoto.alt_text}
                       className="aspect-[4/3] w-full object-cover"
-                      style={{ objectPosition: `${highlightPhoto.focus_x ?? 50}% ${highlightPhoto.focus_y ?? 50}%` }}
+                      style={{
+                        objectPosition: `${highlightPhoto.focus_x ?? 50}% ${highlightPhoto.focus_y ?? 50}%`,
+                        transform: `scale(${highlightPhoto.image_zoom ?? 1})`,
+                      }}
                     />
                     <span className="absolute left-4 top-4 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow-soft">
                       Foto destaque atual
@@ -3432,14 +3483,21 @@ function PhotosTab({
           {visibleHistory.map((img) => (
             <div
               key={img.id}
-              className="group relative overflow-hidden rounded-2xl border border-border bg-background p-3 shadow-card transition hover:border-primary/60"
+              className="group relative overflow-hidden rounded-2xl bg-background p-3 shadow-card transition"
             >
               <div className="aspect-square overflow-hidden rounded-xl bg-secondary/40">
                 <img
                   src={img.image_url}
                   alt={img.alt_text}
-                  className={`h-full w-full transition duration-300 group-hover:scale-105 ${mode === "space" && img.display_mode !== "cover" ? "object-contain" : "object-cover"}`}
-                  style={mode === "space" ? { objectPosition: `${img.focus_x ?? 50}% ${img.focus_y ?? 50}%` } : undefined}
+                  className={`h-full w-full transition duration-300 ${mode === "space" && img.display_mode !== "cover" ? "object-contain" : "object-cover"}`}
+                  style={
+                    mode === "space"
+                      ? {
+                          objectPosition: `${img.focus_x ?? 50}% ${img.focus_y ?? 50}%`,
+                          transform: `scale(${img.image_zoom ?? 1})`,
+                        }
+                      : undefined
+                  }
                 />
               </div>
               <div className="mt-3">
@@ -3509,7 +3567,7 @@ function PhotosTab({
                     <select
                       className="admin-input mt-1 h-11 text-sm"
                       value={img.display_mode ?? "contain"}
-                      onChange={(event) => void updateSpacePhoto(img.id, { display_mode: event.target.value as SpacePhotoData["display_mode"] })}
+                      onChange={(event) => void updateSpacePhoto(img.id, { display_mode: event.target.value === "cover" ? "cover" : "contain" })}
                     >
                       <option value="contain">Foto inteira</option>
                       <option value="cover">Recorte com foco</option>
@@ -3537,6 +3595,36 @@ function PhotosTab({
                       className="w-full accent-primary"
                     />
                   </label>
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Zoom</span>
+                    {zoomAvailable === false ? (
+                      <p className="mt-1 rounded-xl border border-dashed border-border bg-background p-2 text-[11px] leading-snug text-muted-foreground">
+                        Rode o SQL <span className="font-mono">supabase/space-photo-zoom.sql</span> no Supabase para liberar o zoom.
+                      </p>
+                    ) : (
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void adjustSpacePhotoZoom(img.id, -0.1)}
+                          disabled={(img.image_zoom ?? 1) <= 1}
+                          aria-label={`Diminuir zoom da foto ${img.label}`}
+                          className="inline-flex items-center justify-center gap-1 rounded-xl border border-border bg-background px-3 py-2 text-[11px] font-bold text-foreground transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <ZoomOut className="h-3.5 w-3.5" /> Zoom para trás
+                        </button>
+                        <span className="shrink-0 font-mono text-[11px] font-semibold text-magenta">{(img.image_zoom ?? 1).toFixed(2)}x</span>
+                        <button
+                          type="button"
+                          onClick={() => void adjustSpacePhotoZoom(img.id, 0.1)}
+                          disabled={(img.image_zoom ?? 1) >= 1.8}
+                          aria-label={`Aumentar zoom da foto ${img.label}`}
+                          className="inline-flex items-center justify-center gap-1 rounded-xl border border-border bg-background px-3 py-2 text-[11px] font-bold text-foreground transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <ZoomIn className="h-3.5 w-3.5" /> Zoom para frente
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : null}
 

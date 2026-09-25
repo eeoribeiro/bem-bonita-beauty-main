@@ -69,6 +69,7 @@ export type SpacePhotoData = {
   display_mode?: "contain" | "cover" | null;
   focus_x?: number | null;
   focus_y?: number | null;
+  image_zoom?: number | null;
   sort_order: number;
   published: boolean;
   created_at?: string;

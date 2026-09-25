@@ -9,6 +9,7 @@ type FotoEspaco = {
   displayMode?: "contain" | "cover" | null;
   focusX?: number | null;
   focusY?: number | null;
+  zoom?: number | null;
 };
 
 export function Sobre() {
@@ -24,6 +25,7 @@ export function Sobre() {
         displayMode: image.display_mode ?? "contain",
         focusX: image.focus_x ?? 50,
         focusY: image.focus_y ?? 50,
+        zoom: image.image_zoom ?? 1,
       }))
       .filter((foto, index, lista) => lista.findIndex((item) => item.url === foto.url) === index) ?? [];
 
@@ -88,7 +90,10 @@ export function Sobre() {
                 fetchPriority="high"
                 decoding="async"
                 className="aspect-[4/5] w-full rounded-[1.55rem] object-cover transition duration-700 group-hover:scale-[1.02] lg:max-h-[44rem]"
-                style={{ objectPosition: `${fotoDestaque.focusX ?? 50}% ${fotoDestaque.focusY ?? 50}%` }}
+                style={{
+                  objectPosition: `${fotoDestaque.focusX ?? 50}% ${fotoDestaque.focusY ?? 50}%`,
+                  transform: `scale(${fotoDestaque.zoom ?? 1})`,
+                }}
               />
               <span className="absolute left-5 top-5 rounded-full bg-black/55 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-white shadow-lg backdrop-blur">
                 Foto destaque
@@ -122,7 +127,7 @@ export function Sobre() {
                   key={foto.url}
                   type="button"
                   onClick={() => setSelectedPhoto(foto)}
-                  className={`bb-fade-up group relative overflow-hidden rounded-[1.35rem] border border-white/12 bg-white/[0.045] p-2 text-left shadow-[0_18px_58px_-38px_rgba(0,0,0,0.9)] transition duration-300 hover:-translate-y-1 hover:border-primary/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 ${
+                  className={`bb-fade-up group relative overflow-hidden rounded-[1.35rem] bg-white/[0.045] p-0 text-left transition duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 ${
                     index % 7 === 0 ? "sm:row-span-2" : ""
                   }`}
                   style={{ animationDelay: `${Math.min(index, 11) * 60}ms` }}
@@ -134,14 +139,17 @@ export function Sobre() {
                     loading={index < 4 ? "eager" : "lazy"}
                     fetchPriority={index < 4 ? "high" : "auto"}
                     decoding="async"
-                    className={`w-full rounded-[1rem] transition duration-500 group-hover:scale-[1.035] ${
+                    className={`w-full rounded-[1rem] transition duration-500 ${
                       index % 7 === 0
                         ? "h-full min-h-72 object-cover"
                         : foto.displayMode === "cover"
                         ? "aspect-[4/5] object-cover"
                         : "aspect-[4/5] object-contain"
                     }`}
-                    style={{ objectPosition: `${foto.focusX ?? 50}% ${foto.focusY ?? 50}%` }}
+                    style={{
+                      objectPosition: `${foto.focusX ?? 50}% ${foto.focusY ?? 50}%`,
+                      transform: `scale(${foto.zoom ?? 1})`,
+                    }}
                   />
                   <span className="pointer-events-none absolute inset-x-3 bottom-3 z-[1] flex items-center gap-2 rounded-xl bg-gradient-to-t from-black/75 via-black/45 to-transparent px-3 pb-2.5 pt-7 text-left opacity-0 transition duration-300 group-hover:opacity-100">
                     <span className="truncate text-xs font-semibold text-white">{foto.titulo}</span>
