@@ -138,6 +138,13 @@ export function getOptionStock(option: ProductOptionData | null) {
   return Math.max(0, Number(option?.stock ?? 20) || 0);
 }
 
+export function formatarPrecoTexto(preco?: string | null) {
+  const text = (preco ?? "").trim();
+  if (!text) return "";
+  if (/^r\$\s?/i.test(text) || /^rs\b/i.test(text)) return text;
+  return `R$ ${text}`;
+}
+
 export function getUnitPriceText(priceText?: string | null, sizeText?: string | null) {
   const cents = Number(
     (priceText ?? "")

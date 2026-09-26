@@ -9,6 +9,7 @@ import { cartItemKey, parsePrecoCentavos, readCart, saveCart, type CartItem } fr
 import {
   fallbackProductImage,
   findProdutoBySlug,
+  formatarPrecoTexto,
   getActiveOptions,
   getOptionStock,
   getSelectedOption,
@@ -39,7 +40,9 @@ export function ProdutoDetalhePage({ slug }: { slug: string }) {
   const selectedOption = product ? getSelectedOption(product, selectedOptions) : null;
   const activeOptions = product ? getActiveOptions(product) : [];
   const displayImage = selectedOption?.image_url || product?.imagem || fallbackProductImage;
-  const displayPrice = selectedOption?.price_text || product?.precoPromocional || product?.preco || "";
+  const displayPrice = formatarPrecoTexto(
+    selectedOption?.price_text || product?.precoPromocional || product?.preco || "",
+  );
   const stock = getOptionStock(selectedOption);
   const disabled = stock <= 0 || !parsePrecoCentavos(displayPrice);
   const unitPrice = getUnitPriceText(displayPrice, selectedOption?.size);
@@ -173,7 +176,7 @@ export function ProdutoDetalhePage({ slug }: { slug: string }) {
                             <span className="min-w-0 flex-1">
                               <span className={`block font-bold text-foreground ${optionStock <= 0 ? "line-through" : ""}`}>{option.name}</span>
                               {option.size ? <span className={`mt-0.5 block text-xs text-muted-foreground ${optionStock <= 0 ? "line-through" : ""}`}>{option.size}</span> : null}
-                              {option.price_text ? <span className="mt-1 block text-sm font-bold text-magenta">{option.price_text}</span> : null}
+                              {option.price_text ? <span className="mt-1 block text-sm font-bold text-magenta">{formatarPrecoTexto(option.price_text)}</span> : null}
                               <span className="mt-0.5 block text-[11px] text-muted-foreground">{optionStock ? `${optionStock} em estoque` : "Sem estoque"}</span>
                             </span>
                           </button>

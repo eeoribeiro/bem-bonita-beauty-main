@@ -5,7 +5,7 @@ import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
 import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
 import { quantidadeCarrinho, readCart } from "@/lib/cart";
-import { fallbackProductImage, getSelectedOption, mapProductData, produtosLinha, produtoSlug, type ProdutoItem } from "@/lib/product-catalog";
+import { fallbackProductImage, formatarPrecoTexto, getSelectedOption, mapProductData, produtosLinha, produtoSlug, type ProdutoItem } from "@/lib/product-catalog";
 import { SALAO, whatsappLink } from "@/lib/salao";
 import { usePublicSiteData } from "@/lib/site-data";
 
@@ -38,7 +38,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
     const selectedOption = getSelectedOption(produto, selectedOptions);
     return {
       displayImage: selectedOption?.image_url || produto.imagem || fallbackProductImage,
-      displayPrice: selectedOption?.price_text || produto.precoPromocional || produto.preco,
+      displayPrice: formatarPrecoTexto(selectedOption?.price_text || produto.precoPromocional || produto.preco),
       alt: selectedOption ? `${produto.nome} - ${selectedOption.name}` : produto.nome,
     };
   };
@@ -155,8 +155,8 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                         if (produto.precoPromocional) {
                           return (
                             <div className="flex flex-wrap items-end gap-2">
-                              {produto.preco ? <span className="text-xs font-semibold text-muted-foreground line-through">{produto.preco}</span> : null}
-                              <span className="text-base font-black leading-none text-magenta sm:text-lg">{produto.precoPromocional}</span>
+                              {produto.preco ? <span className="text-xs font-semibold text-muted-foreground line-through">{formatarPrecoTexto(produto.preco)}</span> : null}
+                              <span className="text-base font-black leading-none text-magenta sm:text-lg">{formatarPrecoTexto(produto.precoPromocional)}</span>
                             </div>
                           );
                         }

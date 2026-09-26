@@ -288,7 +288,14 @@ export function Resultados() {
             ref={trancasCarouselRef}
             className="-mx-5 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3"
           >
-            {(trancasSalvas.length ? trancasSalvas : trancas).map((item) => (
+            {isLoading
+              ? Array.from({ length: 3 }, (_, index) => (
+                  <div
+                    key={`trancas-skeleton-${index}`}
+                    className="aspect-[4/5] min-w-[78vw] animate-pulse rounded-3xl bg-secondary/60 sm:min-w-0"
+                  />
+                ))
+              : (trancasSalvas.length ? trancasSalvas : trancas).map((item) => (
               <figure
                 key={item.titulo}
                 className="group min-w-[78vw] snap-center overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card sm:min-w-0"

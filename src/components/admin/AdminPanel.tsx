@@ -4906,7 +4906,13 @@ function BraidsManager({
             </div>
           ) : (
             <div className="mt-5 rounded-3xl border border-dashed border-primary/30 bg-card p-8 text-center text-sm text-muted-foreground">
-              Nenhuma foto de trança cadastrada ainda. Use o formulário ao lado para adicionar a primeira.
+              <p className="font-semibold text-foreground">Nenhuma foto de trança cadastrada no banco ainda.</p>
+              <p className="mt-1 leading-relaxed">
+                As fotos que aparecem no site agora são um padrão temporário do próprio código (exibido
+                só enquanto não existir nada salvo aqui). Para gerenciar as fotos da “Galeria de
+                tranças”, cadastre-as por este formulário — ou popule o banco de uma vez rodando o
+                SQL <span className="font-mono">supabase/seed-trancas.sql</span> no Supabase.
+              </p>
             </div>
           )}
         </div>
