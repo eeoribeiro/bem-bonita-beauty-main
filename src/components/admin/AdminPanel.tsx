@@ -54,6 +54,7 @@ import { ImageField } from "./ImageField";
 import { Botao } from "@/components/site/Botao";
 import { SafeImage } from "@/components/site/SafeImage";
 import { removerImagem, uploadImagem } from "@/lib/admin-data";
+import { formatarPrecoTexto } from "@/lib/product-catalog";
 import {
   initialContentMarker,
   initialPortfolio,
@@ -2748,11 +2749,35 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
               <p className="mt-1 text-xs text-muted-foreground">{product.subtitle || product.hair_type}</p>
               {product.promotional_price_text ? (
                 <div className="mt-2 flex flex-wrap items-baseline gap-2">
-                  {product.price_text ? <span className="text-xs text-muted-foreground line-through">{product.price_text}</span> : null}
-                  <span className="text-sm font-semibold text-magenta">{product.promotional_price_text}</span>
+                  {product.price_text ? <span className="text-xs text-muted-foreground line-through">{formatarPrecoTexto(product.price_text)}</span> : null}
+                  <span className="text-sm font-semibold text-magenta">{formatarPrecoTexto(product.promotional_price_text)}</span>
                 </div>
               ) : product.price_text ? (
-                <p className="mt-2 text-sm font-semibold text-magenta">{product.price_text}</p>
+                <p className="mt-2 text-sm font-semibold text-magenta">{formatarPrecoTexto(product.price_text)}</p>
+              ) : null}
+              {product.description ? (
+                <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-muted-foreground">{product.description}</p>
+              ) : null}
+              {normalizeProductOptions(product.product_options).filter((option) => option.active !== false && (option.name || option.price_text)).length ? (
+                <div className="mt-3 rounded-2xl border border-border/70 bg-background/40 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Produtos separados dentro deste kit</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {normalizeProductOptions(product.product_options)
+                      .filter((option) => option.active !== false && (option.name || option.price_text))
+                      .slice(0, 4)
+                      .map((option) => (
+                        <span key={option.id} className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-foreground/80">
+                          {option.name || "Opção"}
+                          {option.price_text ? ` • ${formatarPrecoTexto(option.price_text)}` : ""}
+                        </span>
+                      ))}
+                    {normalizeProductOptions(product.product_options).filter((option) => option.active !== false && (option.name || option.price_text)).length > 4 ? (
+                      <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+                        +{normalizeProductOptions(product.product_options).filter((option) => option.active !== false && (option.name || option.price_text)).length - 4}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
               ) : null}
               <div className="mt-4 flex gap-2">
                 <button type="button" onClick={() => openEditor(product)} className="min-h-11 flex-1 rounded-xl bg-secondary px-3 py-2 text-xs font-semibold text-magenta">Editar</button>

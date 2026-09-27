@@ -5,7 +5,7 @@ import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
 import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
 import { quantidadeCarrinho, readCart } from "@/lib/cart";
-import { fallbackProductImage, formatarPrecoTexto, getSelectedOption, mapProductData, produtosLinha, produtoSlug, type ProdutoItem } from "@/lib/product-catalog";
+import { fallbackProductImage, formatarPrecoTexto, mapProductData, produtosLinha, produtoSlug, type ProdutoItem } from "@/lib/product-catalog";
 import { SALAO, whatsappLink } from "@/lib/salao";
 import { usePublicSiteData } from "@/lib/site-data";
 
@@ -13,7 +13,6 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   const { data, isError, isFetching, isLoading } = usePublicSiteData();
   const carouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
-  const [selectedOptions] = useState<Record<string, string>>({});
   const [cartQuantity, setCartQuantity] = useState(0);
 
   useEffect(() => {
@@ -35,10 +34,9 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
     ? produtosFiltrados
     : [...products].sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque))).slice(0, 3);
   const resolvedCard = (produto: ProdutoItem) => {
-    const selectedOption = getSelectedOption(produto, selectedOptions);
     return {
       displayImage: produto.imagem || fallbackProductImage,
-      displayPrice: formatarPrecoTexto(produto.precoPromocional || produto.preco || selectedOption?.price_text),
+      displayPrice: formatarPrecoTexto(produto.precoPromocional || produto.preco || ""),
       alt: produto.nome,
     };
   };
@@ -146,12 +144,6 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                     </div>
                     <div className="border-b border-border/60 bg-gradient-to-r from-primary/15 via-card to-gold/10 px-4 py-3 sm:px-6">
                       {(() => {
-                        const selected = getSelectedOption(produto, selectedOptions);
-                        if (selected) {
-                          return displayPrice ? (
-                            <p className="text-base font-black leading-none text-magenta sm:text-lg">{displayPrice}</p>
-                          ) : null;
-                        }
                         if (produto.precoPromocional) {
                           return (
                             <div className="flex flex-wrap items-end gap-2">

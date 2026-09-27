@@ -12,7 +12,6 @@ import {
   formatarPrecoTexto,
   getActiveOptions,
   getOptionStock,
-  getSelectedOption,
   getUnitPriceText,
   mapProductData,
   produtosLinha,
@@ -37,15 +36,16 @@ export function ProdutoDetalhePage({ slug }: { slug: string }) {
     [data, isError],
   );
   const product = useMemo(() => findProdutoBySlug(products, slug), [products, slug]);
-  const selectedOption = product ? getSelectedOption(product, selectedOptions) : null;
   const activeOptions = product ? getActiveOptions(product) : [];
+  const selectedOptionId = product ? selectedOptions[product.id] : undefined;
+  const selectedOption = selectedOptionId ? activeOptions.find((option) => option.id === selectedOptionId) ?? null : null;
   const displayImage = selectedOption?.image_url || product?.imagem || fallbackProductImage;
   const displayPrice = formatarPrecoTexto(
     selectedOption?.price_text || product?.precoPromocional || product?.preco || "",
   );
-  const stock = getOptionStock(selectedOption);
+  const stock = selectedOption ? getOptionStock(selectedOption) : 20;
   const disabled = stock <= 0 || !parsePrecoCentavos(displayPrice);
-  const unitPrice = getUnitPriceText(displayPrice, selectedOption?.size);
+  const unitPrice = selectedOption ? getUnitPriceText(displayPrice, selectedOption.size) : "";
   const relatedProducts = product
     ? products.filter((item) => item.id !== product.id && item.categoria && item.categoria === product.categoria).slice(0, 6)
     : [];
@@ -128,6 +128,7 @@ export function ProdutoDetalhePage({ slug }: { slug: string }) {
                   <p className="mt-2 text-3xl font-black text-magenta">{displayPrice || "Consulte"}</p>
                   {unitPrice ? <p className="mt-1 text-sm text-muted-foreground">{unitPrice}</p> : null}
                   {selectedOption?.size ? <p className="mt-1 text-sm text-muted-foreground">Tamanho: {selectedOption.size}</p> : null}
+                  {!selectedOption && activeOptions.length ? <p className="mt-1 text-sm text-muted-foreground">Kit completo</p> : null}
                   <p className={`mt-3 text-sm font-bold ${stock ? "text-emerald-500" : "text-red-400"}`}>
                     {stock ? `${stock} disponível(is)` : "Sem estoque"}
                   </p>
@@ -145,8 +146,36 @@ export function ProdutoDetalhePage({ slug }: { slug: string }) {
 
                 {activeOptions.length ? (
                   <div className="mt-8">
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-foreground">Escolha o produto separado</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-foreground">Escolha o kit ou produto separado</p>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        aria-pressed={!selectedOption}
+                        onClick={() => {
+                          setSelectedOptions((current) => {
+                            const next = { ...current };
+                            delete next[product.id];
+                            return next;
+                          });
+                          setQuantity(1);
+                        }}
+                        className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition ${
+                          !selectedOption
+                            ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                            : "border-border bg-background hover:border-primary/60"
+                        }`}
+                      >
+                        <img
+                          src={product.imagem || fallbackProductImage}
+                          alt={product.nome}
+                          className="h-16 w-16 shrink-0 rounded-xl bg-secondary object-cover"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-bold text-foreground">Kit completo</span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">{product.subtitulo}</span>
+                          {displayPrice ? <span className="mt-1 block text-sm font-bold text-magenta">{displayPrice}</span> : null}
+                        </span>
+                      </button>
                       {activeOptions.map((option) => {
                         const checked = selectedOption?.id === option.id;
                         const optionStock = getOptionStock(option);
