@@ -127,6 +127,24 @@ export function getActiveOptions(product: ProdutoItem) {
   return (product.opcoes ?? []).filter((option) => option.active !== false && option.name?.trim());
 }
 
+export function getPrimaryProductOption(product: ProdutoItem | ProductData) {
+  const options = "product_options" in product ? product.product_options : product.opcoes;
+  return (options ?? []).find((option) => option.active !== false && option.name?.trim()) ?? null;
+}
+
+export function getPrimaryProductImage(product: ProdutoItem | ProductData, fallback = fallbackProductImage) {
+  const primaryOption = getPrimaryProductOption(product);
+  const productImage = "image_url" in product ? product.image_url : product.imagem;
+  return primaryOption?.image_url || productImage || fallback;
+}
+
+export function getPrimaryProductPrice(product: ProdutoItem | ProductData) {
+  const primaryOption = getPrimaryProductOption(product);
+  const promotionalPrice = "promotional_price_text" in product ? product.promotional_price_text : product.precoPromocional;
+  const regularPrice = "price_text" in product ? product.price_text : product.preco;
+  return primaryOption?.price_text || promotionalPrice || regularPrice || "";
+}
+
 export function getSelectedOption(product: ProdutoItem, selectedOptions: Record<string, string>) {
   const options = getActiveOptions(product);
   if (!options.length) return null;

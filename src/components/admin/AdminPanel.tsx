@@ -63,6 +63,7 @@ import {
 } from "@/lib/initial-content";
 import { getSupabaseClient, supabaseConfigurado } from "@/lib/supabase";
 import { initialProducts } from "@/lib/initial-products";
+import { formatarPrecoTexto, getPrimaryProductImage, getPrimaryProductOption, getPrimaryProductPrice } from "@/lib/product-catalog";
 import fotoFranciellyFallback from "@/assets/sobre-francielly.jpg";
 import fotoEspacoFallback from "@/assets/instagram-salao.jpg";
 import fotoHeroFallback from "@/assets/hero-cachos.jpg";
@@ -2735,10 +2736,14 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
     </div>
     {products.length ? (
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        {products.map((product) => (
+        {products.map((product) => {
+          const primaryOption = getPrimaryProductOption(product);
+          const primaryImage = getPrimaryProductImage(product, fotoProdutosFallback);
+          const primaryPrice = formatarPrecoTexto(getPrimaryProductPrice(product));
+          return (
           <article key={product.id} className="rounded-3xl border border-border bg-card p-5 shadow-card">
             <div className="flex aspect-[3/4] items-center justify-center overflow-hidden">
-              <SafeImage src={product.image_url ?? fotoProdutosFallback} fallbackSrc={fotoProdutosFallback} alt={product.name} className="h-full w-full object-contain" />
+              <SafeImage src={primaryImage} fallbackSrc={fotoProdutosFallback} alt={primaryOption ? `${product.name} - ${primaryOption.name}` : product.name} className="h-full w-full object-contain" />
             </div>
             <div className="mt-4">
               <div className="flex items-start justify-between gap-2">
@@ -2746,7 +2751,15 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
                 <span className={`rounded-full px-2 py-1 text-[10px] ${product.published ? "bg-emerald-500/15 text-emerald-300" : "bg-secondary text-muted-foreground"}`}>{product.published ? "Ativo" : "Oculto"}</span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{product.subtitle || product.hair_type}</p>
-              {product.promotional_price_text ? (
+              {primaryOption ? (
+                <div className="mt-2 rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Capa e preço da 1ª opção do kit</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{primaryOption.name}{primaryOption.size ? ` • ${primaryOption.size}` : ""}</span>
+                    {primaryPrice ? <span className="text-sm font-semibold text-magenta">{primaryPrice}</span> : null}
+                  </div>
+                </div>
+              ) : product.promotional_price_text ? (
                 <div className="mt-2 flex flex-wrap items-baseline gap-2">
                   {product.price_text ? <span className="text-xs text-muted-foreground line-through">{product.price_text}</span> : null}
                   <span className="text-sm font-semibold text-magenta">{product.promotional_price_text}</span>
@@ -2760,7 +2773,8 @@ function ProductsManagerTab({ products, setProducts, isDemo, onReload, onSuccess
               </div>
             </div>
           </article>
-        ))}
+        );
+        })}
       </div>
     ) : (
       <div className="rounded-3xl border border-dashed border-border p-10 text-center">
