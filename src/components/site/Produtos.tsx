@@ -5,7 +5,7 @@ import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
 import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
 import { quantidadeCarrinho, readCart } from "@/lib/cart";
-import { fallbackProductImage, formatarPrecoTexto, getPrimaryProductImage, getPrimaryProductPrice, getSelectedOption, mapProductData, produtosLinha, produtoSlug, type ProdutoItem } from "@/lib/product-catalog";
+import { fallbackProductImage, formatarPrecoTexto, getSelectedOption, mapProductData, produtosLinha, produtoSlug, type ProdutoItem } from "@/lib/product-catalog";
 import { SALAO, whatsappLink } from "@/lib/salao";
 import { usePublicSiteData } from "@/lib/site-data";
 
@@ -37,9 +37,9 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
   const resolvedCard = (produto: ProdutoItem) => {
     const selectedOption = getSelectedOption(produto, selectedOptions);
     return {
-      displayImage: selectedOption?.image_url || getPrimaryProductImage(produto, fallbackProductImage),
-      displayPrice: formatarPrecoTexto(selectedOption?.price_text || getPrimaryProductPrice(produto)),
-      alt: selectedOption ? `${produto.nome} - ${selectedOption.name}` : produto.nome,
+      displayImage: produto.imagem || fallbackProductImage,
+      displayPrice: formatarPrecoTexto(produto.precoPromocional || produto.preco || selectedOption?.price_text),
+      alt: produto.nome,
     };
   };
 

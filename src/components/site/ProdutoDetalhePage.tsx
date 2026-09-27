@@ -12,7 +12,6 @@ import {
   formatarPrecoTexto,
   getActiveOptions,
   getOptionStock,
-  getPrimaryProductImage,
   getSelectedOption,
   getUnitPriceText,
   mapProductData,
@@ -257,7 +256,7 @@ export function ProdutoDetalhePage({ slug }: { slug: string }) {
                     params={{ slug: produtoSlug(item) }}
                     className="rounded-3xl bg-card p-3 shadow-card transition hover:-translate-y-1"
                   >
-                    <img src={getPrimaryProductImage(item, fallbackProductImage)} alt={item.nome} className="aspect-square w-full rounded-2xl object-cover" />
+                    <img src={item.imagem || fallbackProductImage} alt={item.nome} className="aspect-square w-full rounded-2xl object-cover" />
                     <p className="mt-3 font-bold text-foreground">{item.nome}</p>
                     <p className="mt-1 text-sm text-muted-foreground">{item.subtitulo}</p>
                   </Link>
