@@ -54,6 +54,7 @@ import { ImageField } from "./ImageField";
 import { Botao } from "@/components/site/Botao";
 import { SafeImage } from "@/components/site/SafeImage";
 import { removerImagem, uploadImagem } from "@/lib/admin-data";
+import { DEFAULT_BRAIDS_CATEGORY, defaultBraidsPhotos } from "@/lib/default-braids";
 import { formatarPrecoTexto } from "@/lib/product-catalog";
 import {
   initialContentMarker,
@@ -165,7 +166,7 @@ const emptyProfessional = (): Omit<ProfessionalData, "id" | "sort_order"> => ({
 });
 
 // Categoria reservada para a galeria de tranças (seção separada da galeria principal).
-const BRAIDS_CATEGORY = "trancas";
+const BRAIDS_CATEGORY = DEFAULT_BRAIDS_CATEGORY;
 
 const emptyBraidsPhoto = (): Omit<PortfolioData, "id" | "sort_order"> => ({
   ...emptyPortfolio(),
@@ -3597,62 +3598,57 @@ function PhotosTab({
                       <option value="contain">Foto inteira</option>
                       <option value="cover">Recorte com foco</option>
                     </select>
+                    <span className="mt-1 block text-[11px] leading-relaxed text-muted-foreground">
+                      Use foco e zoom tanto na foto inteira quanto no recorte para ajustar exatamente como ela aparece no site.
+                    </span>
                   </label>
-                  {(img.display_mode ?? "contain") === "cover" ? (
-                    <>
-                      <label className="block">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Foco horizontal</span>
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={img.focus_x ?? 50}
-                          onChange={(event) => void updateSpacePhoto(img.id, { focus_x: Number(event.target.value) })}
-                          className="w-full accent-primary"
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Foco vertical</span>
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={img.focus_y ?? 50}
-                          onChange={(event) => void updateSpacePhoto(img.id, { focus_y: Number(event.target.value) })}
-                          className="w-full accent-primary"
-                        />
-                      </label>
-                      {zoomAvailable === false ? null : (
-                        <div>
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Zoom</span>
-                          <div className="mt-1 flex items-center justify-between gap-2">
-                            <button
-                              type="button"
-                              onClick={() => void adjustSpacePhotoZoom(img.id, -0.1)}
-                              disabled={(img.image_zoom ?? 1) <= 1}
-                              aria-label={`Diminuir zoom da foto ${img.label}`}
-                              className="inline-flex items-center justify-center gap-1 rounded-xl border border-border bg-background px-3 py-2 text-[11px] font-bold text-foreground transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              <ZoomOut className="h-3.5 w-3.5" /> Zoom para trás
-                            </button>
-                            <span className="shrink-0 font-mono text-[11px] font-semibold text-magenta">{(img.image_zoom ?? 1).toFixed(2)}x</span>
-                            <button
-                              type="button"
-                              onClick={() => void adjustSpacePhotoZoom(img.id, 0.1)}
-                              disabled={(img.image_zoom ?? 1) >= 1.8}
-                              aria-label={`Aumentar zoom da foto ${img.label}`}
-                              className="inline-flex items-center justify-center gap-1 rounded-xl border border-border bg-background px-3 py-2 text-[11px] font-bold text-foreground transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              <ZoomIn className="h-3.5 w-3.5" /> Zoom para frente
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <p className="rounded-xl border border-border/70 bg-background/70 p-3 text-[11px] leading-relaxed text-muted-foreground">
-                      A foto está em modo inteiro. Para ajustar foco ou zoom, troque para “Recorte com foco”.
-                    </p>
+                  <label className="block">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Foco horizontal</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={img.focus_x ?? 50}
+                      onChange={(event) => void updateSpacePhoto(img.id, { focus_x: Number(event.target.value) })}
+                      className="w-full accent-primary"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Foco vertical</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={img.focus_y ?? 50}
+                      onChange={(event) => void updateSpacePhoto(img.id, { focus_y: Number(event.target.value) })}
+                      className="w-full accent-primary"
+                    />
+                  </label>
+                  {zoomAvailable === false ? null : (
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Zoom</span>
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void adjustSpacePhotoZoom(img.id, -0.1)}
+                          disabled={(img.image_zoom ?? 1) <= 1}
+                          aria-label={`Diminuir zoom da foto ${img.label}`}
+                          className="inline-flex items-center justify-center gap-1 rounded-xl border border-border bg-background px-3 py-2 text-[11px] font-bold text-foreground transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <ZoomOut className="h-3.5 w-3.5" /> Zoom para trás
+                        </button>
+                        <span className="shrink-0 font-mono text-[11px] font-semibold text-magenta">{(img.image_zoom ?? 1).toFixed(2)}x</span>
+                        <button
+                          type="button"
+                          onClick={() => void adjustSpacePhotoZoom(img.id, 0.1)}
+                          disabled={(img.image_zoom ?? 1) >= 1.8}
+                          aria-label={`Aumentar zoom da foto ${img.label}`}
+                          className="inline-flex items-center justify-center gap-1 rounded-xl border border-border bg-background px-3 py-2 text-[11px] font-bold text-foreground transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <ZoomIn className="h-3.5 w-3.5" /> Zoom para frente
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               ) : null}
@@ -4666,6 +4662,57 @@ function BraidsManager({
     [items],
   );
 
+  async function importDefaultBraids() {
+    if (braidsPhotos.length) return;
+
+    setSaving(true);
+    const payloads = defaultBraidsPhotos.map((item) => ({
+      title: item.title,
+      description: null,
+      category: BRAIDS_CATEGORY,
+      category_id: null,
+      service_id: null,
+      service_name: null,
+      hair_type: "Todos os tipos de cabelo",
+      photo_label: "",
+      image_zoom: 1,
+      image_position_x: 50,
+      image_position_y: 50,
+      image_url: item.image_url,
+      storage_path: null,
+      alt_text: item.alt_text,
+      sort_order: item.sort_order,
+      published: true,
+    }));
+
+    if (isDemo) {
+      setPortfolio((prev) => [
+        ...prev,
+        ...payloads.map((payload, index) => ({
+          ...payload,
+          id: `braid-default-${Date.now()}-${index}`,
+        })),
+      ]);
+      onSuccess("Fotos atuais importadas para a Galeria de Tranças.");
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const { error } = await getSupabaseClient().from("portfolio_items").insert(payloads);
+      if (error) {
+        onError("Não foi possível importar as fotos atuais para o admin.");
+      } else {
+        onSuccess("Fotos atuais importadas. Agora você pode editar, trocar, reordenar ou excluir.");
+        await onReload();
+      }
+    } catch {
+      onError("Erro ao importar as fotos atuais para o admin.");
+    }
+
+    setSaving(false);
+  }
+
   function edit(item?: PortfolioData) {
     setEditingId(item?.id ?? null);
     setForm(
@@ -4934,13 +4981,27 @@ function BraidsManager({
               })}
             </div>
           ) : (
-            <div className="mt-5 rounded-3xl border border-dashed border-primary/30 bg-card p-8 text-center text-sm text-muted-foreground">
-              <p className="font-semibold text-foreground">Nenhuma foto de trança cadastrada no banco ainda.</p>
-              <p className="mt-1 leading-relaxed">
-                Cadastre aqui as fotos que devem aparecer no bloco “Galeria de tranças” do site.
-                Depois de salvar, você poderá editar, trocar a imagem, reordenar ou excluir por esta
-                mesma aba.
-              </p>
+            <div className="mt-5 rounded-3xl border border-dashed border-primary/30 bg-card p-5 text-sm text-muted-foreground sm:p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="font-semibold text-foreground">As fotos atuais do site ainda não foram importadas para o banco.</p>
+                  <p className="mt-1 max-w-2xl leading-relaxed">
+                    O site mostra estas fotos padrão enquanto não existe nada salvo. Importe para elas aparecerem aqui como fotos
+                    cadastradas e ficarem liberadas para editar, trocar, reordenar ou excluir.
+                  </p>
+                </div>
+                <Botao type="button" onClick={() => void importDefaultBraids()} disabled={saving} className="shrink-0">
+                  {saving ? "Importando..." : "Importar fotos atuais"}
+                </Botao>
+              </div>
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                {defaultBraidsPhotos.map((item) => (
+                  <figure key={item.title} className="overflow-hidden rounded-2xl border border-border bg-background">
+                    <img src={item.image_url} alt={item.alt_text} className="aspect-[4/5] h-auto w-full object-cover" />
+                    <figcaption className="p-3 text-xs font-semibold text-foreground">{item.title}</figcaption>
+                  </figure>
+                ))}
+              </div>
             </div>
           )}
         </div>

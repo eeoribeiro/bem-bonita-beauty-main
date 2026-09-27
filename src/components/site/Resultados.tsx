@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
 import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
+import { DEFAULT_BRAIDS_CATEGORY, defaultBraidsPhotos } from "@/lib/default-braids";
 import { SALAO } from "@/lib/salao";
 import { usePublicSiteData } from "@/lib/site-data";
 
@@ -43,9 +44,6 @@ function normalizarFiltro(value?: string | null) {
     .toLowerCase();
 }
 
-// Categoria reservada para a "Galeria de tranças" (gerenciada na aba própria do admin).
-const BRAIDS_CATEGORY = "trancas";
-
 export function Resultados() {
   const { data, isLoading } = usePublicSiteData();
   const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
@@ -54,13 +52,20 @@ export function Resultados() {
   const trancasCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const portfolioBruto = data?.portfolio ?? [];
   const trancasSalvas = portfolioBruto
-    .filter((item) => item.category === BRAIDS_CATEGORY)
+    .filter((item) => item.category === DEFAULT_BRAIDS_CATEGORY)
     .map((item) => ({
       imagem: item.image_url,
       alt: item.alt_text,
       titulo: item.title,
     }));
-  const portfolio = portfolioBruto.filter((item) => item.category !== BRAIDS_CATEGORY);
+  const trancasExibidas = trancasSalvas.length
+    ? trancasSalvas
+    : defaultBraidsPhotos.map((item) => ({
+        imagem: item.image_url,
+        alt: item.alt_text,
+        titulo: item.title,
+      }));
+  const portfolio = portfolioBruto.filter((item) => item.category !== DEFAULT_BRAIDS_CATEGORY);
   const servicos = data?.services ?? [];
   const filtrosServico = useMemo(() => {
     const filtros = servicos
@@ -248,7 +253,7 @@ export function Resultados() {
           </div>
         )}
 
-        {isLoading || trancasSalvas.length ? (
+        {isLoading || trancasExibidas.length ? (
           <div className="mt-16 rounded-[2rem] border border-border/70 bg-card/60 p-5 shadow-card sm:p-8">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <TituloSecao
@@ -278,7 +283,7 @@ export function Resultados() {
                       className="aspect-[4/5] min-w-[78vw] animate-pulse rounded-3xl bg-secondary/60 sm:min-w-0"
                     />
                   ))
-                : trancasSalvas.map((item) => (
+                : trancasExibidas.map((item) => (
                     <figure
                       key={item.titulo}
                       className="group min-w-[78vw] snap-center overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card sm:min-w-0"
