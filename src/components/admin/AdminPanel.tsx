@@ -3620,13 +3620,9 @@ function PhotosTab({
                       className="w-full accent-primary"
                     />
                   </label>
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Zoom</span>
-                    {zoomAvailable === false ? (
-                      <p className="mt-1 rounded-xl border border-dashed border-border bg-background p-2 text-[11px] leading-snug text-muted-foreground">
-                        Rode o SQL <span className="font-mono">supabase/space-photo-zoom.sql</span> no Supabase para liberar o zoom.
-                      </p>
-                    ) : (
+                  {zoomAvailable === false ? null : (
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Zoom</span>
                       <div className="mt-1 flex items-center justify-between gap-2">
                         <button
                           type="button"
@@ -3648,8 +3644,8 @@ function PhotosTab({
                           <ZoomIn className="h-3.5 w-3.5" /> Zoom para frente
                         </button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               ) : null}
 
@@ -4933,10 +4929,9 @@ function BraidsManager({
             <div className="mt-5 rounded-3xl border border-dashed border-primary/30 bg-card p-8 text-center text-sm text-muted-foreground">
               <p className="font-semibold text-foreground">Nenhuma foto de trança cadastrada no banco ainda.</p>
               <p className="mt-1 leading-relaxed">
-                As fotos que aparecem no site agora são um padrão temporário do próprio código (exibido
-                só enquanto não existir nada salvo aqui). Para gerenciar as fotos da “Galeria de
-                tranças”, cadastre-as por este formulário — ou popule o banco de uma vez rodando o
-                SQL <span className="font-mono">supabase/seed-trancas.sql</span> no Supabase.
+                Cadastre aqui as fotos que devem aparecer no bloco “Galeria de tranças” do site.
+                Depois de salvar, você poderá editar, trocar a imagem, reordenar ou excluir por esta
+                mesma aba.
               </p>
             </div>
           )}

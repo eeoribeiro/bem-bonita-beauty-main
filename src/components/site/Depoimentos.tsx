@@ -34,12 +34,14 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
   return (
     <section
       id="depoimentos"
-      className={`scroll-mt-24 bg-background py-14 text-foreground lg:py-24 ${
+      className={`relative isolate scroll-mt-24 overflow-hidden bg-background py-16 text-foreground lg:py-28 ${
         paginaCompleta ? "pt-24 lg:pt-32" : ""
       }`}
     >
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_18%,rgba(224,72,154,0.18),transparent_32%),radial-gradient(circle_at_90%_22%,rgba(196,142,74,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_45%)]" />
+      <div className="pointer-events-none absolute left-1/2 top-12 -z-10 h-48 w-[70%] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
-        <div className="text-center">
+        <div className="mx-auto max-w-3xl text-center">
           <p className="eyebrow mx-auto flex w-fit items-center gap-2">
             <Star className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
             Feedbacks reais
@@ -48,23 +50,36 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
             O que nossas clientes dizem
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            Depoimentos reais recebidos pelo WhatsApp
+            Prints reais recebidos pelo WhatsApp, organizados como uma vitrine de confiança para quem está chegando agora.
           </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="rounded-full border border-border bg-card/70 px-4 py-2">Resultados reais</span>
+            <span className="rounded-full border border-border bg-card/70 px-4 py-2">Clientes Bem Bonita</span>
+            <span className="rounded-full border border-border bg-card/70 px-4 py-2">Atendimento com cuidado</span>
+          </div>
         </div>
 
         <div
           ref={carouselRef}
-          className="-mx-5 mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3 lg:gap-6"
+          className="-mx-5 mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3 lg:gap-6"
         >
-          {feedbacksExibidos.map((feedback) => (
+          {feedbacksExibidos.map((feedback, index) => (
             <button
               key={feedback.id}
               type="button"
               onClick={() => setAberto(feedback)}
-              className="group flex min-h-full min-w-[78vw] snap-center flex-col overflow-hidden rounded-[2rem] border border-border bg-card p-2 text-left text-foreground shadow-card transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/40 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-0"
+              className={`group flex min-h-full min-w-[78vw] snap-center flex-col overflow-hidden rounded-[2rem] border border-border/80 bg-card/90 p-3 text-left text-foreground shadow-card backdrop-blur transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-0 ${
+                index % 3 === 1 ? "lg:mt-8" : index % 3 === 2 ? "lg:mt-3" : ""
+              }`}
               aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
             >
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[1.45rem] bg-secondary ring-1 ring-border">
+              <div className="relative overflow-hidden rounded-[1.45rem] bg-[#101014] p-2 ring-1 ring-border">
+                <div className="mb-2 flex items-center gap-1.5 px-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-yellow-300/80" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
+                  <span className="ml-2 h-2 w-20 rounded-full bg-white/10" />
+                </div>
                 <img
                   src={feedback.image_url!}
                   alt={
@@ -74,18 +89,20 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
                   }
                   loading="lazy"
                   decoding="async"
-                  className="h-full w-full object-cover object-top transition duration-500 group-hover:scale-[1.02]"
+                  className="max-h-[28rem] w-full rounded-[1.05rem] object-contain object-top transition duration-500 group-hover:scale-[1.01]"
                 />
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/30 to-transparent" />
               </div>
               <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
-                <div
-                  className="flex items-center gap-1 text-amber-400"
-                  aria-label="Avaliação de 5 estrelas"
-                >
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Star key={index} className="h-4 w-4 fill-current" aria-hidden="true" />
-                  ))}
+                <div className="flex items-center justify-between gap-3">
+                  <div
+                    className="flex items-center gap-1 text-amber-400"
+                    aria-label="Avaliação de 5 estrelas"
+                  >
+                    {Array.from({ length: 5 }).map((_, starIndex) => (
+                      <Star key={starIndex} className="h-4 w-4 fill-current" aria-hidden="true" />
+                    ))}
+                  </div>
+                  <span className="rounded-full bg-primary/15 px-3 py-1 text-[11px] font-bold text-magenta">Ver print</span>
                 </div>
                 <h3 className="mt-2 font-sans text-base font-bold text-foreground">
                   {feedback.client_name || "Cliente Bem Bonita"}
@@ -96,7 +113,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
           ))}
         </div>
 
-        <div className="mx-auto mt-14 max-w-2xl text-center lg:mt-16">
+        <div className="mx-auto mt-14 max-w-3xl rounded-[2rem] border border-border/80 bg-card/70 p-6 text-center shadow-card backdrop-blur lg:mt-16 lg:p-8">
           <p className="eyebrow">Cuidado para os seus cachos</p>
           <h3 className="mt-3 font-display text-2xl leading-tight text-foreground sm:text-3xl">
             Gostou do que as clientes disseram?
