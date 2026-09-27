@@ -68,18 +68,12 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
               key={feedback.id}
               type="button"
               onClick={() => setAberto(feedback)}
-              className={`group flex min-h-full min-w-[78vw] snap-center flex-col overflow-hidden rounded-[2rem] border border-border/80 bg-card/90 p-3 text-left text-foreground shadow-card backdrop-blur transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-0 ${
+              className={`group flex min-h-full min-w-[78vw] snap-center flex-col overflow-hidden rounded-[2rem] border border-border/80 bg-card/90 text-left text-foreground shadow-card backdrop-blur transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-0 ${
                 index % 3 === 1 ? "lg:mt-8" : index % 3 === 2 ? "lg:mt-3" : ""
               }`}
               aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
             >
-              <div className="relative overflow-hidden rounded-[1.45rem] bg-[#101014] p-2 ring-1 ring-border">
-                <div className="mb-2 flex items-center gap-1.5 px-1">
-                  <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-yellow-300/80" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
-                  <span className="ml-2 h-2 w-20 rounded-full bg-white/10" />
-                </div>
+              <div className="relative overflow-hidden bg-transparent">
                 <img
                   src={feedback.image_url!}
                   alt={
@@ -89,7 +83,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
                   }
                   loading="lazy"
                   decoding="async"
-                  className="max-h-[28rem] w-full rounded-[1.05rem] object-contain object-top transition duration-500 group-hover:scale-[1.01]"
+                  className="block h-auto w-full object-contain object-top"
                 />
               </div>
               <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
