@@ -120,7 +120,7 @@ export function ProdutoDetalhePage({ slug }: { slug: string }) {
                   <img
                     src={displayImage}
                     alt={selectedOption ? `${product.nome} - ${selectedOption.name}` : product.nome}
-                    className="aspect-[4/5] w-full object-cover object-center"
+                    className="block h-auto w-full"
                   />
                 </div>
                 <div className="mt-4 rounded-[1.8rem] border border-primary/25 bg-primary/10 p-5 shadow-card">
