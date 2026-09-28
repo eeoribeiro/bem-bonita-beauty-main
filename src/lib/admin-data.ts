@@ -117,3 +117,37 @@ export async function removerImagem(path: string | null | undefined, bucket = "s
   const { error } = await getSupabaseClient().storage.from(bucket).remove([path]);
   if (error) throw error;
 }
+
+/**
+ * Extrai a mensagem real de qualquer erro de runtime — inclusive os erros do
+ * Supabase (PostgrestError/StorageError), que são objetos simples e não passam
+ * no `instanceof Error`, o que escondia a causa de falhas de escrita no painel.
+ */
+export function mensagemDeErro(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error !== null) {
+    const anyError = error as { message?: unknown; details?: unknown; hint?: unknown };
+    const parts = [anyError.message, anyError.details, anyError.hint]
+      .filter((part): part is string => typeof part === "string" && part.trim().length > 0);
+    if (parts.length) return parts.join(" — ");
+  }
+  if (typeof error === "string" && error.trim()) return error;
+  return "Erro desconhecido.";
+}
+
+/**
+ * Garante uma sessão válida antes de gravar no Supabase. Tenta renovar o token
+ * expirado; se não conseguir, lança um erro com orientação clara para a usuária.
+ */
+export async function garantirSessaoAtiva(): Promise<void> {
+  const { getSupabaseClient } = await import("@/lib/supabase");
+  const supabase = getSupabaseClient();
+  let session = (await supabase.auth.getSession()).data.session;
+  if (!session) {
+    const refreshed = await supabase.auth.refreshSession();
+    session = refreshed.data.session;
+  }
+  if (!session) {
+    throw new Error("Sua sessão de administrador expirou. Recarregue a página e entre novamente para salvar.");
+  }
+}

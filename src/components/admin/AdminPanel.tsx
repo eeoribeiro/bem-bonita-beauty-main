@@ -53,7 +53,7 @@ import { ConfirmModal } from "./ConfirmModal";
 import { ImageField } from "./ImageField";
 import { Botao } from "@/components/site/Botao";
 import { SafeImage } from "@/components/site/SafeImage";
-import { removerImagem, uploadImagem } from "@/lib/admin-data";
+import { garantirSessaoAtiva, mensagemDeErro, removerImagem, uploadImagem } from "@/lib/admin-data";
 import { DEFAULT_BRAIDS_CATEGORY, defaultBraidsPhotos } from "@/lib/default-braids";
 import { formatarPrecoTexto } from "@/lib/product-catalog";
 import {
@@ -4171,6 +4171,7 @@ function SettingsTab({
     const key = imageKey ?? "new-course";
     setUploadingCourseKey(key);
     try {
+      await garantirSessaoAtiva();
       if (isDemo) {
         const fakeUrl = URL.createObjectURL(file);
         if (imageKey) {
@@ -4238,7 +4239,7 @@ function SettingsTab({
       await onReload();
       onSuccess("Card do curso atualizado.");
     } catch (error) {
-      onError(error instanceof Error ? error.message : "Não foi possível salvar o card do curso.");
+      onError(`Não foi possível salvar o card do curso: ${mensagemDeErro(error)}`);
     } finally {
       setSavingCourseKey(null);
     }
@@ -4263,6 +4264,7 @@ function SettingsTab({
 
     setSavingCourseKey("new-course");
     try {
+      await garantirSessaoAtiva();
       if (isDemo) {
         setImages((prev) => [
           ...prev,
@@ -4314,6 +4316,7 @@ function SettingsTab({
 
     setSavingCourseKey("import-courses");
     try {
+      await garantirSessaoAtiva();
       if (isDemo) {
         setImages((prev) => [
           ...prev,
@@ -4349,7 +4352,7 @@ function SettingsTab({
       }
       onSuccess("Cards atuais importados. Agora você pode editar, trocar foto, excluir ou adicionar outros.");
     } catch (error) {
-      onError(error instanceof Error ? error.message : "Não foi possível importar os cards atuais.");
+      onError(`Não foi possível importar os cards atuais: ${mensagemDeErro(error)}`);
     } finally {
       setSavingCourseKey(null);
     }
@@ -4373,7 +4376,7 @@ function SettingsTab({
       }
       onSuccess("Card de curso excluído.");
     } catch (error) {
-      onError(error instanceof Error ? error.message : "Não foi possível excluir o card do curso.");
+      onError(`Não foi possível excluir o card do curso: ${mensagemDeErro(error)}`);
     }
   }
 
