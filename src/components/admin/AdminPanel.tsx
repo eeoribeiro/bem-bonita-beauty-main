@@ -4985,54 +4985,6 @@ function ServicesManager({
     }, 50);
   }
 
-  async function handleFranciellyExtraUpload(slot: 1 | 2 | 3, file: File) {
-    const imageKey = `francielly_extra_${slot}`;
-    setUploadingFranExtra(imageKey);
-    try {
-      if (isDemo) {
-        const fakeUrl = URL.createObjectURL(file);
-        setImages((prev) => {
-          const exists = prev.some((i) => i.image_key === imageKey);
-          if (exists) {
-            return prev.map((i) => i.image_key === imageKey ? { ...i, image_url: fakeUrl } : i);
-          }
-          return [
-            {
-              id: `img-${Date.now()}-${slot}`,
-              image_key: imageKey,
-              image_url: fakeUrl,
-              alt_text: `Foto extra ${slot} da página Francielly`,
-              storage_path: null,
-            },
-            ...prev,
-          ];
-        });
-        onSuccess("Foto extra da página Francielly atualizada.");
-        return;
-      }
-
-      const uploaded = await uploadImagem(file, `site/${imageKey}`);
-      const { error } = await getSupabaseClient()
-        .from("site_images")
-        .upsert(
-          {
-            image_key: imageKey,
-            image_url: uploaded.url,
-            storage_path: uploaded.path,
-            alt_text: `Foto extra ${slot} da página Francielly`,
-          },
-          { onConflict: "image_key" }
-        );
-      if (error) throw error;
-      await onReload();
-      onSuccess("Foto extra da página Francielly atualizada.");
-    } catch (error) {
-      onError(error instanceof Error ? error.message : "Falha ao atualizar foto extra da Francielly.");
-    } finally {
-      setUploadingFranExtra(null);
-    }
-  }
-
   async function selectServiceImage(file: File) {
     setUploadingServiceImage(true);
     try {
@@ -6150,7 +6102,7 @@ function PortfolioManager({
       ...form,
       category: selectedCategory?.name ?? selectedService?.name ?? form.service_name ?? "",
       category_id: selectedCategory?.id ?? null,
-      service_id: selectedCategory ? null : form.service_id,
+      service_id: selectedCategory ? (form.service_id ?? null) : null,
       service_name: selectedCategory?.name ?? selectedService?.name ?? form.service_name ?? null,
       image_zoom: Math.min(1.8, Math.max(1, Number(form.image_zoom ?? 1))),
       image_position_x: Math.min(100, Math.max(0, Number(form.image_position_x ?? 50))),
