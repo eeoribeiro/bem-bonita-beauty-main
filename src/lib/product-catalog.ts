@@ -80,21 +80,47 @@ export const produtosLinha: ProdutoItem[] = [
   },
 ];
 
+const kitDualFallback = {
+  subtitulo: "Shampoo + Máscara para cuidado em duas etapas",
+  descricao:
+    "Kit pensado para limpar, tratar e devolver maciez aos fios no dia a dia. A combinação de shampoo e máscara ajuda a manter o cabelo mais alinhado, hidratado e com toque leve.",
+  beneficios: [
+    "Limpeza suave sem deixar os fios pesados",
+    "Máscara de tratamento para mais maciez e brilho",
+    "Ajuda a reduzir o ressecamento e o frizz",
+    "Cuidado prático para manter a rotina em casa",
+  ],
+};
+
+function withProductFallbacks(product: ProdutoItem): ProdutoItem {
+  const normalizedName = normalizeText(product.nome);
+  if (!normalizedName.includes("kit dual")) return product;
+
+  return {
+    ...product,
+    subtitulo: product.subtitulo?.trim() || kitDualFallback.subtitulo,
+    descricao: product.descricao?.trim() || kitDualFallback.descricao,
+    beneficios: product.beneficios.length ? product.beneficios : kitDualFallback.beneficios,
+  };
+}
+
 export function mapProductData(products: ProductData[]): ProdutoItem[] {
-  return products.map((product) => ({
-    id: product.id,
-    nome: product.name,
-    subtitulo: product.subtitle,
-    curvatura: product.hair_type,
-    descricao: product.description,
-    beneficios: product.benefits,
-    imagem: product.image_url ?? "",
-    categoria: product.category,
-    opcoes: product.product_options,
-    preco: product.price_text,
-    precoPromocional: product.promotional_price_text,
-    destaque: product.featured,
-  }));
+  return products.map((product) =>
+    withProductFallbacks({
+      id: product.id,
+      nome: product.name,
+      subtitulo: product.subtitle,
+      curvatura: product.hair_type,
+      descricao: product.description,
+      beneficios: product.benefits,
+      imagem: product.image_url ?? "",
+      categoria: product.category,
+      opcoes: product.product_options,
+      preco: product.price_text,
+      precoPromocional: product.promotional_price_text,
+      destaque: product.featured,
+    }),
+  );
 }
 
 export function normalizeText(value: string) {
