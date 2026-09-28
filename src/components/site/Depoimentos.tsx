@@ -11,8 +11,8 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
   const feedbacks = (data?.testimonials ?? []).filter((item) => Boolean(item.image_url));
   const feedbacksExibidos = feedbacks;
   const [aberto, setAberto] = useState<TestimonialData | null>(null);
-  // Mobile: 4 cards visíveis, avançando um card por vez a cada 2 segundos.
-  const carouselRef = useMobileAutoCarousel<HTMLDivElement>(2000, { perView: 4 });
+  // Mobile: 2 cards visíveis, avançando de forma suave a cada 2 segundos.
+  const carouselRef = useMobileAutoCarousel<HTMLDivElement>(2000, { perView: 2 });
 
   useEffect(() => {
     if (!aberto) return;
@@ -69,7 +69,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
               key={feedback.id}
               type="button"
               onClick={() => setAberto(feedback)}
-              className="group flex min-h-full min-w-[calc((100vw_-_5.5rem)/4)] snap-start flex-col overflow-hidden rounded-[2rem] border border-border/80 bg-card/90 text-left text-foreground shadow-card backdrop-blur transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-0"
+              className="group flex min-h-full min-w-[calc((100vw_-_3.25rem)/2)] snap-start flex-col overflow-hidden rounded-[1.7rem] border border-border/80 bg-card/90 text-left text-foreground shadow-card backdrop-blur transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-0 sm:rounded-[2rem]"
               aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
             >
               <div className="relative overflow-hidden bg-transparent">
@@ -85,7 +85,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
                   className="block h-auto w-full object-contain object-top"
                 />
               </div>
-              <div className="flex flex-1 flex-col px-5 pb-5 pt-4">
+              <div className="flex flex-1 flex-col px-4 pb-5 pt-4 sm:px-5">
                 <div className="flex items-center justify-between gap-3">
                   <div
                     className="flex items-center gap-1 text-amber-400"
@@ -97,7 +97,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
                   </div>
                   <span className="rounded-full bg-primary/15 px-3 py-1 text-[11px] font-bold text-magenta">Ver print</span>
                 </div>
-                <h3 className="mt-2 font-sans text-base font-bold text-foreground">
+                <h3 className="mt-3 font-sans text-base font-bold leading-snug text-foreground sm:text-lg">
                   {feedback.client_name || "Cliente Bem Bonita"}
                 </h3>
                 <p className="mt-1 text-sm text-muted-foreground">Cliente Bem Bonita</p>

@@ -3838,6 +3838,54 @@ function SettingsTab({
     }
   }
 
+  async function handleFranExtraUpload(slot: 1 | 2 | 3, file: File) {
+    const imageKey = `francielly_extra_${slot}`;
+    setUploadingFranExtra(imageKey);
+    try {
+      if (isDemo) {
+        const fakeUrl = URL.createObjectURL(file);
+        setImages((prev) => {
+          const exists = prev.some((i) => i.image_key === imageKey);
+          if (exists) {
+            return prev.map((i) => (i.image_key === imageKey ? { ...i, image_url: fakeUrl } : i));
+          }
+          return [
+            {
+              id: `img-${Date.now()}-${slot}`,
+              image_key: imageKey,
+              image_url: fakeUrl,
+              alt_text: `Foto do curso ${slot} da página Francielly`,
+              storage_path: null,
+            },
+            ...prev,
+          ];
+        });
+        onSuccess("Foto do card de curso atualizada.");
+        return;
+      }
+
+      const uploaded = await uploadImagem(file, `site/${imageKey}`);
+      const { error } = await getSupabaseClient()
+        .from("site_images")
+        .upsert(
+          {
+            image_key: imageKey,
+            image_url: uploaded.url,
+            storage_path: uploaded.path,
+            alt_text: `Foto do curso ${slot} da página Francielly`,
+          },
+          { onConflict: "image_key" },
+        );
+      if (error) throw error;
+      await onReload();
+      onSuccess("Foto do card de curso atualizada.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Falha ao atualizar foto do card de curso.");
+    } finally {
+      setUploadingFranExtra(null);
+    }
+  }
+
   function handleRemoveLogo() {
     onChange({ ...settings, logo_url: null });
     onSuccess("Logotipo personalizado removido. O site usará a logo tipográfica padrão.");
@@ -4076,6 +4124,84 @@ function SettingsTab({
             <span className="text-sm font-medium">Etiqueta da foto principal</span>
             <input value={String(settings.francielly_photo_label ?? "")} onChange={(e) => onChange({ ...settings, francielly_photo_label: e.target.value })} className="admin-input" />
           </label>
+        </div>
+
+        <div className="rounded-3xl border border-border bg-card p-4 sm:p-6">
+          <div className="mb-5">
+            <p className="eyebrow">Cursos na página</p>
+            <h3 className="mt-1 font-display text-xl">Cards de cursos da Francielly</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Use estes 3 cards para divulgar cursos, aulas ou turmas. A foto, título e subtítulo aparecem dentro da página /francielly com botão para comprar pelo WhatsApp.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {franciellyExtraSlots.map((slot) => {
+              const image = images.find((img) => img.image_key === slot.imageKey);
+              const uploadingThis = uploadingFranExtra === slot.imageKey;
+              return (
+                <div key={slot.imageKey} className="rounded-2xl border border-border bg-secondary/30 p-3">
+                  <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-border bg-background">
+                    <img
+                      src={image?.image_url ?? franImage}
+                      alt={String(settings[slot.titleKey] ?? slot.label)}
+                      className="h-full w-full object-cover"
+                    />
+                    {uploadingThis ? (
+                      <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/70 text-xs font-bold text-white">
+                        <LoaderCircle className="h-4 w-4 animate-spin text-magenta" />
+                        Enviando...
+                      </div>
+                    ) : null}
+                  </div>
+                  <label className="mt-3 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary/25 bg-card px-3 text-xs font-bold text-magenta transition hover:border-primary">
+                    <Camera className="h-3.5 w-3.5" />
+                    Trocar foto
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={uploadingThis}
+                      className="sr-only"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          void handleFranExtraUpload(slot.slot, file);
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                  </label>
+                  <label className="mt-3 block">
+                    <span className="text-xs font-bold text-muted-foreground">Etiqueta</span>
+                    <input
+                      value={String(settings[slot.eyebrowKey] ?? "")}
+                      onChange={(e) => onChange({ ...settings, [slot.eyebrowKey]: e.target.value })}
+                      className="admin-input mt-1"
+                      placeholder="Ex.: Curso presencial"
+                    />
+                  </label>
+                  <label className="mt-3 block">
+                    <span className="text-xs font-bold text-muted-foreground">Título do curso</span>
+                    <input
+                      value={String(settings[slot.titleKey] ?? "")}
+                      onChange={(e) => onChange({ ...settings, [slot.titleKey]: e.target.value })}
+                      className="admin-input mt-1"
+                      placeholder="Ex.: Finalização para cachos"
+                    />
+                  </label>
+                  <label className="mt-3 block">
+                    <span className="text-xs font-bold text-muted-foreground">Subtítulo / descrição</span>
+                    <textarea
+                      rows={3}
+                      value={String(settings[slot.subtitleKey] ?? "")}
+                      onChange={(e) => onChange({ ...settings, [slot.subtitleKey]: e.target.value })}
+                      className="admin-input mt-1 resize-y"
+                      placeholder="Explique rapidamente o que a aluna vai aprender."
+                    />
+                  </label>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="sticky bottom-4 z-10 flex justify-end rounded-2xl border border-border bg-card/95 p-4 shadow-card backdrop-blur">

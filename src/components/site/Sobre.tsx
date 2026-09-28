@@ -64,16 +64,6 @@ export function Sobre() {
               Poucos metros quadrados, mas cada estação foi pensada com carinho: mármore branco,
               ripas de madeira e um cantinho reservado pra cada cliente.
             </p>
-            <div className="mt-7 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
-                <span className="block font-display text-3xl text-primary">{fotosEspaco.length || 0}</span>
-                <span className="mt-1 block text-white/66">registros reais</span>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
-                <span className="block font-display text-3xl text-gold">1</span>
-                <span className="mt-1 block text-white/66">cantinho reservado</span>
-              </div>
-            </div>
           </div>
 
           {fotoDestaque ? (

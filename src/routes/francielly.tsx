@@ -63,7 +63,24 @@ function PaginaFrancielly() {
       title: settings?.francielly_extra_3_title,
       subtitle: settings?.francielly_extra_3_subtitle,
     },
-  ].filter((block) => block.image?.image_url || block.title || block.subtitle);
+  ];
+  const courseDefaults = [
+    {
+      eyebrow: "Curso presencial",
+      title: "Finalização para cachos",
+      subtitle: "Aprenda técnicas de cuidado, definição e rotina para valorizar cada curvatura com acabamento profissional.",
+    },
+    {
+      eyebrow: "Aula prática",
+      title: "Cuidados e cronograma",
+      subtitle: "Conteúdo para entender necessidades dos fios, montar uma rotina e indicar cuidados com mais segurança.",
+    },
+    {
+      eyebrow: "Turmas especiais",
+      title: "Atendimento para cacheadas",
+      subtitle: "Treinamento voltado para quem quer oferecer uma experiência mais cuidadosa, técnica e personalizada.",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -131,36 +148,62 @@ function PaginaFrancielly() {
         </section>
 
         {extraBlocks.length ? (
-          <section className="bg-background py-14 lg:py-20">
+          <section className="relative overflow-hidden bg-background py-16 lg:py-24">
+            <div className="pointer-events-none absolute left-0 top-12 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+            <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-gold/10 blur-3xl" />
             <div className="mx-auto max-w-7xl px-5 lg:px-8">
-              <div className="grid gap-5 md:grid-cols-3">
+              <div className="mx-auto max-w-3xl text-center">
+                <p className="eyebrow mx-auto w-fit">Cursos e mentorias</p>
+                <h2 className="mt-4 font-display text-3xl leading-tight sm:text-5xl">
+                  Aprenda com a Francielly
+                </h2>
+                <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                  Formações, aulas e experiências para quem deseja aprender técnicas de cuidado,
+                  finalização e atendimento para cabelos cacheados, crespos e ondulados.
+                </p>
+              </div>
+
+              <div className="mt-10 grid gap-5 md:grid-cols-3">
                 {extraBlocks.map((block, index) => (
                   <article
                     key={index}
-                    className="group overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft"
+                    className="group flex overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft"
                   >
-                    {block.image?.image_url ? (
+                    <div className="flex min-h-full w-full flex-col">
                       <div className="aspect-[4/5] overflow-hidden bg-secondary/40">
                         <SafeImage
-                          src={block.image.image_url}
+                          src={block.image?.image_url || fotoPrincipal}
                           fallbackSrc={fotoFranciellyFallback}
-                          alt={block.image.alt_text}
+                          alt={block.image?.alt_text || block.title || courseDefaults[index]?.title || "Curso com a Francielly"}
                           loading="lazy"
                           decoding="async"
                           className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                         />
                       </div>
-                    ) : null}
-                    <div className="p-5 sm:p-6">
-                      {block.eyebrow ? (
-                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-magenta">{block.eyebrow}</p>
-                      ) : null}
-                      {block.title ? (
-                        <h2 className="mt-3 font-display text-2xl leading-tight">{block.title}</h2>
-                      ) : null}
-                      {block.subtitle ? (
-                        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{block.subtitle}</p>
-                      ) : null}
+                      <div className="flex flex-1 flex-col p-5 sm:p-6">
+                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-magenta">
+                          {block.eyebrow || courseDefaults[index]?.eyebrow || "Curso Bem Bonita"}
+                        </p>
+                        <h2 className="mt-3 font-display text-2xl leading-tight">
+                          {block.title || courseDefaults[index]?.title || "Curso com a Francielly"}
+                        </h2>
+                        <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
+                          {block.subtitle ||
+                            courseDefaults[index]?.subtitle ||
+                            "Entre em contato para saber disponibilidade, conteúdo, valores e próximas turmas."}
+                        </p>
+                        <BotaoLink
+                          href={whatsappLink(
+                            `Olá, Francielly! Vi o curso “${block.title || courseDefaults[index]?.title || "Curso com a Francielly"}” no site e quero saber como comprar ou reservar minha vaga.`,
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-5 w-full"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          Comprar pelo WhatsApp
+                        </BotaoLink>
+                      </div>
                     </div>
                   </article>
                 ))}

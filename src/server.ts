@@ -167,7 +167,7 @@ async function sendOrderEmailNotification(order: {
 
   const from = getServerEnv("RESEND_FROM_EMAIL") || "Bem Bonita <onboarding@resend.dev>";
   const siteUrl = getServerEnv("PUBLIC_SITE_URL") || "https://www.bembonitafrancielly.com.br";
-  const logoUrl = `${siteUrl.replace(/\/$/, "")}/favicon.svg?v=2`;
+  const logoUrl = `${siteUrl.replace(/\/$/, "")}/favicon.svg?v=3`;
   const itemsHtml = order.items
     .map(
       (item) =>
