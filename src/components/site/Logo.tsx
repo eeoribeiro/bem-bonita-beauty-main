@@ -1,6 +1,8 @@
 import { usePublicSiteData } from "@/lib/site-data";
 
-const logoBemBonita = "/media/bem-bonita-logo-transparente.png";
+// Versão pré-redimensionada (640px) com reamostragem de área: evita o serrilhado
+// do downscale 20:1 que o navegador fazia com o PNG original (1665px) no header.
+const logoBemBonita = "/media/bem-bonita-logo-640.png";
 
 export function Logo({ tone: _tone = "dark" }: { tone?: "dark" | "light" }) {
   const { data } = usePublicSiteData();
@@ -11,6 +13,9 @@ export function Logo({ tone: _tone = "dark" }: { tone?: "dark" | "light" }) {
       <img
         src={logoBemBonita}
         alt={`${salonName} — Francielly Soares`}
+        width={640}
+        height={363}
+        fetchPriority="high"
         className="h-10 w-auto max-w-[158px] object-contain drop-shadow-[0_2px_12px_rgba(232,107,177,0.24)] sm:h-11 sm:max-w-[184px] lg:h-12 lg:max-w-[210px]"
         draggable={false}
       />
