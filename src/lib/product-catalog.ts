@@ -80,27 +80,97 @@ export const produtosLinha: ProdutoItem[] = [
   },
 ];
 
-const kitDualFallback = {
-  subtitulo: "Shampoo + Máscara para cuidado em duas etapas",
-  descricao:
-    "Kit pensado para limpar, tratar e devolver maciez aos fios no dia a dia. A combinação de shampoo e máscara ajuda a manter o cabelo mais alinhado, hidratado e com toque leve.",
-  beneficios: [
-    "Limpeza suave sem deixar os fios pesados",
-    "Máscara de tratamento para mais maciez e brilho",
-    "Ajuda a reduzir o ressecamento e o frizz",
-    "Cuidado prático para manter a rotina em casa",
-  ],
+// Fallbacks de conteúdo por produto: usados apenas enquanto o banco não tem
+// informação cadastrada — o que o admin salvar sempre vence.
+type ProductFallback = {
+  match: string;
+  subtitulo?: string;
+  descricao?: string;
+  beneficios: string[];
 };
+
+const productFallbacks: ProductFallback[] = [
+  {
+    match: "kit dual",
+    subtitulo: "Shampoo + Máscara para cuidado em duas etapas",
+    descricao:
+      "Kit pensado para limpar, tratar e devolver maciez aos fios no dia a dia. A combinação de shampoo e máscara ajuda a manter o cabelo mais alinhado, hidratado e com toque leve.",
+    beneficios: [
+      "Limpeza suave sem deixar os fios pesados",
+      "Máscara de tratamento para mais maciez e brilho",
+      "Ajuda a reduzir o ressecamento e o frizz",
+      "Cuidado prático para manter a rotina em casa",
+    ],
+  },
+  {
+    match: "aurea complex",
+    beneficios: [
+      "Blend de 7 óleos que nutre sem pesar os fios",
+      "Reativa a definição dos cachos no dia a dia",
+      "Proteção térmica antes do secador ou da chapinha",
+      "Devolve o brilho natural e a maciez",
+      "Finalização com toque sedoso e frizz sob controle",
+    ],
+  },
+  {
+    match: "argan",
+    descricao: "Óleo de argan puro paranutrir as pontas em profundidade, selar os fios e dar brilho radiante com toque leve.",
+    beneficios: [
+      "Nutrição profunda com óleo de argan",
+      "Sela as pontas e reduz o frizz",
+      "Brilho radiante e maciez imediata",
+      "Toque leve, sem aspecto oleoso",
+      "Ideal como finalizador diário",
+    ],
+  },
+  {
+    match: "parfum",
+    beneficios: [
+      "Fragrância intensa, sofisticada e duradoura",
+      "Pode ser usado nos cabelos e no corpo",
+      "Hidrata e deixa toque sedoso",
+      "Renova o perfume ao longo do dia",
+    ],
+  },
+  {
+    match: "oil",
+    beneficios: [
+      "Blend de Pracaxi, Argan, Andiroba, Abacate e Oliva",
+      "Nutrição profunda para as pontas",
+      "Sela os fios e controla o frizz",
+      "Maciez e brilho já na primeira aplicação",
+    ],
+  },
+  {
+    match: "liquid repair",
+    beneficios: [
+      "Hidratação suave com efeito de tratamento",
+      "Extrato de Rúcula Damascena e Colágeno Vegetal",
+      "Perfume delicado que fica nos fios",
+      "Fios macios, alinhados e com brilho",
+    ],
+  },
+  {
+    match: "spray day after",
+    beneficios: [
+      "Reativa os cachos entre as lavagens",
+      "Controla o frizz e o volume",
+      "Toque seco, sem deixar os fios pesados",
+      "Prático para renovar o penteado no dia seguinte",
+    ],
+  },
+];
 
 function withProductFallbacks(product: ProdutoItem): ProdutoItem {
   const normalizedName = normalizeText(product.nome);
-  if (!normalizedName.includes("kit dual")) return product;
+  const fallback = productFallbacks.find((entry) => normalizedName.includes(entry.match));
+  if (!fallback) return product;
 
   return {
     ...product,
-    subtitulo: product.subtitulo?.trim() || kitDualFallback.subtitulo,
-    descricao: product.descricao?.trim() || kitDualFallback.descricao,
-    beneficios: product.beneficios.length ? product.beneficios : kitDualFallback.beneficios,
+    subtitulo: product.subtitulo?.trim() || fallback.subtitulo || product.subtitulo,
+    descricao: product.descricao?.trim() || fallback.descricao || product.descricao,
+    beneficios: product.beneficios.length ? product.beneficios : fallback.beneficios,
   };
 }
 
@@ -165,7 +235,7 @@ export function getOptionStock(option: ProductOptionData | null) {
 }
 
 export function formatarPrecoTexto(preco?: string | null) {
-  const text = (preco ?? "").trim();
+  const text = (preco ?? "").trim().replace(/,{2,}/g, ",").replace(/\.{2,}/g, ".");
   if (!text) return "";
   if (/^r\$\s?/i.test(text) || /^rs\b/i.test(text)) return text;
   return `R$ ${text}`;
