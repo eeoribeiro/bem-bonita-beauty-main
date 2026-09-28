@@ -134,7 +134,7 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                         loading={index < 3 ? "eager" : "lazy"}
                         fetchPriority={index < 3 ? "high" : "auto"}
                         decoding="async"
-                        className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-[1.03]"
+                        className="h-full w-full object-contain object-center"
                       />
                       {produto.destaque ? (
                         <span className="absolute right-3 top-3 rounded-full bg-magenta px-3 py-1 text-[11px] font-semibold text-white shadow-md">
