@@ -4666,7 +4666,8 @@ function BraidsManager({
     if (braidsPhotos.length) return;
 
     setSaving(true);
-    const payloads = defaultBraidsPhotos.map((item) => ({
+    const baseOrder = Math.max(0, ...items.map((item) => item.sort_order || 0));
+    const payloads = defaultBraidsPhotos.map((item, index) => ({
       title: item.title,
       description: null,
       category: BRAIDS_CATEGORY,
@@ -4681,7 +4682,7 @@ function BraidsManager({
       image_url: item.image_url,
       storage_path: null,
       alt_text: item.alt_text,
-      sort_order: item.sort_order,
+      sort_order: baseOrder + index + 1,
       published: true,
     }));
 
@@ -4701,7 +4702,7 @@ function BraidsManager({
     try {
       const { error } = await getSupabaseClient().from("portfolio_items").insert(payloads);
       if (error) {
-        onError("Não foi possível importar as fotos atuais para o admin.");
+        onError(`Não foi possível importar as fotos atuais para o admin: ${error.message}`);
       } else {
         onSuccess("Fotos atuais importadas. Agora você pode editar, trocar, reordenar ou excluir.");
         await onReload();

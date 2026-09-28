@@ -9,7 +9,7 @@ import { usePublicSiteData, type TestimonialData } from "@/lib/site-data";
 export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boolean }) {
   const { data } = usePublicSiteData();
   const feedbacks = (data?.testimonials ?? []).filter((item) => Boolean(item.image_url));
-  const feedbacksExibidos = paginaCompleta ? feedbacks : feedbacks.slice(0, 3);
+  const feedbacksExibidos = feedbacks;
   const [aberto, setAberto] = useState<TestimonialData | null>(null);
   const carouselRef = useMobileAutoCarousel<HTMLDivElement>();
 
@@ -63,14 +63,12 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
           ref={carouselRef}
           className="-mx-5 mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3 lg:gap-6"
         >
-          {feedbacksExibidos.map((feedback, index) => (
+          {feedbacksExibidos.map((feedback) => (
             <button
               key={feedback.id}
               type="button"
               onClick={() => setAberto(feedback)}
-              className={`group flex min-h-full min-w-[78vw] snap-center flex-col overflow-hidden rounded-[2rem] border border-border/80 bg-card/90 text-left text-foreground shadow-card backdrop-blur transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-0 ${
-                index % 3 === 1 ? "lg:mt-8" : index % 3 === 2 ? "lg:mt-3" : ""
-              }`}
+              className="group flex min-h-full min-w-[78vw] snap-center flex-col overflow-hidden rounded-[2rem] border border-border/80 bg-card/90 text-left text-foreground shadow-card backdrop-blur transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-0"
               aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
             >
               <div className="relative overflow-hidden bg-transparent">
