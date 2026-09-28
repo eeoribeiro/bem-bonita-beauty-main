@@ -9,6 +9,7 @@ import { SafeImage } from "@/components/site/SafeImage";
 import { whatsappLink } from "@/lib/salao";
 import { useReveal } from "@/hooks/use-reveal";
 import { usePublicSiteData } from "@/lib/site-data";
+import type { SiteImageData } from "@/lib/site-data";
 import fotoFranciellyFallback from "@/assets/sobre-francielly.jpg";
 
 export const Route = createFileRoute("/francielly")({
@@ -24,6 +25,39 @@ export const Route = createFileRoute("/francielly")({
   }),
   component: PaginaFrancielly,
 });
+
+type CourseCard = {
+  id: string;
+  imageUrl: string;
+  altText: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+};
+
+function parseCourseMeta(altText?: string | null) {
+  if (!altText?.trim().startsWith("{")) return null;
+  try {
+    const parsed = JSON.parse(altText) as Partial<Pick<CourseCard, "eyebrow" | "title" | "subtitle" | "altText">>;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function courseFromImage(image: SiteImageData): CourseCard {
+  const meta = parseCourseMeta(image.alt_text);
+  return {
+    id: image.id,
+    imageUrl: image.image_url,
+    altText: meta?.altText || meta?.title || image.alt_text || "Curso com a Francielly",
+    eyebrow: meta?.eyebrow || "Curso Bem Bonita",
+    title: meta?.title || "Curso com a Francielly",
+    subtitle:
+      meta?.subtitle ||
+      "Entre em contato para saber disponibilidade, conteúdo, valores e próximas turmas.",
+  };
+}
 
 function PaginaFrancielly() {
   useReveal();
@@ -44,7 +78,28 @@ function PaginaFrancielly() {
     images.find((img) => img.image_key === "francielly_bio")?.image_url ??
     images.find((img) => img.image_key === "about")?.image_url ??
     fotoFranciellyFallback;
-  const extraBlocks = [
+  const courseDefaults = [
+    {
+      eyebrow: "Curso presencial",
+      title: "Finalização para cachos",
+      subtitle: "Aprenda técnicas de cuidado, definição e rotina para valorizar cada curvatura com acabamento profissional.",
+    },
+    {
+      eyebrow: "Aula prática",
+      title: "Cuidados e cronograma",
+      subtitle: "Conteúdo para entender necessidades dos fios, montar uma rotina e indicar cuidados com mais segurança.",
+    },
+    {
+      eyebrow: "Turmas especiais",
+      title: "Atendimento para cacheadas",
+      subtitle: "Treinamento voltado para quem quer oferecer uma experiência mais cuidadosa, técnica e personalizada.",
+    },
+  ];
+  const savedCourses = images
+    .filter((img) => img.image_key.startsWith("francielly_course_"))
+    .sort((a, b) => a.image_key.localeCompare(b.image_key))
+    .map(courseFromImage);
+  const legacyCourses = [
     {
       image: images.find((img) => img.image_key === "francielly_extra_1"),
       eyebrow: settings?.francielly_extra_1_eyebrow,
@@ -63,24 +118,18 @@ function PaginaFrancielly() {
       title: settings?.francielly_extra_3_title,
       subtitle: settings?.francielly_extra_3_subtitle,
     },
-  ];
-  const courseDefaults = [
-    {
-      eyebrow: "Curso presencial",
-      title: "Finalização para cachos",
-      subtitle: "Aprenda técnicas de cuidado, definição e rotina para valorizar cada curvatura com acabamento profissional.",
-    },
-    {
-      eyebrow: "Aula prática",
-      title: "Cuidados e cronograma",
-      subtitle: "Conteúdo para entender necessidades dos fios, montar uma rotina e indicar cuidados com mais segurança.",
-    },
-    {
-      eyebrow: "Turmas especiais",
-      title: "Atendimento para cacheadas",
-      subtitle: "Treinamento voltado para quem quer oferecer uma experiência mais cuidadosa, técnica e personalizada.",
-    },
-  ];
+  ].map((block, index) => ({
+    id: `legacy-${index + 1}`,
+    imageUrl: block.image?.image_url || fotoPrincipal,
+    altText: block.image?.alt_text || block.title || courseDefaults[index]?.title || "Curso com a Francielly",
+    eyebrow: block.eyebrow || courseDefaults[index]?.eyebrow || "Curso Bem Bonita",
+    title: block.title || courseDefaults[index]?.title || "Curso com a Francielly",
+    subtitle:
+      block.subtitle ||
+      courseDefaults[index]?.subtitle ||
+      "Entre em contato para saber disponibilidade, conteúdo, valores e próximas turmas.",
+  }));
+  const courseCards = savedCourses.length ? savedCourses : legacyCourses;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -147,7 +196,7 @@ function PaginaFrancielly() {
           </div>
         </section>
 
-        {extraBlocks.length ? (
+        {courseCards.length ? (
           <section className="relative overflow-hidden bg-background py-16 lg:py-24">
             <div className="pointer-events-none absolute left-0 top-12 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
             <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-gold/10 blur-3xl" />
@@ -164,37 +213,35 @@ function PaginaFrancielly() {
               </div>
 
               <div className="mt-10 grid gap-5 md:grid-cols-3">
-                {extraBlocks.map((block, index) => (
+                {courseCards.map((block) => (
                   <article
-                    key={index}
+                    key={block.id}
                     className="group flex overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft"
                   >
                     <div className="flex min-h-full w-full flex-col">
-                      <div className="aspect-[4/5] overflow-hidden bg-secondary/40">
+                      <div className="aspect-[4/5] overflow-hidden bg-card">
                         <SafeImage
-                          src={block.image?.image_url || fotoPrincipal}
+                          src={block.imageUrl || fotoPrincipal}
                           fallbackSrc={fotoFranciellyFallback}
-                          alt={block.image?.alt_text || block.title || courseDefaults[index]?.title || "Curso com a Francielly"}
+                          alt={block.altText}
                           loading="lazy"
                           decoding="async"
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                          className="h-full w-full object-contain"
                         />
                       </div>
                       <div className="flex flex-1 flex-col p-5 sm:p-6">
                         <p className="text-xs font-bold uppercase tracking-[0.24em] text-magenta">
-                          {block.eyebrow || courseDefaults[index]?.eyebrow || "Curso Bem Bonita"}
+                          {block.eyebrow}
                         </p>
                         <h2 className="mt-3 font-display text-2xl leading-tight">
-                          {block.title || courseDefaults[index]?.title || "Curso com a Francielly"}
+                          {block.title}
                         </h2>
                         <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
-                          {block.subtitle ||
-                            courseDefaults[index]?.subtitle ||
-                            "Entre em contato para saber disponibilidade, conteúdo, valores e próximas turmas."}
+                          {block.subtitle}
                         </p>
                         <BotaoLink
                           href={whatsappLink(
-                            `Olá, Francielly! Vi o curso “${block.title || courseDefaults[index]?.title || "Curso com a Francielly"}” no site e quero saber como comprar ou reservar minha vaga.`,
+                            `Olá, Francielly! Vi o curso “${block.title}” no site e quero saber como comprar ou reservar minha vaga.`,
                           )}
                           target="_blank"
                           rel="noopener noreferrer"

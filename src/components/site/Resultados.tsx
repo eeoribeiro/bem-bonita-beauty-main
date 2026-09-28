@@ -67,6 +67,21 @@ export function Resultados() {
       }));
   const portfolio = portfolioBruto.filter((item) => item.category !== DEFAULT_BRAIDS_CATEGORY);
   const servicos = data?.services ?? [];
+  const categorias = data?.categories?.filter((category) => category.slug !== DEFAULT_BRAIDS_CATEGORY) ?? [];
+  const filtrosPersonalizados = useMemo(() => {
+    return categorias
+      .map((category) => ({
+        id: `category:${category.id}`,
+        label: category.name,
+        quantidade: portfolio.filter(
+          (item) =>
+            item.category_id === category.id ||
+            normalizarFiltro(item.category) === normalizarFiltro(category.name) ||
+            normalizarFiltro(item.service_name) === normalizarFiltro(category.name),
+        ).length,
+      }))
+      .filter((filter) => filter.quantidade > 0);
+  }, [categorias, portfolio]);
   const filtrosServico = useMemo(() => {
     const filtros = servicos
       .map((service) => {
@@ -102,13 +117,25 @@ export function Resultados() {
 
   useEffect(() => {
     if (categoriaAtiva === "todas") return;
-    if (!filtrosServico.some((filter) => filter.id === categoriaAtiva)) {
+    if (![...filtrosPersonalizados, ...filtrosServico].some((filter) => filter.id === categoriaAtiva)) {
       setCategoriaAtiva("todas");
     }
-  }, [categoriaAtiva, filtrosServico]);
+  }, [categoriaAtiva, filtrosPersonalizados, filtrosServico]);
 
   const itensFiltrados = useMemo(() => {
     if (categoriaAtiva === "todas") return portfolio;
+
+    if (categoriaAtiva.startsWith("category:")) {
+      const categoryId = categoriaAtiva.replace("category:", "");
+      const selectedCategory = categorias.find((category) => category.id === categoryId);
+      const selectedName = normalizarFiltro(selectedCategory?.name);
+      return portfolio.filter(
+        (item) =>
+          item.category_id === categoryId ||
+          normalizarFiltro(item.category) === selectedName ||
+          normalizarFiltro(item.service_name) === selectedName,
+      );
+    }
 
     if (categoriaAtiva.startsWith("name:")) {
       const selectedName = categoriaAtiva.replace("name:", "");
@@ -121,7 +148,7 @@ export function Resultados() {
     return portfolio.filter(
       (item) => item.service_id === categoriaAtiva || normalizarFiltro(item.service_name) === selectedName,
     );
-  }, [categoriaAtiva, portfolio, servicos]);
+  }, [categoriaAtiva, categorias, portfolio, servicos]);
 
   return (
     <section id="resultados" className="bg-background py-16 lg:py-24">
@@ -159,7 +186,7 @@ export function Resultados() {
           </div>
         ) : portfolio.length ? (
           <>
-            {filtrosServico.length ? (
+            {filtrosPersonalizados.length || filtrosServico.length ? (
               <div className="mt-8 space-y-4" aria-label="Filtros da galeria">
                 <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
                   <button
@@ -170,6 +197,24 @@ export function Resultados() {
                     Todas <span className="ml-1 opacity-70">({portfolio.length})</span>
                   </button>
                 </div>
+                {filtrosPersonalizados.length ? (
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-magenta">Filtros da galeria</p>
+                    <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+                      {filtrosPersonalizados.map((filter) => (
+                        <button
+                          key={filter.id}
+                          type="button"
+                          onClick={() => setCategoriaAtiva(filter.id)}
+                          className={`shrink-0 rounded-full border px-4 py-2 text-sm transition ${categoriaAtiva === filter.id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/40 text-muted-foreground hover:border-primary hover:text-foreground"}`}
+                        >
+                          {filter.label} <span className="ml-1 opacity-70">({filter.quantidade})</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {filtrosServico.length ? (
                 <div>
                   <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-magenta">Serviços reais</p>
                   <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
@@ -185,6 +230,7 @@ export function Resultados() {
                     ))}
                   </div>
                 </div>
+                ) : null}
               </div>
             ) : null}
             {itensFiltrados.length ? null : (

@@ -236,6 +236,69 @@ const franciellyExtraSlots = [
   },
 ] as const;
 
+type FranciellyCourseCard = {
+  id: string;
+  image_key: string;
+  image_url: string;
+  storage_path: string | null;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  altText: string;
+};
+
+const defaultFranciellyCourses = [
+  {
+    eyebrow: "Curso presencial",
+    title: "Finalização para cachos",
+    subtitle: "Aprenda técnicas de cuidado, definição e rotina para valorizar cada curvatura com acabamento profissional.",
+  },
+  {
+    eyebrow: "Aula prática",
+    title: "Cuidados e cronograma",
+    subtitle: "Conteúdo para entender necessidades dos fios, montar uma rotina e indicar cuidados com mais segurança.",
+  },
+  {
+    eyebrow: "Turmas especiais",
+    title: "Atendimento para cacheadas",
+    subtitle: "Treinamento voltado para quem quer oferecer uma experiência mais cuidadosa, técnica e personalizada.",
+  },
+];
+
+function serializeFranciellyCourseMeta(course: Pick<FranciellyCourseCard, "eyebrow" | "title" | "subtitle" | "altText">) {
+  return JSON.stringify({
+    eyebrow: course.eyebrow.trim(),
+    title: course.title.trim(),
+    subtitle: course.subtitle.trim(),
+    altText: course.altText.trim() || course.title.trim() || "Curso da Francielly",
+  });
+}
+
+function parseFranciellyCourseMeta(altText?: string | null) {
+  if (!altText?.trim().startsWith("{")) return null;
+  try {
+    return JSON.parse(altText) as Partial<Pick<FranciellyCourseCard, "eyebrow" | "title" | "subtitle" | "altText">>;
+  } catch {
+    return null;
+  }
+}
+
+function siteImageToFranciellyCourse(image: SiteImageData): FranciellyCourseCard {
+  const meta = parseFranciellyCourseMeta(image.alt_text);
+  return {
+    id: image.id,
+    image_key: image.image_key,
+    image_url: image.image_url,
+    storage_path: image.storage_path,
+    eyebrow: meta?.eyebrow || "Curso Bem Bonita",
+    title: meta?.title || "Curso com a Francielly",
+    subtitle:
+      meta?.subtitle ||
+      "Entre em contato para saber disponibilidade, conteúdo, valores e próximas turmas.",
+    altText: meta?.altText || meta?.title || image.alt_text || "Curso da Francielly",
+  };
+}
+
 export function AdminPanel({
   email,
   onLogout,
@@ -632,7 +695,12 @@ export function AdminPanel({
                 <PortfolioOverviewTab
                   items={portfolio.filter((item) => item.category !== BRAIDS_CATEGORY)}
                   categories={categories}
+                  setCategories={setCategories}
                   services={services}
+                  isDemo={!supabaseConfigurado || isDemo}
+                  onReload={loadAll}
+                  onSuccess={showSuccess}
+                  onError={showError}
                   onOpenManager={() => setModal("portfolio")}
                 />
               ) : null}
@@ -1725,15 +1793,28 @@ function ProfessionalEditorModal({
 function PortfolioOverviewTab({
   items,
   categories,
+  setCategories,
   services,
+  isDemo,
+  onReload,
+  onSuccess,
+  onError,
   onOpenManager,
 }: {
   items: PortfolioData[];
   categories: CategoryData[];
+  setCategories: React.Dispatch<React.SetStateAction<CategoryData[]>>;
   services: ServiceData[];
+  isDemo: boolean;
+  onReload: () => Promise<void>;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
   onOpenManager: () => void;
 }) {
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [categoryName, setCategoryName] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [savingCategory, setSavingCategory] = useState(false);
 
   function normalizeFilter(value?: string | null) {
     return (value ?? "")
@@ -1742,6 +1823,27 @@ function PortfolioOverviewTab({
       .trim()
       .toLowerCase();
   }
+
+  function makeCategorySlug(name: string) {
+    return name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+  }
+
+  const customFilters = categories
+    .filter((category) => category.slug !== BRAIDS_CATEGORY)
+    .map((category) => ({
+      ...category,
+      count: items.filter(
+        (item) =>
+          item.category_id === category.id ||
+          normalizeFilter(item.category) === normalizeFilter(category.name) ||
+          normalizeFilter(item.service_name) === normalizeFilter(category.name),
+      ).length,
+    }));
 
   const serviceFilters = services
     .map((service) => ({
@@ -1753,9 +1855,86 @@ function PortfolioOverviewTab({
     }))
     .filter((filter) => filter.count > 0);
 
+  async function saveCustomFilter() {
+    const name = categoryName.trim();
+    if (!name) {
+      onError("Digite o nome do filtro antes de salvar.");
+      return;
+    }
+    const slug = makeCategorySlug(name);
+    setSavingCategory(true);
+    try {
+      if (isDemo) {
+        if (editingCategoryId) {
+          setCategories((prev) =>
+            prev.map((category) => (category.id === editingCategoryId ? { ...category, name, slug } : category)),
+          );
+          onSuccess("Filtro atualizado.");
+        } else {
+          setCategories((prev) => [
+            ...prev,
+            { id: `cat-${Date.now()}`, name, slug, sort_order: prev.length + 1, active: true },
+          ]);
+          onSuccess("Filtro criado.");
+        }
+      } else if (editingCategoryId) {
+        const { error } = await getSupabaseClient()
+          .from("portfolio_categories")
+          .update({ name, slug })
+          .eq("id", editingCategoryId);
+        if (error) throw error;
+        await onReload();
+        onSuccess("Filtro atualizado.");
+      } else {
+        const { error } = await getSupabaseClient()
+          .from("portfolio_categories")
+          .insert({ name, slug, sort_order: categories.length + 1, active: true });
+        if (error) throw error;
+        await onReload();
+        onSuccess("Filtro criado.");
+      }
+      setCategoryName("");
+      setEditingCategoryId(null);
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível salvar o filtro.");
+    } finally {
+      setSavingCategory(false);
+    }
+  }
+
+  async function toggleCustomFilter(category: CategoryData) {
+    try {
+      if (isDemo) {
+        setCategories((prev) =>
+          prev.map((item) => (item.id === category.id ? { ...item, active: !category.active } : item)),
+        );
+      } else {
+        const { error } = await getSupabaseClient()
+          .from("portfolio_categories")
+          .update({ active: !category.active })
+          .eq("id", category.id);
+        if (error) throw error;
+        await onReload();
+      }
+      onSuccess(category.active ? "Filtro ocultado do site." : "Filtro ativado no site.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível alterar o filtro.");
+    }
+  }
+
   const filteredItems =
     activeFilter === "all"
       ? items
+      : activeFilter.startsWith("category:")
+        ? items.filter((item) => {
+            const categoryId = activeFilter.replace("category:", "");
+            const category = categories.find((entry) => entry.id === categoryId);
+            return (
+              item.category_id === categoryId ||
+              normalizeFilter(item.category) === normalizeFilter(category?.name) ||
+              normalizeFilter(item.service_name) === normalizeFilter(category?.name)
+            );
+          })
       : activeFilter.startsWith("service:")
         ? items.filter((item) => {
             const serviceId = activeFilter.replace("service:", "");
@@ -1772,7 +1951,7 @@ function PortfolioOverviewTab({
           <p className="eyebrow">Galeria do Salão</p>
           <h1 className="mt-2 text-3xl sm:text-4xl font-display">Nossa Galeria</h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            {items.length} foto(s) cadastradas. Os filtros do site usam somente os serviços reais cadastrados na aba “Serviços”.
+            {items.length} foto(s) cadastradas. Você pode criar filtros com o nome que quiser e vincular as fotos a eles no gerenciador.
           </p>
         </div>
         <div className="flex flex-wrap gap-3 shrink-0">
@@ -1809,6 +1988,29 @@ function PortfolioOverviewTab({
             Todas as Fotos ({items.length})
           </button>
         </div>
+        {customFilters.length ? (
+          <div className="mt-4">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-magenta">
+              Filtros personalizados
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              {customFilters.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => setActiveFilter(`category:${filter.id}`)}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    activeFilter === `category:${filter.id}`
+                      ? "bg-magenta text-white shadow-soft"
+                      : "bg-secondary text-foreground/80 hover:bg-secondary/80"
+                  } ${filter.active ? "" : "opacity-50"}`}
+                >
+                  {filter.name} ({filter.count}){filter.active ? "" : " — oculto"}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         {serviceFilters.length ? (
           <div className="mt-4">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-magenta">
@@ -1834,9 +2036,73 @@ function PortfolioOverviewTab({
         ) : null}
         {!serviceFilters.length ? (
           <div className="mt-4 rounded-2xl border border-dashed border-primary/30 bg-secondary/30 p-4 text-sm text-muted-foreground">
-            Ainda não há filtro ativo. Clique em “Gerenciar fotos”, edite uma foto e escolha um serviço real para ela.
+            Ainda não há filtro por serviço ativo. Você pode criar um filtro personalizado abaixo ou clicar em “Gerenciar fotos” para vincular fotos aos filtros.
           </div>
         ) : null}
+        <div className="mt-5 rounded-2xl border border-primary/20 bg-background p-4">
+          <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+            <label className="block text-sm font-medium">
+              {editingCategoryId ? "Editar nome do filtro" : "Adicionar novo filtro"}
+              <input
+                value={categoryName}
+                onChange={(event) => setCategoryName(event.target.value)}
+                className="admin-input mt-1"
+                placeholder="Ex.: Mechas, Definição, Corte, Antes e depois"
+              />
+            </label>
+            <div className="flex gap-2">
+              {editingCategoryId ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingCategoryId(null);
+                    setCategoryName("");
+                  }}
+                  className="min-h-11 rounded-xl border border-border px-4 text-sm font-semibold text-muted-foreground hover:bg-secondary"
+                >
+                  Cancelar
+                </button>
+              ) : null}
+              <Botao type="button" disabled={savingCategory} onClick={() => void saveCustomFilter()}>
+                {savingCategory ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {editingCategoryId ? "Salvar filtro" : "Adicionar filtro"}
+              </Botao>
+            </div>
+          </div>
+          {customFilters.length ? (
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {customFilters.map((category) => (
+                <div key={category.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold">{category.name}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {category.count} foto(s) vinculada(s) · {category.active ? "ativo no site" : "oculto"}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingCategoryId(category.id);
+                        setCategoryName(category.name);
+                      }}
+                      className="rounded-lg px-2 py-1 text-xs font-bold text-magenta hover:bg-secondary"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void toggleCustomFilter(category)}
+                      className="rounded-lg px-2 py-1 text-xs font-bold text-muted-foreground hover:bg-secondary"
+                    >
+                      {category.active ? "Ocultar" : "Ativar"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {/* Prévia da Grade de Fotos da Galeria */}
@@ -3755,11 +4021,26 @@ function SettingsTab({
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFranPhoto, setUploadingFranPhoto] = useState(false);
   const [uploadingFranExtra, setUploadingFranExtra] = useState<string | null>(null);
+  const [courseDraft, setCourseDraft] = useState({
+    eyebrow: "Curso Bem Bonita",
+    title: "",
+    subtitle: "",
+    altText: "",
+    image_url: "",
+    storage_path: null as string | null,
+  });
+  const [uploadingCourseKey, setUploadingCourseKey] = useState<string | null>(null);
+  const [savingCourseKey, setSavingCourseKey] = useState<string | null>(null);
+  const [pendingDeleteCourse, setPendingDeleteCourse] = useState<FranciellyCourseCard | null>(null);
 
   const franImage =
     images.find((img) => img.image_key === "francielly_bio")?.image_url ??
     images.find((img) => img.image_key === "about")?.image_url ??
     fotoFranciellyFallback;
+  const franciellyCourses = images
+    .filter((img) => img.image_key.startsWith("francielly_course_"))
+    .sort((a, b) => a.image_key.localeCompare(b.image_key))
+    .map(siteImageToFranciellyCourse);
 
   async function handleLogoUpload(file: File) {
     setUploadingLogo(true);
@@ -3883,6 +4164,216 @@ function SettingsTab({
       onError(error instanceof Error ? error.message : "Falha ao atualizar foto do card de curso.");
     } finally {
       setUploadingFranExtra(null);
+    }
+  }
+
+  async function uploadCourseImage(file: File, imageKey?: string) {
+    const key = imageKey ?? "new-course";
+    setUploadingCourseKey(key);
+    try {
+      if (isDemo) {
+        const fakeUrl = URL.createObjectURL(file);
+        if (imageKey) {
+          setImages((prev) => prev.map((img) => (img.image_key === imageKey ? { ...img, image_url: fakeUrl } : img)));
+        } else {
+          setCourseDraft((current) => ({ ...current, image_url: fakeUrl, storage_path: null }));
+        }
+        return;
+      }
+
+      const uploadKey = imageKey ?? `francielly_course_${Date.now()}`;
+      const uploaded = await uploadImagem(file, `site/${uploadKey}`);
+      if (imageKey) {
+        const current = images.find((img) => img.image_key === imageKey);
+        const currentMeta = current ? siteImageToFranciellyCourse(current) : null;
+        const { error } = await getSupabaseClient()
+          .from("site_images")
+          .upsert(
+            {
+              image_key: imageKey,
+              image_url: uploaded.url,
+              storage_path: uploaded.path,
+              alt_text: currentMeta
+                ? serializeFranciellyCourseMeta(currentMeta)
+                : serializeFranciellyCourseMeta({
+                    eyebrow: "Curso Bem Bonita",
+                    title: "Curso com a Francielly",
+                    subtitle: "Entre em contato para saber disponibilidade, conteúdo, valores e próximas turmas.",
+                    altText: "Curso da Francielly",
+                  }),
+            },
+            { onConflict: "image_key" },
+          );
+        if (error) throw error;
+        await onReload();
+        onSuccess("Foto do curso atualizada.");
+      } else {
+        setCourseDraft((current) => ({ ...current, image_url: uploaded.url, storage_path: uploaded.path }));
+      }
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Falha ao enviar foto do curso.");
+    } finally {
+      setUploadingCourseKey(null);
+    }
+  }
+
+  async function saveCourse(course: FranciellyCourseCard) {
+    if (!course.title.trim()) {
+      onError("Preencha o título do curso antes de salvar.");
+      return;
+    }
+    setSavingCourseKey(course.image_key);
+    try {
+      const alt_text = serializeFranciellyCourseMeta(course);
+      if (isDemo) {
+        setImages((prev) => prev.map((img) => (img.image_key === course.image_key ? { ...img, alt_text } : img)));
+        onSuccess("Card do curso atualizado.");
+        return;
+      }
+      const { error } = await getSupabaseClient()
+        .from("site_images")
+        .update({ alt_text })
+        .eq("image_key", course.image_key);
+      if (error) throw error;
+      await onReload();
+      onSuccess("Card do curso atualizado.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível salvar o card do curso.");
+    } finally {
+      setSavingCourseKey(null);
+    }
+  }
+
+  async function addCourse() {
+    if (!courseDraft.image_url) {
+      onError("Escolha uma foto para criar o card do curso.");
+      return;
+    }
+    if (!courseDraft.title.trim()) {
+      onError("Preencha o título do curso.");
+      return;
+    }
+    const imageKey = `francielly_course_${Date.now()}`;
+    const alt_text = serializeFranciellyCourseMeta({
+      eyebrow: courseDraft.eyebrow,
+      title: courseDraft.title,
+      subtitle: courseDraft.subtitle,
+      altText: courseDraft.altText || courseDraft.title,
+    });
+
+    setSavingCourseKey("new-course");
+    try {
+      if (isDemo) {
+        setImages((prev) => [
+          ...prev,
+          {
+            id: `img-${Date.now()}`,
+            image_key: imageKey,
+            image_url: courseDraft.image_url,
+            storage_path: courseDraft.storage_path,
+            alt_text,
+          },
+        ]);
+      } else {
+        const { error } = await getSupabaseClient().from("site_images").insert({
+          image_key: imageKey,
+          image_url: courseDraft.image_url,
+          storage_path: courseDraft.storage_path,
+          alt_text,
+        });
+        if (error) throw error;
+        await onReload();
+      }
+      setCourseDraft({
+        eyebrow: "Curso Bem Bonita",
+        title: "",
+        subtitle: "",
+        altText: "",
+        image_url: "",
+        storage_path: null,
+      });
+      onSuccess("Novo card de curso adicionado.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível adicionar o card do curso.");
+    } finally {
+      setSavingCourseKey(null);
+    }
+  }
+
+  async function importCurrentCourseCards() {
+    const legacyCourses = franciellyExtraSlots.map((slot, index) => {
+      const image = images.find((img) => img.image_key === slot.imageKey);
+      const defaults = defaultFranciellyCourses[index] ?? defaultFranciellyCourses[0]!;
+      return {
+        image,
+        eyebrow: String(settings[slot.eyebrowKey] ?? "") || defaults.eyebrow,
+        title: String(settings[slot.titleKey] ?? "") || defaults.title,
+        subtitle: String(settings[slot.subtitleKey] ?? "") || defaults.subtitle,
+      };
+    });
+
+    setSavingCourseKey("import-courses");
+    try {
+      if (isDemo) {
+        setImages((prev) => [
+          ...prev,
+          ...legacyCourses.map((course, index) => ({
+            id: `img-course-${Date.now()}-${index}`,
+            image_key: `francielly_course_${Date.now()}_${index + 1}`,
+            image_url: course.image?.image_url ?? franImage,
+            storage_path: course.image?.storage_path ?? null,
+            alt_text: serializeFranciellyCourseMeta({
+              eyebrow: course.eyebrow,
+              title: course.title,
+              subtitle: course.subtitle,
+              altText: course.image?.alt_text || course.title,
+            }),
+          })),
+        ]);
+      } else {
+        const now = Date.now();
+        const payload = legacyCourses.map((course, index) => ({
+          image_key: `francielly_course_${now}_${index + 1}`,
+          image_url: course.image?.image_url ?? franImage,
+          storage_path: course.image?.storage_path ?? null,
+          alt_text: serializeFranciellyCourseMeta({
+            eyebrow: course.eyebrow,
+            title: course.title,
+            subtitle: course.subtitle,
+            altText: course.image?.alt_text || course.title,
+          }),
+        }));
+        const { error } = await getSupabaseClient().from("site_images").insert(payload);
+        if (error) throw error;
+        await onReload();
+      }
+      onSuccess("Cards atuais importados. Agora você pode editar, trocar foto, excluir ou adicionar outros.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível importar os cards atuais.");
+    } finally {
+      setSavingCourseKey(null);
+    }
+  }
+
+  async function confirmRemoveCourse() {
+    if (!pendingDeleteCourse) return;
+    const course = pendingDeleteCourse;
+    setPendingDeleteCourse(null);
+    try {
+      if (isDemo) {
+        setImages((prev) => prev.filter((img) => img.image_key !== course.image_key));
+      } else {
+        const { error } = await getSupabaseClient()
+          .from("site_images")
+          .delete()
+          .eq("image_key", course.image_key);
+        if (error) throw error;
+        await removerImagem(course.storage_path);
+        await onReload();
+      }
+      onSuccess("Card de curso excluído.");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível excluir o card do curso.");
     }
   }
 
@@ -4131,20 +4622,21 @@ function SettingsTab({
             <p className="eyebrow">Cursos na página</p>
             <h3 className="mt-1 font-display text-xl">Cards de cursos da Francielly</h3>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Use estes 3 cards para divulgar cursos, aulas ou turmas. A foto, título e subtítulo aparecem dentro da página /francielly com botão para comprar pelo WhatsApp.
+              Adicione, edite ou exclua os cursos que aparecem dentro da página /francielly. As fotos aparecem inteiras no card, sem zoom e sem corte.
             </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {franciellyExtraSlots.map((slot) => {
-              const image = images.find((img) => img.image_key === slot.imageKey);
-              const uploadingThis = uploadingFranExtra === slot.imageKey;
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {franciellyCourses.map((course) => {
+              const uploadingThis = uploadingCourseKey === course.image_key;
+              const savingThis = savingCourseKey === course.image_key;
               return (
-                <div key={slot.imageKey} className="rounded-2xl border border-border bg-secondary/30 p-3">
-                  <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-border bg-background">
+                <div key={course.image_key} className="rounded-2xl border border-border bg-secondary/30 p-3 sm:p-4">
+                  <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-card">
                     <img
-                      src={image?.image_url ?? franImage}
-                      alt={String(settings[slot.titleKey] ?? slot.label)}
-                      className="h-full w-full object-cover"
+                      src={course.image_url || franImage}
+                      alt={course.altText || course.title}
+                      className="h-full w-full object-contain"
                     />
                     {uploadingThis ? (
                       <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/70 text-xs font-bold text-white">
@@ -4164,7 +4656,7 @@ function SettingsTab({
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          void handleFranExtraUpload(slot.slot, file);
+                          void uploadCourseImage(file, course.image_key);
                           e.target.value = "";
                         }
                       }}
@@ -4173,8 +4665,22 @@ function SettingsTab({
                   <label className="mt-3 block">
                     <span className="text-xs font-bold text-muted-foreground">Etiqueta</span>
                     <input
-                      value={String(settings[slot.eyebrowKey] ?? "")}
-                      onChange={(e) => onChange({ ...settings, [slot.eyebrowKey]: e.target.value })}
+                      value={course.eyebrow}
+                      onChange={(e) =>
+                        setImages((prev) =>
+                          prev.map((img) =>
+                            img.image_key === course.image_key
+                              ? {
+                                  ...img,
+                                  alt_text: serializeFranciellyCourseMeta({
+                                    ...course,
+                                    eyebrow: e.target.value,
+                                  }),
+                                }
+                              : img,
+                          ),
+                        )
+                      }
                       className="admin-input mt-1"
                       placeholder="Ex.: Curso presencial"
                     />
@@ -4182,8 +4688,23 @@ function SettingsTab({
                   <label className="mt-3 block">
                     <span className="text-xs font-bold text-muted-foreground">Título do curso</span>
                     <input
-                      value={String(settings[slot.titleKey] ?? "")}
-                      onChange={(e) => onChange({ ...settings, [slot.titleKey]: e.target.value })}
+                      value={course.title}
+                      onChange={(e) =>
+                        setImages((prev) =>
+                          prev.map((img) =>
+                            img.image_key === course.image_key
+                              ? {
+                                  ...img,
+                                  alt_text: serializeFranciellyCourseMeta({
+                                    ...course,
+                                    title: e.target.value,
+                                    altText: course.altText || e.target.value,
+                                  }),
+                                }
+                              : img,
+                          ),
+                        )
+                      }
                       className="admin-input mt-1"
                       placeholder="Ex.: Finalização para cachos"
                     />
@@ -4192,17 +4713,172 @@ function SettingsTab({
                     <span className="text-xs font-bold text-muted-foreground">Subtítulo / descrição</span>
                     <textarea
                       rows={3}
-                      value={String(settings[slot.subtitleKey] ?? "")}
-                      onChange={(e) => onChange({ ...settings, [slot.subtitleKey]: e.target.value })}
+                      value={course.subtitle}
+                      onChange={(e) =>
+                        setImages((prev) =>
+                          prev.map((img) =>
+                            img.image_key === course.image_key
+                              ? {
+                                  ...img,
+                                  alt_text: serializeFranciellyCourseMeta({
+                                    ...course,
+                                    subtitle: e.target.value,
+                                  }),
+                                }
+                              : img,
+                          ),
+                        )
+                      }
                       className="admin-input mt-1 resize-y"
                       placeholder="Explique rapidamente o que a aluna vai aprender."
                     />
                   </label>
+                  <label className="mt-3 block">
+                    <span className="text-xs font-bold text-muted-foreground">Texto alternativo da foto</span>
+                    <input
+                      value={course.altText}
+                      onChange={(e) =>
+                        setImages((prev) =>
+                          prev.map((img) =>
+                            img.image_key === course.image_key
+                              ? {
+                                  ...img,
+                                  alt_text: serializeFranciellyCourseMeta({
+                                    ...course,
+                                    altText: e.target.value,
+                                  }),
+                                }
+                              : img,
+                          ),
+                        )
+                      }
+                      className="admin-input mt-1"
+                      placeholder="Ex.: Aula prática de finalização para cachos"
+                    />
+                  </label>
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <Botao type="button" disabled={savingThis || uploadingThis} onClick={() => void saveCourse(course)} className="flex-1">
+                      {savingThis ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      {savingThis ? "Salvando..." : "Salvar card"}
+                    </Botao>
+                    <button
+                      type="button"
+                      onClick={() => setPendingDeleteCourse(course)}
+                      className="min-h-11 rounded-xl border border-red-500/30 px-4 text-sm font-bold text-red-300 transition hover:bg-red-500/10"
+                    >
+                      Excluir
+                    </button>
+                  </div>
                 </div>
               );
             })}
           </div>
+
+          {!franciellyCourses.length ? (
+            <div className="rounded-2xl border border-dashed border-primary/30 bg-secondary/30 p-4 text-sm text-muted-foreground">
+              <p>
+                Nenhum curso editável cadastrado ainda. Os 3 cards padrão continuam aparecendo no site.
+              </p>
+              <button
+                type="button"
+                disabled={savingCourseKey === "import-courses"}
+                onClick={() => void importCurrentCourseCards()}
+                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground disabled:opacity-60"
+              >
+                {savingCourseKey === "import-courses" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {savingCourseKey === "import-courses" ? "Importando..." : "Importar cards atuais para edição"}
+              </button>
+            </div>
+          ) : null}
+
+          <div className="mt-6 rounded-2xl border border-primary/25 bg-background p-4 sm:p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h4 className="font-display text-lg">Adicionar novo card</h4>
+                <p className="text-xs text-muted-foreground">Depois de adicionar, o card já aparece na página da Francielly.</p>
+              </div>
+              <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-bold text-magenta">Novo curso</span>
+            </div>
+            <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+              <div>
+                <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-card">
+                  {courseDraft.image_url ? (
+                    <img src={courseDraft.image_url} alt="Prévia do novo curso" className="h-full w-full object-contain" />
+                  ) : (
+                    <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+                      <ImageIcon className="h-8 w-8 text-magenta" />
+                      Foto inteira, sem zoom
+                    </div>
+                  )}
+                  {uploadingCourseKey === "new-course" ? (
+                    <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/70 text-xs font-bold text-white">
+                      <LoaderCircle className="h-4 w-4 animate-spin text-magenta" />
+                      Enviando...
+                    </div>
+                  ) : null}
+                </div>
+                <label className="mt-3 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary/25 bg-card px-3 text-xs font-bold text-magenta transition hover:border-primary">
+                  <Camera className="h-3.5 w-3.5" />
+                  Escolher foto
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={uploadingCourseKey === "new-course"}
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        void uploadCourseImage(file);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="grid gap-3">
+                <Field
+                  label="Etiqueta"
+                  value={courseDraft.eyebrow}
+                  onChange={(value) => setCourseDraft((current) => ({ ...current, eyebrow: value }))}
+                  placeholder="Ex.: Curso presencial"
+                />
+                <Field
+                  label="Título do curso"
+                  value={courseDraft.title}
+                  onChange={(value) => setCourseDraft((current) => ({ ...current, title: value }))}
+                  placeholder="Ex.: Finalização para cachos"
+                />
+                <Field
+                  label="Subtítulo / descrição"
+                  value={courseDraft.subtitle}
+                  onChange={(value) => setCourseDraft((current) => ({ ...current, subtitle: value }))}
+                  placeholder="Explique o que a aluna vai aprender."
+                  multiline
+                />
+                <Field
+                  label="Texto alternativo da foto"
+                  value={courseDraft.altText}
+                  onChange={(value) => setCourseDraft((current) => ({ ...current, altText: value }))}
+                  placeholder="Ex.: Aula prática de finalização para cachos"
+                />
+                <Botao type="button" disabled={savingCourseKey === "new-course" || uploadingCourseKey === "new-course"} onClick={() => void addCourse()} className="w-full">
+                  {savingCourseKey === "new-course" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  {savingCourseKey === "new-course" ? "Adicionando..." : "Adicionar card de curso"}
+                </Botao>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {pendingDeleteCourse ? (
+          <ConfirmModal
+            title="Excluir card de curso"
+            message={`Deseja excluir o card “${pendingDeleteCourse.title}”? Ele sairá da página da Francielly.`}
+            confirmLabel="Excluir card"
+            onConfirm={() => void confirmRemoveCourse()}
+            onClose={() => setPendingDeleteCourse(null)}
+          />
+        ) : null}
 
         <div className="sticky bottom-4 z-10 flex justify-end rounded-2xl border border-border bg-card/95 p-4 shadow-card backdrop-blur">
           <Botao type="button" disabled={saving} onClick={() => void saveSettings()}>
@@ -5458,8 +6134,8 @@ function PortfolioManager({
       onError("Escolha uma imagem para a galeria.");
       return;
     }
-    if (services.length && !form.service_id && !form.service_name?.trim()) {
-      onError("Escolha o serviço real relacionado para essa foto. É isso que faz os filtros da galeria funcionarem.");
+    if (!form.category_id && !form.service_id && !form.service_name?.trim()) {
+      onError("Escolha ou crie um filtro para essa foto. É isso que faz os filtros da galeria funcionarem.");
       return;
     }
 
@@ -5469,11 +6145,13 @@ function PortfolioManager({
       : (items.length ? Math.max(...items.map((p) => p.sort_order), 0) + 1 : 1);
 
     const selectedService = services.find((service) => service.id === form.service_id);
+    const selectedCategory = categories.find((category) => category.id === form.category_id);
     const payload = {
       ...form,
-      category: selectedService?.name ?? form.service_name ?? "",
-      category_id: null,
-      service_name: selectedService?.name ?? form.service_name ?? null,
+      category: selectedCategory?.name ?? selectedService?.name ?? form.service_name ?? "",
+      category_id: selectedCategory?.id ?? null,
+      service_id: selectedCategory ? null : form.service_id,
+      service_name: selectedCategory?.name ?? selectedService?.name ?? form.service_name ?? null,
       image_zoom: Math.min(1.8, Math.max(1, Number(form.image_zoom ?? 1))),
       image_position_x: Math.min(100, Math.max(0, Number(form.image_position_x ?? 50))),
       image_position_y: Math.min(100, Math.max(0, Number(form.image_position_y ?? 50))),
@@ -5708,26 +6386,57 @@ function PortfolioManager({
           <label className="block text-sm font-medium">
             Filtro da galeria
             <select
-              value={form.service_id ?? ""}
+              value={form.category_id ? `category:${form.category_id}` : form.service_id ? `service:${form.service_id}` : ""}
               onChange={(event) => {
-                const selectedService = services.find((service) => service.id === event.target.value);
+                const value = event.target.value;
+                if (value.startsWith("category:")) {
+                  const categoryId = value.replace("category:", "");
+                  const selectedCategory = categories.find((category) => category.id === categoryId);
+                  setForm({
+                    ...form,
+                    category_id: categoryId,
+                    category: selectedCategory?.name ?? form.category,
+                    service_id: null,
+                    service_name: selectedCategory?.name ?? null,
+                  });
+                  return;
+                }
+                const serviceId = value.replace("service:", "");
+                const selectedService = services.find((service) => service.id === serviceId);
                 setForm({
                   ...form,
-                  service_id: event.target.value || null,
+                  category_id: null,
+                  category: selectedService?.name ?? form.category,
+                  service_id: serviceId || null,
                   service_name: selectedService?.name ?? null,
                 });
               }}
               className="admin-input"
             >
-              <option value="">Escolha o serviço desta foto</option>
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name}
-                </option>
-              ))}
+              <option value="">Escolha o filtro desta foto</option>
+              {categories.filter((category) => category.slug !== BRAIDS_CATEGORY).length ? (
+                <optgroup label="Filtros personalizados">
+                  {categories
+                    .filter((category) => category.slug !== BRAIDS_CATEGORY)
+                    .map((category) => (
+                      <option key={category.id} value={`category:${category.id}`}>
+                        {category.name}
+                      </option>
+                    ))}
+                </optgroup>
+              ) : null}
+              {services.length ? (
+                <optgroup label="Serviços reais">
+                  {services.map((service) => (
+                    <option key={service.id} value={`service:${service.id}`}>
+                      {service.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
             </select>
             <span className="mt-1 block text-xs text-muted-foreground">
-              Esse serviço vira o filtro que o cliente vê no site.
+              Esse nome vira o filtro que o cliente vê no site. Crie novos filtros na aba “Galeria”.
             </span>
           </label>
           <label className="block text-sm font-medium">
