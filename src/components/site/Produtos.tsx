@@ -130,14 +130,23 @@ export function Produtos({ paginaCompleta = false }: { paginaCompleta?: boolean 
                     <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-secondary/25 sm:aspect-[3/4]">
                       <img
                         src={displayImage}
+                        alt=""
+                        aria-hidden="true"
+                        loading="lazy"
+                        decoding="async"
+                        className="absolute inset-0 h-full w-full scale-110 object-cover object-center blur-xl opacity-55"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-b from-background/5 via-transparent to-card/15" />
+                      <img
+                        src={displayImage}
                         alt={alt}
                         loading={index < 3 ? "eager" : "lazy"}
                         fetchPriority={index < 3 ? "high" : "auto"}
                         decoding="async"
-                        className="h-full w-full object-contain object-center"
+                        className="relative z-10 h-full w-full object-contain object-center"
                       />
                       {produto.destaque ? (
-                        <span className="absolute right-3 top-3 rounded-full bg-magenta px-3 py-1 text-[11px] font-semibold text-white shadow-md">
+                        <span className="absolute right-3 top-3 z-20 rounded-full bg-magenta px-3 py-1 text-[11px] font-semibold text-white shadow-md">
                           Mais procurado
                         </span>
                       ) : null}
