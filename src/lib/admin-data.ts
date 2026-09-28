@@ -79,11 +79,11 @@ async function otimizarImagem(file: File) {
 }
 
 function mensagemUpload(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error || "");
+  const message = mensagemDeErro(error);
   const lowerMessage = message.toLowerCase();
 
   if (lowerMessage.includes("row-level security") || lowerMessage.includes("permission") || lowerMessage.includes("not authorized")) {
-    return "O Supabase bloqueou o envio da imagem por permissão. Para o Nosso Espaço, rode o SQL supabase/nosso-espaco-rebuild.sql no Supabase.";
+    return `O Supabase bloqueou o envio por permissão (sessão de administrador provavelmente expirada). Recarregue a página e entre novamente no /admin. Detalhe: ${message}`;
   }
 
   if (lowerMessage.includes("bucket") || lowerMessage.includes("not found") || lowerMessage.includes("does not exist")) {
@@ -99,6 +99,7 @@ function mensagemUpload(error: unknown) {
 
 export async function uploadImagem(file: File, pasta: string, bucket = "site-images") {
   validarImagem(file);
+  await garantirSessaoAtiva();
   const imagem = await otimizarImagem(file);
   const extension = imagem.type === "image/svg+xml" ? "svg" : "jpg";
   const path = `${pasta}/${crypto.randomUUID()}.${extension}`;
@@ -114,6 +115,7 @@ export async function uploadImagem(file: File, pasta: string, bucket = "site-ima
 
 export async function removerImagem(path: string | null | undefined, bucket = "site-images") {
   if (!path) return;
+  await garantirSessaoAtiva();
   const { error } = await getSupabaseClient().storage.from(bucket).remove([path]);
   if (error) throw error;
 }
@@ -143,11 +145,17 @@ export async function garantirSessaoAtiva(): Promise<void> {
   const { getSupabaseClient } = await import("@/lib/supabase");
   const supabase = getSupabaseClient();
   let session = (await supabase.auth.getSession()).data.session;
-  if (!session) {
+  if (session) {
+    // getSession() pode devolver uma sessão vencida do cache local; valida no servidor.
+    const { error } = await supabase.auth.getUser();
+    if (!error) return;
     const refreshed = await supabase.auth.refreshSession();
     session = refreshed.data.session;
+    if (session && !(await supabase.auth.getUser()).error) return;
+  } else {
+    const refreshed = await supabase.auth.refreshSession();
+    session = refreshed.data.session;
+    if (session && !(await supabase.auth.getUser()).error) return;
   }
-  if (!session) {
-    throw new Error("Sua sessão de administrador expirou. Recarregue a página e entre novamente para salvar.");
-  }
+  throw new Error("Sua sessão de administrador expirou. Recarregue a página e entre novamente para salvar.");
 }
