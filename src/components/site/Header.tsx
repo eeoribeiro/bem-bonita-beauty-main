@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { label: "Serviços", href: "/servicos" },
   { label: "Galeria", href: "/#resultados" },
   { label: "Loja", href: "/produtos" },
+  { label: "Trabalhe", href: "/trabalhe-conosco" },
   { label: "Contato", href: "/#localizacao" },
 ] as const;
 

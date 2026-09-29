@@ -20,6 +20,7 @@ import { Route as PedidoRouteImport } from './routes/pedido'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as ServicosRouteImport } from './routes/servicos'
+import { Route as TrabalheConoscoRouteImport } from './routes/trabalhe-conosco'
 import { Route as ProdutosProdutoIdRouteImport } from './routes/produtos.$produtoId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -77,6 +78,11 @@ const ServicosRoute = ServicosRouteImport.update({
   path: '/servicos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TrabalheConoscoRoute = TrabalheConoscoRouteImport.update({
+  id: '/trabalhe-conosco',
+  path: '/trabalhe-conosco',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProdutosProdutoIdRoute = ProdutosProdutoIdRouteImport.update({
   id: '/$produtoId',
   path: '/$produtoId',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/privacidade': typeof PrivacidadeRoute
   '/produtos': typeof ProdutosRouteWithChildren
   '/servicos': typeof ServicosRoute
+  '/trabalhe-conosco': typeof TrabalheConoscoRoute
   '/produtos/$produtoId': typeof ProdutosProdutoIdRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/privacidade': typeof PrivacidadeRoute
   '/produtos': typeof ProdutosRouteWithChildren
   '/servicos': typeof ServicosRoute
+  '/trabalhe-conosco': typeof TrabalheConoscoRoute
   '/produtos/$produtoId': typeof ProdutosProdutoIdRoute
 }
 export interface FileRoutesById {
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/privacidade': typeof PrivacidadeRoute
   '/produtos': typeof ProdutosRouteWithChildren
   '/servicos': typeof ServicosRoute
+  '/trabalhe-conosco': typeof TrabalheConoscoRoute
   '/produtos/$produtoId': typeof ProdutosProdutoIdRoute
 }
 export interface FileRouteTypes {
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/produtos'
     | '/servicos'
+    | '/trabalhe-conosco'
     | '/produtos/$produtoId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/produtos'
     | '/servicos'
+    | '/trabalhe-conosco'
     | '/produtos/$produtoId'
   id:
     | '__root__'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/produtos'
     | '/servicos'
+    | '/trabalhe-conosco'
     | '/produtos/$produtoId'
   fileRoutesById: FileRoutesById
 }
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   PrivacidadeRoute: typeof PrivacidadeRoute
   ProdutosRoute: typeof ProdutosRouteWithChildren
   ServicosRoute: typeof ServicosRoute
+  TrabalheConoscoRoute: typeof TrabalheConoscoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/trabalhe-conosco': {
+      id: '/trabalhe-conosco'
+      path: '/trabalhe-conosco'
+      fullPath: '/trabalhe-conosco'
+      preLoaderRoute: typeof TrabalheConoscoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/produtos/$produtoId': {
       id: '/produtos/$produtoId'
       path: '/$produtoId'
@@ -298,6 +318,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacidadeRoute: PrivacidadeRoute,
   ProdutosRoute: ProdutosRouteWithChildren,
   ServicosRoute: ServicosRoute,
+  TrabalheConoscoRoute: TrabalheConoscoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

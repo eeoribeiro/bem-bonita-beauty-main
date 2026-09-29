@@ -43,5 +43,6 @@ export const MENU = [
   { label: "Galeria", href: "/#resultados" },
   { label: "Loja", href: "/produtos" },
   { label: "Feedbacks", href: "/feedbacks" },
+  { label: "Trabalhe conosco", href: "/trabalhe-conosco" },
   { label: "Contato", href: "/#localizacao" },
 ] as const;

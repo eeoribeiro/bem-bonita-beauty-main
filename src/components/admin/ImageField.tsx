@@ -74,7 +74,7 @@ export function ImageField({
           event.target.value = "";
         }}
       />
-      <span className="mt-2 block text-xs text-muted-foreground">Máximo 10 MB.</span>
+      <span className="mt-2 block text-xs text-muted-foreground">Até 30 MB; imagens grandes são otimizadas automaticamente.</span>
     </label>
   );
 }

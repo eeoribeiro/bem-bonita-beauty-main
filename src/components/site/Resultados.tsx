@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { BotaoLink } from "./Botao";
 import { TituloSecao } from "./TituloSecao";
 import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
-import { DEFAULT_BRAIDS_CATEGORY, defaultBraidsPhotos } from "@/lib/default-braids";
 import { SALAO } from "@/lib/salao";
 import { usePublicSiteData } from "@/lib/site-data";
+
+const REMOVED_BRAIDS_CATEGORY = "trancas";
 
 const cachos = [
   {
@@ -49,25 +50,10 @@ export function Resultados() {
   const [categoriaAtiva, setCategoriaAtiva] = useState("todas");
   const fallbackCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const portfolioCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
-  const trancasCarouselRef = useMobileAutoCarousel<HTMLDivElement>();
   const portfolioBruto = data?.portfolio ?? [];
-  const trancasSalvas = portfolioBruto
-    .filter((item) => item.category === DEFAULT_BRAIDS_CATEGORY)
-    .map((item) => ({
-      imagem: item.image_url,
-      alt: item.alt_text,
-      titulo: item.title,
-    }));
-  const trancasExibidas = trancasSalvas.length
-    ? trancasSalvas
-    : defaultBraidsPhotos.map((item) => ({
-        imagem: item.image_url,
-        alt: item.alt_text,
-        titulo: item.title,
-      }));
-  const portfolio = portfolioBruto.filter((item) => item.category !== DEFAULT_BRAIDS_CATEGORY);
+  const portfolio = portfolioBruto.filter((item) => item.category !== REMOVED_BRAIDS_CATEGORY);
   const servicos = data?.services ?? [];
-  const categorias = data?.categories?.filter((category) => category.slug !== DEFAULT_BRAIDS_CATEGORY) ?? [];
+  const categorias = data?.categories?.filter((category) => category.slug !== REMOVED_BRAIDS_CATEGORY) ?? [];
   const filtrosPersonalizados = useMemo(() => {
     return categorias
       .map((category) => ({
@@ -298,59 +284,6 @@ export function Resultados() {
             ))}
           </div>
         )}
-
-        {isLoading || trancasExibidas.length ? (
-          <div className="mt-16 rounded-[2rem] border border-border/70 bg-card/60 p-5 shadow-card sm:p-8">
-            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-              <TituloSecao
-                eyebrow="Penteados"
-                titulo="Galeria de tranças"
-                texto="Inspirações de tranças e penteados personalizados feitos para valorizar textura, detalhe e movimento."
-              />
-              <BotaoLink
-                href={SALAO.instagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                variante="outline"
-                className="shrink-0"
-              >
-                <Instagram className="h-4 w-4" />
-                Ver no Instagram
-              </BotaoLink>
-            </div>
-            <div
-              ref={trancasCarouselRef}
-              className="-mx-5 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3"
-            >
-              {isLoading
-                ? Array.from({ length: 3 }, (_, index) => (
-                    <div
-                      key={`trancas-skeleton-${index}`}
-                      className="aspect-[4/5] min-w-[78vw] animate-pulse rounded-3xl bg-secondary/60 sm:min-w-0"
-                    />
-                  ))
-                : trancasExibidas.map((item) => (
-                    <figure
-                      key={item.titulo}
-                      className="group min-w-[78vw] snap-center overflow-hidden rounded-3xl border border-border/70 bg-card shadow-card sm:min-w-0"
-                    >
-                      <div className="relative aspect-[4/5] overflow-hidden bg-secondary/30">
-                        <img
-                          src={item.imagem}
-                          alt={item.alt}
-                          loading="lazy"
-                          decoding="async"
-                          className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
-                        />
-                      </div>
-                      <figcaption className="px-4 py-4 text-sm font-semibold text-card-foreground">
-                        {item.titulo}
-                      </figcaption>
-                    </figure>
-                  ))}
-            </div>
-          </div>
-        ) : null}
 
       </div>
     </section>

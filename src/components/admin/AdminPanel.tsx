@@ -86,7 +86,7 @@ import type {
   TestimonialData,
 } from "@/lib/site-data";
 
-type Tab = "overview" | "photos" | "space" | "services" | "store" | "team" | "portfolio" | "braids" | "feedbacks" | "francielly" | "settings";
+type Tab = "overview" | "photos" | "space" | "services" | "store" | "team" | "portfolio" | "feedbacks" | "francielly" | "settings";
 type Modal = "services" | "portfolio" | "team_editor" | "new_photo" | null;
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
@@ -96,7 +96,6 @@ const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "space", label: "Nosso Espaço", icon: MapPin },
   { id: "services", label: "Serviços", icon: Scissors },
   { id: "portfolio", label: "Galeria", icon: Images },
-  { id: "braids", label: "Galeria de Tranças", icon: Sparkles },
   { id: "feedbacks", label: "Feedbacks", icon: MessageSquareQuote },
   { id: "francielly", label: "Página da Francielly", icon: UserCheck },
   { id: "settings", label: "Informações do Site", icon: Settings },
@@ -702,16 +701,6 @@ export function AdminPanel({
                   onSuccess={showSuccess}
                   onError={showError}
                   onOpenManager={() => setModal("portfolio")}
-                />
-              ) : null}
-              {tab === "braids" ? (
-                <BraidsManager
-                  items={portfolio}
-                  setPortfolio={setPortfolio}
-                  isDemo={!supabaseConfigurado || isDemo}
-                  onReload={loadAll}
-                  onSuccess={showSuccess}
-                  onError={showError}
                 />
               ) : null}
               {tab === "settings" && settings ? (
@@ -4171,7 +4160,6 @@ function SettingsTab({
     const key = imageKey ?? "new-course";
     setUploadingCourseKey(key);
     try {
-      await garantirSessaoAtiva();
       if (isDemo) {
         const fakeUrl = URL.createObjectURL(file);
         if (imageKey) {
@@ -4182,6 +4170,7 @@ function SettingsTab({
         return;
       }
 
+      await garantirSessaoAtiva();
       const uploadKey = imageKey ?? `francielly_course_${Date.now()}`;
       const uploaded = await uploadImagem(file, `site/${uploadKey}`);
       if (imageKey) {
@@ -4212,7 +4201,7 @@ function SettingsTab({
         setCourseDraft((current) => ({ ...current, image_url: uploaded.url, storage_path: uploaded.path }));
       }
     } catch (error) {
-      onError(error instanceof Error ? error.message : "Falha ao enviar foto do curso.");
+      onError(`Falha ao enviar foto do curso: ${mensagemDeErro(error)}`);
     } finally {
       setUploadingCourseKey(null);
     }
@@ -4264,7 +4253,6 @@ function SettingsTab({
 
     setSavingCourseKey("new-course");
     try {
-      await garantirSessaoAtiva();
       if (isDemo) {
         setImages((prev) => [
           ...prev,
@@ -4277,6 +4265,7 @@ function SettingsTab({
           },
         ]);
       } else {
+        await garantirSessaoAtiva();
         const { error } = await getSupabaseClient().from("site_images").insert({
           image_key: imageKey,
           image_url: courseDraft.image_url,
@@ -5508,7 +5497,7 @@ function BraidsManager({
       const uploaded = await uploadImagem(file, "portfolio");
       setForm((current) => ({ ...current, image_url: uploaded.url, storage_path: uploaded.path }));
     } catch (error) {
-      onError(error instanceof Error ? error.message : "Falha no upload.");
+      onError(`Falha no upload da foto da galeria: ${mensagemDeErro(error)}`);
     } finally {
       setUploading(false);
     }
@@ -6101,12 +6090,17 @@ function PortfolioManager({
 
     const selectedService = services.find((service) => service.id === form.service_id);
     const selectedCategory = categories.find((category) => category.id === form.category_id);
+    const fallbackTitle = form.title.trim() || selectedCategory?.name || selectedService?.name || "Foto da galeria";
+    const fallbackDescription = form.description?.trim() || null;
     const payload = {
       ...form,
+      title: fallbackTitle,
+      description: fallbackDescription,
       category: selectedCategory?.name ?? selectedService?.name ?? form.service_name ?? "",
       category_id: selectedCategory?.id ?? null,
-      service_id: selectedCategory ? (form.service_id ?? null) : null,
+      service_id: selectedCategory ? null : form.service_id,
       service_name: selectedCategory?.name ?? selectedService?.name ?? form.service_name ?? null,
+      alt_text: form.alt_text.trim() || fallbackTitle,
       image_zoom: Math.min(1.8, Math.max(1, Number(form.image_zoom ?? 1))),
       image_position_x: Math.min(100, Math.max(0, Number(form.image_position_x ?? 50))),
       image_position_y: Math.min(100, Math.max(0, Number(form.image_position_y ?? 50))),
@@ -6133,14 +6127,14 @@ function PortfolioManager({
         ? getSupabaseClient().from("portfolio_items").update(payload).eq("id", editingId)
         : getSupabaseClient().from("portfolio_items").insert(payload);
       const { data: savedPhoto, error } = await query.select("id, sort_order").single();
-      if (error || !savedPhoto) onError("Não foi possível salvar a foto.");
+      if (error || !savedPhoto) onError(`Não foi possível salvar a foto: ${mensagemDeErro(error)}`);
       else {
         onSuccess(editingId ? "Foto atualizada." : "Nova foto adicionada ao final da galeria.");
         edit();
         await onReload();
       }
-    } catch {
-      onError("Erro ao salvar foto.");
+    } catch (error) {
+      onError(`Erro ao salvar foto: ${mensagemDeErro(error)}`);
     }
     setSaving(false);
   }
@@ -6325,14 +6319,13 @@ function PortfolioManager({
             onSelect={(file) => void selectImage(file)}
           />
           <Field
-            label="Título do trabalho"
+            label="Título do trabalho (opcional)"
             value={form.title}
             onChange={(value) => setForm({ ...form, title: value })}
             placeholder="Ex: Morena Iluminada em Cachos 3B"
-            required
           />
           <Field
-            label="Subtítulo / descrição curta"
+            label="Subtítulo / descrição curta (opcional)"
             value={form.description ?? ""}
             onChange={(value) => setForm({ ...form, description: value })}
             placeholder="Ex: Definição, brilho e movimento natural."
@@ -6409,11 +6402,10 @@ function PortfolioManager({
             </select>
           </label>
           <Field
-            label="Texto alternativo (acessibilidade / SEO)"
+            label="Texto alternativo (opcional)"
             value={form.alt_text}
             onChange={(value) => setForm({ ...form, alt_text: value })}
             placeholder="Ex: Cachos definidos com mechas iluminadas"
-            required
           />
           <div className="rounded-2xl border border-border bg-card p-4">
             <p className="text-sm font-semibold">Ajuste da foto na galeria</p>
