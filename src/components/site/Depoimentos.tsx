@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, Star, X } from "lucide-react";
+import { MessageCircle, MessageSquareQuote, X } from "lucide-react";
 
 import { BotaoLink } from "./Botao";
 import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
@@ -44,7 +44,7 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <p className="eyebrow mx-auto flex w-fit items-center gap-2">
-            <Star className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
+            <MessageSquareQuote className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
             Feedbacks reais
           </p>
           <h2 className="mt-4 font-display text-3xl leading-tight sm:text-4xl md:text-[2.75rem]">
@@ -62,14 +62,14 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
 
         <div
           ref={carouselRef}
-          className="-mx-5 mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-pl-5 pl-5 pb-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pl-0 sm:pb-0 lg:grid-cols-3 lg:gap-6"
+          className="-mx-5 mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-pl-5 pl-5 pb-5 sm:mx-0 sm:gap-5 sm:pl-0 lg:gap-6"
         >
           {feedbacksExibidos.map((feedback) => (
             <button
               key={feedback.id}
               type="button"
               onClick={() => setAberto(feedback)}
-              className="group flex min-h-full min-w-[calc((100vw_-_3.25rem)/2)] snap-start flex-col overflow-hidden rounded-[1.7rem] border border-border/80 bg-card/90 text-left text-foreground shadow-card backdrop-blur transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-0 sm:rounded-[2rem]"
+              className="group flex min-h-full min-w-[calc((100vw_-_3.25rem)/2)] snap-start flex-col overflow-hidden rounded-[1.7rem] border border-border/80 bg-card/90 text-left text-foreground shadow-card backdrop-blur transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-[18rem] sm:max-w-[20rem] sm:rounded-[2rem] lg:min-w-[21rem]"
               aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
             >
               <div className="relative overflow-hidden bg-transparent">
@@ -87,14 +87,6 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
               </div>
               <div className="flex flex-1 flex-col px-4 pb-5 pt-4 sm:px-5">
                 <div className="flex items-center justify-between gap-3">
-                  <div
-                    className="flex items-center gap-1 text-amber-400"
-                    aria-label="Avaliação de 5 estrelas"
-                  >
-                    {Array.from({ length: 5 }).map((_, starIndex) => (
-                      <Star key={starIndex} className="h-4 w-4 fill-current" aria-hidden="true" />
-                    ))}
-                  </div>
                   <span className="rounded-full bg-primary/15 px-3 py-1 text-[11px] font-bold text-magenta">Ver print</span>
                 </div>
                 <h3 className="mt-3 font-sans text-base font-bold leading-snug text-foreground sm:text-lg">
