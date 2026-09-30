@@ -171,6 +171,23 @@ export type ProductOrderData = {
   product_order_items?: ProductOrderItemData[];
 };
 
+export type CareerApplicationData = {
+  id: string;
+  full_name: string;
+  whatsapp: string;
+  city_neighborhood: string | null;
+  interest_area: string | null;
+  experience: string | null;
+  courses: string | null;
+  availability: string | null;
+  instagram: string | null;
+  message: string | null;
+  resume_file_name: string | null;
+  resume_storage_path: string | null;
+  status: "new" | "reviewed" | "contacted" | "archived";
+  created_at: string;
+};
+
 export type CategoryData = {
   id: string;
   name: string;

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, Sparkles } from "lucide-react";
+import { useRef } from "react";
 
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
@@ -61,6 +62,7 @@ function courseFromImage(image: SiteImageData): CourseCard {
 
 function PaginaFrancielly() {
   useReveal();
+  const cursosRef = useRef<HTMLDivElement | null>(null);
   const { data } = usePublicSiteData();
 
   const settings = data?.settings;
@@ -130,6 +132,12 @@ function PaginaFrancielly() {
       "Entre em contato para saber disponibilidade, conteúdo, valores e próximas turmas.",
   }));
   const courseCards = savedCourses.length ? savedCourses : legacyCourses;
+  function scrollCursos(direction: "prev" | "next") {
+    const node = cursosRef.current;
+    if (!node) return;
+    const amount = Math.max(300, Math.round(node.clientWidth * 0.82));
+    node.scrollBy({ left: direction === "next" ? amount : -amount, behavior: "smooth" });
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -212,48 +220,87 @@ function PaginaFrancielly() {
                 </p>
               </div>
 
-              <div className="mt-10 grid gap-5 md:grid-cols-3">
-                {courseCards.map((block) => (
-                  <article
-                    key={block.id}
-                    className="group flex overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft"
+              <div className="relative mt-10">
+                <button
+                  type="button"
+                  onClick={() => scrollCursos("prev")}
+                  className="absolute -left-2 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-card transition hover:border-primary hover:text-magenta sm:flex"
+                  aria-label="Ver curso anterior"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollCursos("next")}
+                  className="absolute -right-2 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-card transition hover:border-primary hover:text-magenta sm:flex"
+                  aria-label="Ver próximo curso"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+                <div
+                  ref={cursosRef}
+                  className="scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-pl-5 px-5 pb-2 sm:mx-0 sm:px-0"
+                >
+                  {courseCards.map((block) => (
+                    <article
+                      key={block.id}
+                      className="group flex min-w-[82vw] snap-start overflow-hidden rounded-[2rem] border border-border/70 bg-card shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft sm:min-w-[20rem] lg:min-w-[23rem] lg:max-w-[24rem]"
+                    >
+                      <div className="flex min-h-full w-full flex-col">
+                        <div className="aspect-[4/5] overflow-hidden bg-card">
+                          <SafeImage
+                            src={block.imageUrl || fotoPrincipal}
+                            fallbackSrc={fotoFranciellyFallback}
+                            alt={block.altText}
+                            loading="lazy"
+                            decoding="async"
+                            className="h-full w-full object-contain"
+                          />
+                        </div>
+                        <div className="flex flex-1 flex-col p-5 sm:p-6">
+                          <p className="text-xs font-bold uppercase tracking-[0.24em] text-magenta">
+                            {block.eyebrow}
+                          </p>
+                          <h2 className="mt-3 font-display text-2xl leading-tight">
+                            {block.title}
+                          </h2>
+                          <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
+                            {block.subtitle}
+                          </p>
+                          <BotaoLink
+                            href={whatsappLink(
+                              `Olá, Francielly! Vi o curso “${block.title}” no site e quero saber como comprar ou reservar minha vaga.`,
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-5 w-full"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                            Comprar pelo WhatsApp
+                          </BotaoLink>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                <div className="mt-5 flex justify-center gap-3 sm:hidden">
+                  <button
+                    type="button"
+                    onClick={() => scrollCursos("prev")}
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-card"
+                    aria-label="Ver curso anterior"
                   >
-                    <div className="flex min-h-full w-full flex-col">
-                      <div className="aspect-[4/5] overflow-hidden bg-card">
-                        <SafeImage
-                          src={block.imageUrl || fotoPrincipal}
-                          fallbackSrc={fotoFranciellyFallback}
-                          alt={block.altText}
-                          loading="lazy"
-                          decoding="async"
-                          className="h-full w-full object-contain"
-                        />
-                      </div>
-                      <div className="flex flex-1 flex-col p-5 sm:p-6">
-                        <p className="text-xs font-bold uppercase tracking-[0.24em] text-magenta">
-                          {block.eyebrow}
-                        </p>
-                        <h2 className="mt-3 font-display text-2xl leading-tight">
-                          {block.title}
-                        </h2>
-                        <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">
-                          {block.subtitle}
-                        </p>
-                        <BotaoLink
-                          href={whatsappLink(
-                            `Olá, Francielly! Vi o curso “${block.title}” no site e quero saber como comprar ou reservar minha vaga.`,
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-5 w-full"
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                          Comprar pelo WhatsApp
-                        </BotaoLink>
-                      </div>
-                    </div>
-                  </article>
-                ))}
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollCursos("next")}
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-card"
+                    aria-label="Ver próximo curso"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
             </div>
           </section>

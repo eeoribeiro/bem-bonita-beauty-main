@@ -1,8 +1,8 @@
-import { BriefcaseBusiness, FileText, GraduationCap, MessageCircle, Paperclip, Sparkles, UserRound } from "lucide-react";
-import { useMemo, useState } from "react";
+import { BriefcaseBusiness, CheckCircle2, FileText, GraduationCap, LoaderCircle, Paperclip, Send, Sparkles, UserRound } from "lucide-react";
+import { useState, type FormEvent } from "react";
 
-import { BotaoLink } from "./Botao";
-import { whatsappLink } from "@/lib/salao";
+import { Botao } from "./Botao";
+import { getSupabaseClient, supabaseConfigurado } from "@/lib/supabase";
 
 export function TrabalheConosco({ paginaCompleta = false }: { paginaCompleta?: boolean }) {
   const [form, setForm] = useState({
@@ -17,28 +17,96 @@ export function TrabalheConosco({ paginaCompleta = false }: { paginaCompleta?: b
     mensagem: "",
   });
   const [curriculo, setCurriculo] = useState<File | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState("");
+  const [sucesso, setSucesso] = useState("");
 
-  const whatsappHref = useMemo(() => {
-    const linhas = [
-      "Olá! Vim pelo site do Bem Bonita e quero enviar meu currículo para trabalhar com vocês.",
-      "",
-      `Nome: ${form.nome || "Não informado"}`,
-      `WhatsApp: ${form.whatsapp || "Não informado"}`,
-      `Cidade/bairro: ${form.cidade || "Não informado"}`,
-      `Área de interesse: ${form.area || "Não informado"}`,
-      `Experiência: ${form.experiencia || "Não informado"}`,
-      `Cursos/formações: ${form.cursos || "Não informado"}`,
-      `Disponibilidade: ${form.disponibilidade || "Não informado"}`,
-      `Instagram/portfólio: ${form.instagram || "Não informado"}`,
-      `Currículo em PDF: ${curriculo ? `vou anexar o arquivo "${curriculo.name}" nesta conversa` : "não anexado no site"}`,
-      `Mensagem: ${form.mensagem || "Não informado"}`,
-      "",
-      curriculo
-        ? "Obs.: o site não consegue anexar o PDF automaticamente no WhatsApp. Vou enviar o arquivo PDF logo após esta mensagem."
-        : "Obs.: posso enviar meu currículo em PDF depois, se necessário.",
-    ];
-    return whatsappLink(linhas.join("\n"));
-  }, [curriculo, form]);
+  async function enviarCurriculo(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErro("");
+    setSucesso("");
+
+    if (!form.nome.trim() || !form.whatsapp.trim()) {
+      setErro("Preencha pelo menos nome e WhatsApp.");
+      return;
+    }
+
+    if (!supabaseConfigurado) {
+      setErro("O envio de currículo ainda não está configurado neste ambiente.");
+      return;
+    }
+
+    if (curriculo && curriculo.size > 10 * 1024 * 1024) {
+      setErro("O PDF deve ter no máximo 10 MB.");
+      return;
+    }
+
+    setEnviando(true);
+    try {
+      const supabase = getSupabaseClient();
+      let resumeStoragePath: string | null = null;
+
+      if (curriculo) {
+        const safeName = curriculo.name.replace(/[^\w.\-]+/g, "-").toLowerCase();
+        resumeStoragePath = `curriculos/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+        const { error: uploadError } = await supabase.storage
+          .from("career-resumes")
+          .upload(resumeStoragePath, curriculo, {
+            contentType: "application/pdf",
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw new Error(
+            uploadError.message.includes("bucket") || uploadError.message.includes("not found")
+              ? "Falta criar o bucket de currículos. Rode o SQL supabase/career-applications.sql no Supabase."
+              : uploadError.message,
+          );
+        }
+      }
+
+      const { error: insertError } = await supabase.from("career_applications").insert({
+        full_name: form.nome.trim(),
+        whatsapp: form.whatsapp.trim(),
+        city_neighborhood: form.cidade.trim() || null,
+        interest_area: form.area.trim() || null,
+        experience: form.experiencia.trim() || null,
+        courses: form.cursos.trim() || null,
+        availability: form.disponibilidade.trim() || null,
+        instagram: form.instagram.trim() || null,
+        message: form.mensagem.trim() || null,
+        resume_file_name: curriculo?.name ?? null,
+        resume_storage_path: resumeStoragePath,
+      });
+
+      if (insertError) {
+        throw new Error(
+          insertError.message.includes("career_applications") || insertError.message.includes("schema")
+            ? "Falta criar a tabela de currículos. Rode o SQL supabase/career-applications.sql no Supabase."
+            : insertError.message,
+        );
+      }
+
+      setForm({
+        nome: "",
+        whatsapp: "",
+        cidade: "",
+        area: "",
+        experiencia: "",
+        cursos: "",
+        disponibilidade: "",
+        instagram: "",
+        mensagem: "",
+      });
+      setCurriculo(null);
+      setSucesso("Currículo enviado com sucesso. A equipe Bem Bonita vai avaliar pelo painel do site.");
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : "Não foi possível enviar o currículo agora.");
+    } finally {
+      setEnviando(false);
+    }
+  }
 
   return (
     <section
@@ -57,7 +125,7 @@ export function TrabalheConosco({ paginaCompleta = false }: { paginaCompleta?: b
             Trabalhe conosco
           </h2>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Preencha seus dados e, se quiser, selecione seu currículo em PDF. O WhatsApp será aberto com tudo organizado para a equipe avaliar seu perfil.
+            Preencha seus dados e anexe seu currículo em PDF. O envio fica salvo no painel administrativo do site para a equipe avaliar com calma.
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
             {[
@@ -77,7 +145,7 @@ export function TrabalheConosco({ paginaCompleta = false }: { paginaCompleta?: b
           </div>
         </div>
 
-        <form className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-soft sm:p-8">
+        <form onSubmit={enviarCurriculo} className="rounded-[2rem] border border-border/70 bg-card p-5 shadow-soft sm:p-8">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Nome completo" value={form.nome} onChange={(nome) => setForm({ ...form, nome })} />
             <Field label="WhatsApp" value={form.whatsapp} onChange={(whatsapp) => setForm({ ...form, whatsapp })} placeholder="(31) 99999-9999" />
@@ -114,19 +182,30 @@ export function TrabalheConosco({ paginaCompleta = false }: { paginaCompleta?: b
               </span>
               <span className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
                 <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-magenta" />
-                Por segurança do navegador, o arquivo não é anexado sozinho. Após abrir o WhatsApp, anexe o PDF selecionado na conversa.
+                O arquivo fica salvo com segurança no site e aparece na aba “Currículos” do painel administrativo.
               </span>
             </label>
             <div className="sm:col-span-2">
               <Field label="Mensagem adicional" value={form.mensagem} onChange={(mensagem) => setForm({ ...form, mensagem })} multiline />
             </div>
           </div>
-          <BotaoLink href={whatsappHref} target="_blank" rel="noopener noreferrer" className="mt-6 w-full">
-            <MessageCircle className="h-4 w-4" />
-            Enviar currículo pelo WhatsApp
-          </BotaoLink>
+          {erro ? (
+            <p role="alert" className="mt-5 rounded-2xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200">
+              {erro}
+            </p>
+          ) : null}
+          {sucesso ? (
+            <p role="status" className="mt-5 flex items-start gap-2 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              {sucesso}
+            </p>
+          ) : null}
+          <Botao type="submit" disabled={enviando} className="mt-6 w-full disabled:opacity-60">
+            {enviando ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {enviando ? "Enviando currículo..." : "Enviar currículo para o site"}
+          </Botao>
           <p className="mt-3 text-center text-xs leading-relaxed text-muted-foreground">
-            Revise a mensagem no WhatsApp e anexe o PDF antes de enviar, caso tenha selecionado um currículo.
+            Nome e WhatsApp são obrigatórios. O PDF é opcional, mas recomendado.
           </p>
         </form>
       </div>

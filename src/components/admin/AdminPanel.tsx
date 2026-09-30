@@ -8,6 +8,7 @@ import {
   ExternalLink,
   Eye,
   FileImage,
+  FileText,
   Globe,
   GripVertical,
   Image as ImageIcon,
@@ -74,6 +75,7 @@ import fotoMechasFallback from "@/assets/resultado-mechas.jpg";
 import fotoDefinicaoFallback from "@/assets/servico-definicao.jpg";
 import type {
   CategoryData,
+  CareerApplicationData,
   PortfolioData,
   ProfessionalData,
   ProductOrderData,
@@ -86,12 +88,13 @@ import type {
   TestimonialData,
 } from "@/lib/site-data";
 
-type Tab = "overview" | "photos" | "space" | "services" | "store" | "team" | "portfolio" | "feedbacks" | "francielly" | "settings";
+type Tab = "overview" | "photos" | "space" | "services" | "store" | "careers" | "team" | "portfolio" | "feedbacks" | "francielly" | "settings";
 type Modal = "services" | "portfolio" | "team_editor" | "new_photo" | null;
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
   { id: "store", label: "Linha Bem Bonita", icon: ShoppingBag },
+  { id: "careers", label: "Currículos", icon: FileText },
   { id: "photos", label: "Fotos gerais do site", icon: FileImage },
   { id: "space", label: "Nosso Espaço", icon: MapPin },
   { id: "services", label: "Serviços", icon: Scissors },
@@ -322,6 +325,8 @@ export function AdminPanel({
   const [products, setProducts] = useState<ProductData[]>([]);
   const [orders, setOrders] = useState<ProductOrderData[]>([]);
   const [ordersError, setOrdersError] = useState("");
+  const [careerApplications, setCareerApplications] = useState<CareerApplicationData[]>([]);
+  const [careersError, setCareersError] = useState("");
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioData[]>([]);
   const [testimonials, setTestimonials] = useState<TestimonialData[]>([]);
@@ -352,6 +357,8 @@ export function AdminPanel({
       setProducts(initialProducts);
       setOrders([]);
       setOrdersError("");
+      setCareerApplications([]);
+      setCareersError("");
       setCategories(
         initialPortfolioCategories
           .filter((c) => c.slug !== initialContentMarker)
@@ -425,6 +432,17 @@ export function AdminPanel({
         } else {
           setOrders((orderRows.data ?? []) as ProductOrderData[]);
           setOrdersError("");
+        }
+        const careerRows = await supabase
+          .from("career_applications")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (careerRows.error) {
+          setCareerApplications([]);
+          setCareersError("Execute o SQL supabase/career-applications.sql no Supabase para liberar esta aba.");
+        } else {
+          setCareerApplications((careerRows.data ?? []) as CareerApplicationData[]);
+          setCareersError("");
         }
         setCategories(
           ((categoryRows.data ?? []) as CategoryData[]).filter(
@@ -724,6 +742,16 @@ export function AdminPanel({
                   ordersError={ordersError}
                   isDemo={!supabaseConfigurado || isDemo}
                   onReload={loadAll}
+                  onSuccess={showSuccess}
+                  onError={showError}
+                />
+              ) : null}
+              {tab === "careers" ? (
+                <CareersTab
+                  applications={careerApplications}
+                  setApplications={setCareerApplications}
+                  careersError={careersError}
+                  isDemo={!supabaseConfigurado || isDemo}
                   onSuccess={showSuccess}
                   onError={showError}
                 />
@@ -2277,6 +2305,221 @@ function ServicesOverviewTab({
 }
 
 type FeedbackDraft = TestimonialData & { storage_path?: string | null };
+
+function CareersTab({
+  applications,
+  setApplications,
+  careersError,
+  isDemo,
+  onSuccess,
+  onError,
+}: {
+  applications: CareerApplicationData[];
+  setApplications: (items: CareerApplicationData[]) => void;
+  careersError: string;
+  isDemo: boolean;
+  onSuccess: (message: string) => void;
+  onError: (message: string) => void;
+}) {
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  async function downloadResume(application: CareerApplicationData) {
+    if (!application.resume_storage_path) {
+      onError("Este envio não tem PDF anexado.");
+      return;
+    }
+
+    setDownloadingId(application.id);
+    try {
+      const { data, error } = await getSupabaseClient()
+        .storage
+        .from("career-resumes")
+        .createSignedUrl(application.resume_storage_path, 60);
+
+      if (error || !data?.signedUrl) {
+        throw new Error(error?.message || "Não foi possível gerar o link do PDF.");
+      }
+
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Não foi possível abrir o currículo.");
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
+  async function updateStatus(application: CareerApplicationData, status: CareerApplicationData["status"]) {
+    setSavingId(application.id);
+    const previous = applications;
+    const next = applications.map((item) => item.id === application.id ? { ...item, status } : item);
+    setApplications(next);
+
+    if (isDemo) {
+      onSuccess("Status do currículo atualizado no preview.");
+      setSavingId(null);
+      return;
+    }
+
+    try {
+      const { error } = await getSupabaseClient()
+        .from("career_applications")
+        .update({ status })
+        .eq("id", application.id);
+      if (error) throw error;
+      onSuccess("Status do currículo atualizado.");
+    } catch (error) {
+      setApplications(previous);
+      onError(error instanceof Error ? error.message : "Não foi possível atualizar o currículo.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function deleteApplication(application: CareerApplicationData) {
+    if (!window.confirm(`Excluir o currículo de ${application.full_name}?`)) return;
+    setSavingId(application.id);
+    const previous = applications;
+    setApplications(applications.filter((item) => item.id !== application.id));
+
+    if (isDemo) {
+      onSuccess("Currículo removido no preview.");
+      setSavingId(null);
+      return;
+    }
+
+    try {
+      const { error } = await getSupabaseClient()
+        .from("career_applications")
+        .delete()
+        .eq("id", application.id);
+      if (error) throw error;
+      if (application.resume_storage_path) {
+        await getSupabaseClient().storage.from("career-resumes").remove([application.resume_storage_path]);
+      }
+      onSuccess("Currículo excluído.");
+    } catch (error) {
+      setApplications(previous);
+      onError(error instanceof Error ? error.message : "Não foi possível excluir o currículo.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  const statusLabels: Record<CareerApplicationData["status"], string> = {
+    new: "Novo",
+    reviewed: "Visto",
+    contacted: "Contatado",
+    archived: "Arquivado",
+  };
+
+  return (
+    <section className="space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="eyebrow">Trabalhe conosco</p>
+          <h1 className="mt-2 font-display text-3xl sm:text-4xl">Currículos enviados ({applications.length})</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Aqui aparecem os formulários enviados pela área “Trabalhe conosco” do site. Use o botão de PDF para abrir o currículo anexado.
+          </p>
+        </div>
+      </div>
+
+      {careersError ? (
+        <div className="rounded-2xl border border-gold/40 bg-gold/10 p-4 text-sm text-foreground">
+          {careersError}
+        </div>
+      ) : null}
+
+      {applications.length ? (
+        <div className="grid gap-5">
+          {applications.map((application) => (
+            <article key={application.id} className="rounded-3xl border border-border bg-card p-5 shadow-card">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="font-display text-2xl">{application.full_name}</h2>
+                    <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-magenta">
+                      {statusLabels[application.status] ?? "Novo"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Enviado em {new Date(application.created_at).toLocaleString("pt-BR")}
+                  </p>
+                  <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                    <InfoLine label="WhatsApp" value={application.whatsapp} />
+                    <InfoLine label="Cidade/bairro" value={application.city_neighborhood} />
+                    <InfoLine label="Área" value={application.interest_area} />
+                    <InfoLine label="Disponibilidade" value={application.availability} />
+                    <InfoLine label="Instagram/portfólio" value={application.instagram} />
+                    <InfoLine label="PDF" value={application.resume_file_name || "Sem anexo"} />
+                  </div>
+                  {application.experience ? <LongInfo label="Experiência" value={application.experience} /> : null}
+                  {application.courses ? <LongInfo label="Cursos/formações" value={application.courses} /> : null}
+                  {application.message ? <LongInfo label="Mensagem" value={application.message} /> : null}
+                </div>
+
+                <div className="flex w-full flex-col gap-2 lg:w-56">
+                  <Botao
+                    type="button"
+                    variante="outline"
+                    disabled={!application.resume_storage_path || downloadingId === application.id}
+                    onClick={() => void downloadResume(application)}
+                    className="w-full"
+                  >
+                    {downloadingId === application.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                    Abrir PDF
+                  </Botao>
+                  <select
+                    value={application.status}
+                    disabled={savingId === application.id}
+                    onChange={(event) => void updateStatus(application, event.target.value as CareerApplicationData["status"])}
+                    className="admin-input mt-0"
+                  >
+                    <option value="new">Novo</option>
+                    <option value="reviewed">Visto</option>
+                    <option value="contacted">Contatado</option>
+                    <option value="archived">Arquivado</option>
+                  </select>
+                  <button
+                    type="button"
+                    disabled={savingId === application.id}
+                    onClick={() => void deleteApplication(application)}
+                    className="rounded-xl border border-red-400/30 px-4 py-3 text-sm font-bold text-red-200 transition hover:bg-red-500/10 disabled:opacity-60"
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-3xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+          Nenhum currículo enviado ainda.
+        </div>
+      )}
+    </section>
+  );
+}
+
+function InfoLine({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="rounded-2xl border border-border/70 bg-background/60 p-3">
+      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-magenta">{label}</p>
+      <p className="mt-1 break-words text-foreground">{value || "Não informado"}</p>
+    </div>
+  );
+}
+
+function LongInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="mt-4 rounded-2xl border border-border/70 bg-background/60 p-4 text-sm">
+      <p className="font-bold text-magenta">{label}</p>
+      <p className="mt-2 whitespace-pre-wrap leading-relaxed text-muted-foreground">{value}</p>
+    </div>
+  );
+}
 
 function FeedbacksManagerTab({ testimonials, setTestimonials, isDemo, onReload, onSuccess, onError }: {
   testimonials: TestimonialData[];

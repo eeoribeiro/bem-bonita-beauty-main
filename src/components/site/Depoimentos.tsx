@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, MessageSquareQuote, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageCircle, MessageSquareQuote, X } from "lucide-react";
 
 import { BotaoLink } from "./Botao";
 import { useMobileAutoCarousel } from "@/hooks/use-mobile-auto-carousel";
@@ -13,6 +13,13 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
   const [aberto, setAberto] = useState<TestimonialData | null>(null);
   // Mobile: 2 cards visíveis, avançando de forma suave a cada 2 segundos.
   const carouselRef = useMobileAutoCarousel<HTMLDivElement>(2000, { perView: 2 });
+
+  function scrollFeedbacks(direction: "prev" | "next") {
+    const node = carouselRef.current;
+    if (!node) return;
+    const amount = Math.max(260, Math.round(node.clientWidth * 0.75));
+    node.scrollBy({ left: direction === "next" ? amount : -amount, behavior: "smooth" });
+  }
 
   useEffect(() => {
     if (!aberto) return;
@@ -60,42 +67,78 @@ export function Depoimentos({ paginaCompleta = false }: { paginaCompleta?: boole
           </div>
         </div>
 
-        <div
-          ref={carouselRef}
-          className="-mx-5 mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-pl-5 pl-5 pb-5 sm:mx-0 sm:gap-5 sm:pl-0 lg:gap-6"
-        >
-          {feedbacksExibidos.map((feedback) => (
-            <button
-              key={feedback.id}
-              type="button"
-              onClick={() => setAberto(feedback)}
-              className="group flex min-h-full min-w-[calc((100vw_-_3.25rem)/2)] snap-start flex-col overflow-hidden rounded-[1.7rem] border border-border/80 bg-card/90 text-left text-foreground shadow-card backdrop-blur transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-[18rem] sm:max-w-[20rem] sm:rounded-[2rem] lg:min-w-[21rem]"
-              aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
-            >
-              <div className="relative overflow-hidden bg-transparent">
-                <img
-                  src={feedback.image_url!}
-                  alt={
-                    feedback.client_name
-                      ? `Print do feedback de ${feedback.client_name}`
-                      : "Print de feedback de cliente"
-                  }
-                  loading="lazy"
-                  decoding="async"
-                  className="block h-auto w-full object-contain object-top"
-                />
-              </div>
-              <div className="flex flex-1 flex-col px-4 pb-5 pt-4 sm:px-5">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="rounded-full bg-primary/15 px-3 py-1 text-[11px] font-bold text-magenta">Ver print</span>
+        <div className="relative mt-12">
+          <button
+            type="button"
+            onClick={() => scrollFeedbacks("prev")}
+            className="absolute -left-2 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-card transition hover:border-primary hover:text-magenta sm:flex"
+            aria-label="Ver feedback anterior"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollFeedbacks("next")}
+            className="absolute -right-2 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-card transition hover:border-primary hover:text-magenta sm:flex"
+            aria-label="Ver próximo feedback"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+          <div
+            ref={carouselRef}
+            className="scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-pl-5 pl-5 pb-2 sm:mx-0 sm:gap-5 sm:pl-0 lg:gap-6"
+          >
+            {feedbacksExibidos.map((feedback) => (
+              <button
+                key={feedback.id}
+                type="button"
+                onClick={() => setAberto(feedback)}
+                className="group flex min-h-full min-w-[calc((100vw_-_3.25rem)/2)] snap-start flex-col overflow-hidden rounded-[1.7rem] border border-border/80 bg-card/90 text-left text-foreground shadow-card backdrop-blur transition duration-300 ease-out hover:-translate-y-1 hover:border-primary/45 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/35 sm:min-w-[18rem] sm:max-w-[20rem] sm:rounded-[2rem] lg:min-w-[21rem]"
+                aria-label={`Ampliar feedback de ${feedback.client_name || "cliente"}`}
+              >
+                <div className="relative overflow-hidden bg-transparent">
+                  <img
+                    src={feedback.image_url!}
+                    alt={
+                      feedback.client_name
+                        ? `Print do feedback de ${feedback.client_name}`
+                        : "Print de feedback de cliente"
+                    }
+                    loading="lazy"
+                    decoding="async"
+                    className="block h-auto w-full object-contain object-top"
+                  />
                 </div>
-                <h3 className="mt-3 font-sans text-base font-bold leading-snug text-foreground sm:text-lg">
-                  {feedback.client_name || "Cliente Bem Bonita"}
-                </h3>
-                <p className="mt-1 text-sm text-muted-foreground">Cliente Bem Bonita</p>
-              </div>
+                <div className="flex flex-1 flex-col px-4 pb-5 pt-4 sm:px-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="rounded-full bg-primary/15 px-3 py-1 text-[11px] font-bold text-magenta">Ver print</span>
+                  </div>
+                  <h3 className="mt-3 font-sans text-base font-bold leading-snug text-foreground sm:text-lg">
+                    {feedback.client_name || "Cliente Bem Bonita"}
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Cliente Bem Bonita</p>
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="mt-5 flex justify-center gap-3 sm:hidden">
+            <button
+              type="button"
+              onClick={() => scrollFeedbacks("prev")}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-card"
+              aria-label="Ver feedback anterior"
+            >
+              <ChevronLeft className="h-5 w-5" />
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => scrollFeedbacks("next")}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-card"
+              aria-label="Ver próximo feedback"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <div className="mx-auto mt-14 max-w-3xl rounded-[2rem] border border-border/80 bg-card/70 p-6 text-center shadow-card backdrop-blur lg:mt-16 lg:p-8">
