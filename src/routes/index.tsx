@@ -19,6 +19,8 @@ import { useReveal } from "@/hooks/use-reveal";
 const titulo = "Bem Bonita | Salão para cabelos cacheados em Ponte Nova – MG";
 const descricao =
   "Salão especialista em cachos e crespos em Ponte Nova – MG. Tratamentos, definição de cachos, mechas em cabelos cacheados e cortes com Francielly Soares.";
+const siteUrl = "https://www.bembonitafrancielly.com.br";
+const socialImageUrl = `${siteUrl}/media/francielly-profissional.jpg`;
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -34,20 +36,20 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: descricao },
       { property: "og:type", content: "website" },
       { property: "og:locale", content: "pt_BR" },
-      { property: "og:url", content: "https://bem-bonita-beauty-main.vercel.app/" },
+      { property: "og:url", content: `${siteUrl}/` },
       {
         property: "og:image",
-        content: "https://bem-bonita-beauty-main.vercel.app/media/francielly-profissional.jpg",
+        content: socialImageUrl,
       },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: titulo },
       { name: "twitter:description", content: descricao },
       {
         name: "twitter:image",
-        content: "https://bem-bonita-beauty-main.vercel.app/media/francielly-profissional.jpg",
+        content: socialImageUrl,
       },
     ],
-    links: [{ rel: "canonical", href: "https://bem-bonita-beauty-main.vercel.app/" }],
+    links: [{ rel: "canonical", href: `${siteUrl}/` }],
     scripts: [
       {
         type: "application/ld+json",
@@ -55,7 +57,7 @@ export const Route = createFileRoute("/")({
           "@context": "https://schema.org",
           "@type": "HairSalon",
           name: "Bem Bonita",
-          url: "https://bem-bonita-beauty-main.vercel.app/",
+          url: `${siteUrl}/`,
           description: descricao,
           telephone: "+55 31 99679-2131",
           address: {

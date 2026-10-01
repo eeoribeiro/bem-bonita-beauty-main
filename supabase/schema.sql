@@ -455,8 +455,9 @@ drop policy if exists "Public reads space photos" on public.space_photos;
 create policy "Public reads space photos" on public.space_photos
 for select to anon, authenticated using (published = true);
 drop policy if exists "Authenticated manages space photos" on public.space_photos;
-create policy "Authenticated manages space photos" on public.space_photos
-for all to authenticated using (true) with check (true);
+drop policy if exists "Admins manage space photos" on public.space_photos;
+create policy "Admins manage space photos" on public.space_photos
+for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "Public reads published testimonials" on public.testimonials;
 create policy "Public reads published testimonials" on public.testimonials
@@ -568,13 +569,16 @@ create policy "Public reads space photo files" on storage.objects
 for select to anon, authenticated using (bucket_id = 'space-photos');
 
 drop policy if exists "Authenticated uploads space photo files" on storage.objects;
-create policy "Authenticated uploads space photo files" on storage.objects
-for insert to authenticated with check (bucket_id = 'space-photos');
+drop policy if exists "Admins upload space photo files" on storage.objects;
+create policy "Admins upload space photo files" on storage.objects
+for insert to authenticated with check (bucket_id = 'space-photos' and public.is_admin());
 
 drop policy if exists "Authenticated updates space photo files" on storage.objects;
-create policy "Authenticated updates space photo files" on storage.objects
-for update to authenticated using (bucket_id = 'space-photos') with check (bucket_id = 'space-photos');
+drop policy if exists "Admins update space photo files" on storage.objects;
+create policy "Admins update space photo files" on storage.objects
+for update to authenticated using (bucket_id = 'space-photos' and public.is_admin()) with check (bucket_id = 'space-photos' and public.is_admin());
 
 drop policy if exists "Authenticated deletes space photo files" on storage.objects;
-create policy "Authenticated deletes space photo files" on storage.objects
-for delete to authenticated using (bucket_id = 'space-photos');
+drop policy if exists "Admins delete space photo files" on storage.objects;
+create policy "Admins delete space photo files" on storage.objects
+for delete to authenticated using (bucket_id = 'space-photos' and public.is_admin());

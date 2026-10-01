@@ -1,7 +1,13 @@
 const ACCESS_COOKIE = "bem_bonita_preview";
 const LOGIN_PATH = "/_site-access/login";
 const LOGOUT_PATH = "/_site-access/logout";
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
+const COOKIE_MAX_AGE = 60 * 60 * 4;
+const LOGIN_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_ATTEMPT_LIMIT = 8;
+
+type LoginAttempt = { count: number; resetAt: number };
+
+const loginAttempts = new Map<string, LoginAttempt>();
 
 type AccessConfig = { password: string; secret: string };
 
@@ -55,6 +61,43 @@ function safeNextPath(value: FormDataEntryValue | null): string {
   return value;
 }
 
+function getClientIp(request: Request): string {
+  return (
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-real-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown"
+  );
+}
+
+function getRetryAfterSeconds(request: Request): number {
+  const key = getClientIp(request);
+  const attempt = loginAttempts.get(key);
+  if (!attempt) return 0;
+  if (attempt.resetAt <= Date.now()) {
+    loginAttempts.delete(key);
+    return 0;
+  }
+  return attempt.count >= LOGIN_ATTEMPT_LIMIT
+    ? Math.max(1, Math.ceil((attempt.resetAt - Date.now()) / 1000))
+    : 0;
+}
+
+function recordFailedAttempt(request: Request): void {
+  const key = getClientIp(request);
+  const now = Date.now();
+  const current = loginAttempts.get(key);
+  if (!current || current.resetAt <= now) {
+    loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_ATTEMPT_WINDOW_MS });
+    return;
+  }
+  current.count += 1;
+}
+
+function clearAttempts(request: Request): void {
+  loginAttempts.delete(getClientIp(request));
+}
+
 function isPublicAsset(pathname: string): boolean {
   return pathname === "/favicon.svg" || pathname === "/favicon.ico" || pathname === "/robots.txt";
 }
@@ -83,9 +126,16 @@ function renderAccessPage(options: {
   nextPath: string;
   invalidPassword?: boolean;
   configurationMissing?: boolean;
+  retryAfterSeconds?: number;
 }): Response {
-  const { nextPath, invalidPassword = false, configurationMissing = false } = options;
-  const status = invalidPassword ? 401 : configurationMissing ? 503 : 200;
+  const {
+    nextPath,
+    invalidPassword = false,
+    configurationMissing = false,
+    retryAfterSeconds = 0,
+  } = options;
+  const rateLimited = retryAfterSeconds > 0;
+  const status = rateLimited ? 429 : invalidPassword ? 401 : configurationMissing ? 503 : 200;
 
   return new Response(
     `<!doctype html>
@@ -147,14 +197,15 @@ function renderAccessPage(options: {
       </button>
     </div>
 
-    <div id="password-form" class="form-container ${invalidPassword || configurationMissing ? "" : "hidden"}">
+    <div id="password-form" class="form-container ${invalidPassword || configurationMissing || rateLimited ? "" : "hidden"}">
       <form action="${LOGIN_PATH}" method="post">
         <input type="hidden" name="next" value="${escapeHtml(nextPath)}" />
-        <input id="password" name="password" type="password" placeholder="Digite a senha de acesso" autocomplete="current-password" required ${configurationMissing ? "disabled" : ""} />
-        <button type="submit" class="btn btn-submit" ${configurationMissing ? "disabled" : ""}>Entrar</button>
+        <input id="password" name="password" type="password" placeholder="Digite a senha de acesso" autocomplete="current-password" required ${configurationMissing || rateLimited ? "disabled" : ""} />
+        <button type="submit" class="btn btn-submit" ${configurationMissing || rateLimited ? "disabled" : ""}>Entrar</button>
       </form>
-      ${invalidPassword ? '<p class="error-msg" role="alert">Senha incorreta. Tente novamente.</p>' : ''}
-      ${configurationMissing ? '<p class="error-msg" role="alert">Configuração pendente no servidor.</p>' : ''}
+      ${invalidPassword ? '<p class="error-msg" role="alert">Senha incorreta. Tente novamente.</p>' : ""}
+      ${rateLimited ? '<p class="error-msg" role="alert">Muitas tentativas. Aguarde alguns minutos e tente novamente.</p>' : ""}
+      ${configurationMissing ? '<p class="error-msg" role="alert">Configuração pendente no servidor.</p>' : ""}
     </div>
   </main>
 </body>
@@ -165,6 +216,7 @@ function renderAccessPage(options: {
         "content-type": "text/html; charset=utf-8",
         "cache-control": "no-store, private",
         "x-robots-tag": "noindex, nofollow",
+        ...(rateLimited ? { "retry-after": String(retryAfterSeconds) } : {}),
       },
     },
   );
@@ -182,9 +234,15 @@ export async function handleSiteAccess(request: Request): Promise<Response | nul
     const form = await request.formData();
     const password = form.get("password");
     const nextPath = safeNextPath(form.get("next"));
+    const retryAfterSeconds = getRetryAfterSeconds(request);
+    if (retryAfterSeconds > 0) {
+      return renderAccessPage({ nextPath, retryAfterSeconds });
+    }
     if (typeof password !== "string" || !constantTimeEqual(password, config.password)) {
+      recordFailedAttempt(request);
       return renderAccessPage({ nextPath, invalidPassword: true });
     }
+    clearAttempts(request);
     return redirect(
       nextPath,
       cookieHeader(request, await createAccessToken(config), COOKIE_MAX_AGE),

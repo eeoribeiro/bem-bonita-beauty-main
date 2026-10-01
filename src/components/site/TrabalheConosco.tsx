@@ -47,7 +47,7 @@ export function TrabalheConosco({ paginaCompleta = false }: { paginaCompleta?: b
       let resumeStoragePath: string | null = null;
 
       if (curriculo) {
-        const safeName = curriculo.name.replace(/[^\w.\-]+/g, "-").toLowerCase();
+        const safeName = curriculo.name.replace(/[^\w.-]+/g, "-").toLowerCase();
         resumeStoragePath = `curriculos/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
         const { error: uploadError } = await supabase.storage
           .from("career-resumes")

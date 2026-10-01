@@ -94,6 +94,76 @@ function jsonResponse(payload: unknown, init?: ResponseInit) {
   });
 }
 
+type RateLimitBucket = { count: number; resetAt: number };
+
+const rateLimitBuckets = new Map<string, RateLimitBucket>();
+
+function getClientIp(request: Request) {
+  return (
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-real-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown"
+  );
+}
+
+function checkRateLimit(
+  request: Request,
+  scope: string,
+  limit: number,
+  windowMs: number,
+): Response | null {
+  const key = `${scope}:${getClientIp(request)}`;
+  const now = Date.now();
+  const current = rateLimitBuckets.get(key);
+  if (!current || current.resetAt <= now) {
+    rateLimitBuckets.set(key, { count: 1, resetAt: now + windowMs });
+    return null;
+  }
+
+  current.count += 1;
+  if (current.count <= limit) return null;
+
+  const retryAfter = Math.max(1, Math.ceil((current.resetAt - now) / 1000));
+  return jsonResponse(
+    { error: "Muitas tentativas. Aguarde um pouco e tente novamente." },
+    { status: 429, headers: { "retry-after": String(retryAfter) } },
+  );
+}
+
+function withSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("x-frame-options", "DENY");
+  headers.set("referrer-policy", "strict-origin-when-cross-origin");
+  headers.set("permissions-policy", "camera=(), microphone=(), geolocation=(self), payment=(self)");
+  headers.set(
+    "content-security-policy",
+    [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      "img-src 'self' data: blob: https:",
+      "media-src 'self' data: blob: https:",
+      "frame-src https://www.google.com https://maps.google.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "script-src 'self' 'unsafe-inline'",
+      "connect-src 'self' https://*.supabase.co https://api.pagseguro.com https://sandbox.api.pagseguro.com https://api.resend.com",
+      "form-action 'self'",
+      "upgrade-insecure-requests",
+    ].join("; "),
+  );
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function parsePriceToCents(priceText?: string | null) {
   const cleaned = (priceText ?? "")
     .replace(/[^\d,.-]/g, "")
@@ -275,7 +345,9 @@ async function handlePagBankCheckout(request: Request) {
   const customerPhone = cleanText(body.customer?.phone, 30);
   const customerEmail = cleanText(body.customer?.email, 160);
   const contactPreferenceRaw = cleanText(body.customer?.contactPreference, 20);
-  const contactPreference = ["whatsapp", "email"].includes(contactPreferenceRaw) ? contactPreferenceRaw : "whatsapp";
+  const contactPreference = ["whatsapp", "email"].includes(contactPreferenceRaw)
+    ? contactPreferenceRaw
+    : "whatsapp";
   const privacyConsent = body.customer?.privacyConsent === true;
   const fulfillmentMethodRaw = cleanText(body.customer?.fulfillmentMethod, 30);
   const fulfillmentMethod = ["pickup", "motoboy", "shipping"].includes(fulfillmentMethodRaw)
@@ -292,20 +364,29 @@ async function handlePagBankCheckout(request: Request) {
     );
   }
   if (!isValidCpf(customerCpf)) {
-    return jsonResponse({ error: "Informe um CPF válido para continuar com o pagamento." }, { status: 400 });
-  }
-  if (contactPreference === "email" && !customerEmail.includes("@")) {
-    return jsonResponse({ error: "Informe um e-mail válido para receber contato por e-mail." }, { status: 400 });
-  }
-  if (!privacyConsent) {
-    return jsonResponse({ error: "Aceite o uso dos dados para finalizar o pedido." }, { status: 400 });
-  }
-
-  if ((fulfillmentMethod === "motoboy" || fulfillmentMethod === "shipping") && deliveryAddress.length < 8) {
     return jsonResponse(
-      { error: "Informe o endereço completo para entrega." },
+      { error: "Informe um CPF válido para continuar com o pagamento." },
       { status: 400 },
     );
+  }
+  if (contactPreference === "email" && !customerEmail.includes("@")) {
+    return jsonResponse(
+      { error: "Informe um e-mail válido para receber contato por e-mail." },
+      { status: 400 },
+    );
+  }
+  if (!privacyConsent) {
+    return jsonResponse(
+      { error: "Aceite o uso dos dados para finalizar o pedido." },
+      { status: 400 },
+    );
+  }
+
+  if (
+    (fulfillmentMethod === "motoboy" || fulfillmentMethod === "shipping") &&
+    deliveryAddress.length < 8
+  ) {
+    return jsonResponse({ error: "Informe o endereço completo para entrega." }, { status: 400 });
   }
 
   const cartItems = (body.items ?? [])
@@ -324,7 +405,10 @@ async function handlePagBankCheckout(request: Request) {
   const query = new URL(`${supabaseUrl}/rest/v1/products`);
   query.searchParams.set("select", "*");
   query.searchParams.set("published", "eq.true");
-  query.searchParams.set("id", `in.(${productIds.map((id) => `"${id.replace(/"/g, '\\"')}"`).join(",")})`);
+  query.searchParams.set(
+    "id",
+    `in.(${productIds.map((id) => `"${id.replace(/"/g, '\\"')}"`).join(",")})`,
+  );
 
   const productsResponse = await fetch(query, {
     headers: { apikey: supabaseKey, authorization: `Bearer ${supabaseKey}` },
@@ -340,12 +424,16 @@ async function handlePagBankCheckout(request: Request) {
     .map((item) => {
       const product = productsById.get(item.id);
       const option = Array.isArray(product?.product_options)
-        ? product.product_options.find((productOption) => productOption.id === item.optionId && productOption.active !== false)
+        ? product.product_options.find(
+            (productOption) => productOption.id === item.optionId && productOption.active !== false,
+          )
         : undefined;
       const optionName = typeof option?.name === "string" ? option.name.trim() : "";
       const optionSize = typeof option?.size === "string" ? option.size.trim() : "";
       const optionPrice = typeof option?.price_text === "string" ? option.price_text : "";
-      const unitAmount = parsePriceToCents(optionPrice || product?.promotional_price_text || product?.price_text);
+      const unitAmount = parsePriceToCents(
+        optionPrice || product?.promotional_price_text || product?.price_text,
+      );
       if (!product || !unitAmount) return null;
       const displayName = optionName
         ? `${product.name} — ${optionName}${optionSize ? ` ${optionSize}` : ""}`
@@ -356,11 +444,23 @@ async function handlePagBankCheckout(request: Request) {
         name: displayName.slice(0, 100),
         quantity: item.quantity,
         unit_amount: unitAmount,
-        image_url: typeof option?.image_url === "string" && option.image_url ? option.image_url : product.image_url,
+        image_url:
+          typeof option?.image_url === "string" && option.image_url
+            ? option.image_url
+            : product.image_url,
       };
     })
-    .filter((item): item is { reference_id: string; option_id?: string; name: string; quantity: number; unit_amount: number; image_url: string | null } =>
-      Boolean(item),
+    .filter(
+      (
+        item,
+      ): item is {
+        reference_id: string;
+        option_id?: string;
+        name: string;
+        quantity: number;
+        unit_amount: number;
+        image_url: string | null;
+      } => Boolean(item),
     );
   const orderItems = checkoutItems.map((item) => {
     return {
@@ -373,7 +473,8 @@ async function handlePagBankCheckout(request: Request) {
     };
   });
   const shippingAmount = deliveryFee(fulfillmentMethod);
-  const totalAmount = orderItems.reduce((total, item) => total + item.total_amount, 0) + shippingAmount;
+  const totalAmount =
+    orderItems.reduce((total, item) => total + item.total_amount, 0) + shippingAmount;
 
   if (!checkoutItems.length) {
     return jsonResponse(
@@ -396,11 +497,18 @@ async function handlePagBankCheckout(request: Request) {
     body: JSON.stringify({
       reference_id: referenceId,
       items: checkoutItems,
-      customer: { name: customerName, tax_id: customerCpf, ...(customerEmail ? { email: customerEmail } : {}) },
+      customer: {
+        name: customerName,
+        tax_id: customerCpf,
+        ...(customerEmail ? { email: customerEmail } : {}),
+      },
       customer_modifiable: true,
-      ...(shippingAmount ? { shipping: { type: "FIXED", amount: shippingAmount, address_modifiable: true } } : {}),
+      ...(shippingAmount
+        ? { shipping: { type: "FIXED", amount: shippingAmount, address_modifiable: true } }
+        : {}),
       payment_methods: [{ type: "CREDIT_CARD" }, { type: "DEBIT_CARD" }, { type: "PIX" }],
       redirect_url: successUrl,
+      notification_urls: [`${origin}/api/pagbank/webhook`],
       soft_descriptor: "BEMBONITA",
     }),
   });
@@ -414,7 +522,7 @@ async function handlePagBankCheckout(request: Request) {
   if (!checkoutResponse.ok) {
     console.error("PagBank checkout error", checkoutPayload);
     return jsonResponse(
-      { error: "Não foi possível criar o checkout PagBank agora.", details: checkoutPayload },
+      { error: "Não foi possível criar o checkout PagBank agora." },
       { status: 502 },
     );
   }
@@ -459,7 +567,10 @@ async function handlePagBankCheckout(request: Request) {
   if (!orderResponse.ok) {
     console.error("Supabase order insert error", await orderResponse.text().catch(() => ""));
     return jsonResponse(
-      { error: "Falta criar a tabela de pedidos no Supabase. Execute o SQL de pedidos e tente novamente." },
+      {
+        error:
+          "Falta criar a tabela de pedidos no Supabase. Execute o SQL de pedidos e tente novamente.",
+      },
       { status: 500 },
     );
   }
@@ -473,7 +584,10 @@ async function handlePagBankCheckout(request: Request) {
   if (!itemsResponse.ok) {
     console.error("Supabase order items insert error", await itemsResponse.text().catch(() => ""));
     return jsonResponse(
-      { error: "O pedido foi iniciado, mas os itens não foram salvos no admin. Verifique o SQL de pedidos." },
+      {
+        error:
+          "O pedido foi iniciado, mas os itens não foram salvos no admin. Verifique o SQL de pedidos.",
+      },
       { status: 500 },
     );
   }
@@ -497,22 +611,34 @@ async function handlePagBankCheckout(request: Request) {
 }
 
 async function handleOrderTrack(request: Request) {
-  if (request.method !== "POST") return jsonResponse({ error: "Método não permitido." }, { status: 405 });
+  if (request.method !== "POST")
+    return jsonResponse({ error: "Método não permitido." }, { status: 405 });
   const supabaseUrl = getServerEnv("VITE_SUPABASE_URL");
   const supabaseKey = getServerEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
-  if (!supabaseUrl || !supabaseKey) return jsonResponse({ error: "Supabase não configurado." }, { status: 500 });
+  if (!supabaseUrl || !supabaseKey)
+    return jsonResponse({ error: "Supabase não configurado." }, { status: 500 });
 
-  const body = (await request.json().catch(() => ({}))) as { referenceId?: unknown; phone?: unknown };
+  const body = (await request.json().catch(() => ({}))) as {
+    referenceId?: unknown;
+    phone?: unknown;
+  };
   const referenceId = cleanText(body.referenceId, 80);
   const phone = cleanText(body.phone, 30).replace(/\D/g, "");
-  if (!referenceId || phone.length < 8) return jsonResponse({ error: "Informe o código do pedido e WhatsApp." }, { status: 400 });
+  if (!referenceId || phone.length < 8)
+    return jsonResponse({ error: "Informe o código do pedido e WhatsApp." }, { status: 400 });
 
   const query = new URL(`${supabaseUrl}/rest/v1/product_orders`);
-  query.searchParams.set("select", "reference_id,customer_name,customer_phone,fulfillment_method,delivery_address,delivery_neighborhood,delivery_reference,status,total_amount,created_at,product_order_items(product_name,quantity,total_amount)");
+  query.searchParams.set(
+    "select",
+    "reference_id,customer_name,customer_phone,fulfillment_method,delivery_address,delivery_neighborhood,delivery_reference,status,total_amount,created_at,product_order_items(product_name,quantity,total_amount)",
+  );
   query.searchParams.set("reference_id", `eq.${referenceId}`);
   query.searchParams.set("limit", "1");
-  const response = await fetch(query, { headers: { apikey: supabaseKey, authorization: `Bearer ${supabaseKey}` } });
-  if (!response.ok) return jsonResponse({ error: "Não foi possível consultar o pedido." }, { status: 500 });
+  const response = await fetch(query, {
+    headers: { apikey: supabaseKey, authorization: `Bearer ${supabaseKey}` },
+  });
+  if (!response.ok)
+    return jsonResponse({ error: "Não foi possível consultar o pedido." }, { status: 500 });
   const rows = (await response.json()) as Array<{ customer_phone?: string }>;
   const order = rows[0];
   if (!order || (order.customer_phone ?? "").replace(/\D/g, "") !== phone) {
@@ -521,19 +647,177 @@ async function handleOrderTrack(request: Request) {
   return jsonResponse({ order });
 }
 
+let pagBankPublicKeyCache: { value: string; expiresAt: number } | null = null;
+
+async function getPagBankWebhookPublicKey(apiUrl: string, token: string): Promise<string> {
+  const configuredKey = getServerEnv("PAGBANK_WEBHOOK_PUBLIC_KEY");
+  if (configuredKey) return configuredKey;
+
+  if (pagBankPublicKeyCache && pagBankPublicKeyCache.expiresAt > Date.now()) {
+    return pagBankPublicKeyCache.value;
+  }
+
+  const response = await fetch(`${apiUrl.replace(/\/$/, "")}/public-keys?type=webhook`, {
+    headers: { authorization: `Bearer ${token}`, accept: "application/json" },
+  });
+  if (!response.ok) throw new Error("Não foi possível consultar a chave pública do PagBank.");
+
+  const payload = (await response.json()) as {
+    public_key?: unknown;
+    publicKeys?: Array<{ public_key?: unknown }>;
+    keys?: Array<{ public_key?: unknown }>;
+  };
+  const publicKey =
+    (typeof payload.public_key === "string" && payload.public_key) ||
+    (typeof payload.publicKeys?.[0]?.public_key === "string" && payload.publicKeys[0].public_key) ||
+    (typeof payload.keys?.[0]?.public_key === "string" && payload.keys[0].public_key) ||
+    "";
+  if (!publicKey) throw new Error("O PagBank não retornou uma chave pública válida.");
+
+  pagBankPublicKeyCache = { value: publicKey, expiresAt: Date.now() + 6 * 60 * 60 * 1000 };
+  return publicKey;
+}
+
+async function verifyPagBankWebhookSignature(
+  publicKey: string,
+  rawBody: string,
+  signatures: string[],
+): Promise<boolean> {
+  const { createVerify } = await import("node:crypto");
+  const normalizedKey = publicKey.includes("BEGIN PUBLIC KEY")
+    ? publicKey
+    : `-----BEGIN PUBLIC KEY-----\n${publicKey.match(/.{1,64}/g)?.join("\n") ?? publicKey}\n-----END PUBLIC KEY-----`;
+
+  return signatures.some((signature) => {
+    try {
+      const verifier = createVerify("SHA256");
+      verifier.update(rawBody, "utf8");
+      verifier.end();
+      return verifier.verify(normalizedKey, signature, "base64");
+    } catch {
+      return false;
+    }
+  });
+}
+
+function collectWebhookStatuses(value: unknown, statuses: string[], depth = 0): void {
+  if (depth > 5 || value == null) return;
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectWebhookStatuses(item, statuses, depth + 1));
+    return;
+  }
+  if (typeof value !== "object") return;
+
+  Object.entries(value as Record<string, unknown>).forEach(([key, entry]) => {
+    if (key.toLowerCase().includes("status") && typeof entry === "string") {
+      statuses.push(entry.toUpperCase());
+      return;
+    }
+    collectWebhookStatuses(entry, statuses, depth + 1);
+  });
+}
+
+function mapPagBankWebhookStatus(payload: unknown): string | null {
+  const statuses: string[] = [];
+  collectWebhookStatuses(payload, statuses);
+  if (statuses.some((status) => ["PAID", "AUTHORIZED", "CAPTURED"].includes(status))) {
+    return "paid";
+  }
+  if (
+    statuses.some((status) =>
+      ["DECLINED", "CANCELED", "CANCELLED", "EXPIRED", "INACTIVE"].includes(status),
+    )
+  ) {
+    return "cancelled";
+  }
+  if (statuses.some((status) => ["IN_ANALYSIS", "WAITING", "ACTIVE"].includes(status))) {
+    return "pending";
+  }
+  return null;
+}
+
+async function handlePagBankWebhook(request: Request) {
+  if (request.method !== "POST") {
+    return jsonResponse({ error: "Método não permitido." }, { status: 405 });
+  }
+
+  const signatures = (request.headers.get("x-payload-signature") ?? "")
+    .split(",")
+    .map((signature) => signature.trim())
+    .filter(Boolean);
+  if (!signatures.length) {
+    return jsonResponse({ error: "Notificação sem assinatura." }, { status: 401 });
+  }
+
+  const pagBankToken = getServerEnv("PAGBANK_TOKEN");
+  const pagBankApiUrl = getServerEnv("PAGBANK_API_URL") || "https://api.pagseguro.com";
+  if (!pagBankToken) {
+    return jsonResponse({ error: "Webhook de pagamento não configurado." }, { status: 503 });
+  }
+
+  const rawBody = await request.text();
+  const publicKey = await getPagBankWebhookPublicKey(pagBankApiUrl, pagBankToken);
+  if (!(await verifyPagBankWebhookSignature(publicKey, rawBody, signatures))) {
+    return jsonResponse({ error: "Assinatura inválida." }, { status: 401 });
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    payload = JSON.parse(rawBody) as Record<string, unknown>;
+  } catch {
+    return jsonResponse({ error: "Notificação inválida." }, { status: 400 });
+  }
+
+  const referenceId = cleanText(payload.reference_id, 80);
+  const status = mapPagBankWebhookStatus(payload);
+  if (!referenceId || !status) return jsonResponse({ ok: true, ignored: true });
+
+  const supabaseUrl = getServerEnv("VITE_SUPABASE_URL");
+  const supabaseServerKey = getServerEnv("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !supabaseServerKey) {
+    return jsonResponse(
+      { error: "Atualização segura do pedido não configurada no servidor." },
+      { status: 503 },
+    );
+  }
+
+  const updateResponse = await supabaseRest(
+    supabaseUrl,
+    supabaseServerKey,
+    `product_orders?reference_id=eq.${encodeURIComponent(referenceId)}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json", prefer: "return=minimal" },
+      body: JSON.stringify({ status }),
+    },
+  );
+  if (!updateResponse.ok) {
+    console.error("Supabase PagBank webhook update error", updateResponse.status);
+    return jsonResponse({ error: "Não foi possível atualizar o pedido." }, { status: 500 });
+  }
+
+  return jsonResponse({ ok: true });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const url = new URL(request.url);
       if (url.pathname === "/api/pagbank/checkout") {
-        return await handlePagBankCheckout(request);
+        const limited = checkRateLimit(request, "pagbank-checkout", 12, 60_000);
+        return withSecurityHeaders(limited ?? (await handlePagBankCheckout(request)));
       }
       if (url.pathname === "/api/orders/track") {
-        return await handleOrderTrack(request);
+        const limited = checkRateLimit(request, "order-track", 30, 60_000);
+        return withSecurityHeaders(limited ?? (await handleOrderTrack(request)));
+      }
+      if (url.pathname === "/api/pagbank/webhook") {
+        const limited = checkRateLimit(request, "pagbank-webhook", 120, 60_000);
+        return withSecurityHeaders(limited ?? (await handlePagBankWebhook(request)));
       }
 
       const accessResponse = await handleSiteAccess(request);
-      if (accessResponse) return accessResponse;
+      if (accessResponse) return withSecurityHeaders(accessResponse);
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
@@ -544,13 +828,15 @@ export default {
       if (normalized.headers.get("content-type")?.includes("text/html")) {
         normalized.headers.set("cache-control", "no-store, private");
       }
-      return normalized;
+      return withSecurityHeaders(normalized);
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return withSecurityHeaders(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
     }
   },
 };
