@@ -71,7 +71,6 @@ to anon, authenticated
 with check (
   bucket_id = 'career-resumes'
   and lower((storage.foldername(name))[1]) = 'curriculos'
-  and (metadata->>'mimetype') = 'application/pdf'
 );
 
 drop policy if exists "Admins read career PDFs" on storage.objects;
