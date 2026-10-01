@@ -3,6 +3,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  useRouterState,
   useRouter,
   HeadContent,
   Scripts,
@@ -12,6 +13,40 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CookieConsent } from "@/components/site/CookieConsent";
+import { usePublicSiteData } from "@/lib/site-data";
+
+function PublicDataLoadingOverlay() {
+  const { isLoading } = usePublicSiteData();
+
+  if (!isLoading) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[10000] flex min-h-screen items-center justify-center bg-background px-6 text-foreground"
+      role="status"
+      aria-live="polite"
+      aria-label="Carregando o conteúdo atualizado do site"
+    >
+      <div className="flex flex-col items-center text-center">
+        <div className="relative h-14 w-14">
+          <span className="absolute inset-0 rounded-full border border-primary/25" />
+          <span className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-primary" />
+          <span className="absolute inset-[18px] rounded-full bg-primary shadow-[0_0_24px_hsl(var(--primary)/0.45)]" />
+        </div>
+        <p className="mt-5 font-display text-2xl">Bem Bonita</p>
+        <p className="mt-1 text-xs uppercase tracking-[0.22em] text-muted-foreground">
+          Carregando conteúdo atualizado
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function InitialPublicDataGuard() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  if (pathname.startsWith("/admin")) return null;
+  return <PublicDataLoadingOverlay />;
+}
 
 function NotFoundComponent() {
   return (
@@ -136,6 +171,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <InitialPublicDataGuard />
       <CookieConsent />
     </QueryClientProvider>
   );

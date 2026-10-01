@@ -231,11 +231,11 @@ export function usePublicSiteData() {
   return useQuery({
     queryKey: ["public-site-data"],
     enabled: supabaseConfigurado,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: "always",
-    refetchOnReconnect: "always",
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
     queryFn: async () => {
       const supabase = getSupabaseClient();
       const [settings, images, services, categories, portfolio, testimonials, professionals, products, spacePhotos] = await Promise.all([

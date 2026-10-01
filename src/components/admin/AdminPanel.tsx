@@ -4264,15 +4264,57 @@ function SettingsTab({
   const [uploadingCourseKey, setUploadingCourseKey] = useState<string | null>(null);
   const [savingCourseKey, setSavingCourseKey] = useState<string | null>(null);
   const [pendingDeleteCourse, setPendingDeleteCourse] = useState<FranciellyCourseCard | null>(null);
+  const [courseOverrides, setCourseOverrides] = useState<
+    Record<string, Partial<FranciellyCourseCard>>
+  >({});
 
   const franImage =
     images.find((img) => img.image_key === "francielly_bio")?.image_url ??
     images.find((img) => img.image_key === "about")?.image_url ??
     fotoFranciellyFallback;
-  const franciellyCourses = images
+  const persistedFranciellyCourses = images
     .filter((img) => img.image_key.startsWith("francielly_course_"))
     .sort((a, b) => a.image_key.localeCompare(b.image_key))
     .map(siteImageToFranciellyCourse);
+  const legacyFranciellyCourses = franciellyExtraSlots.map((slot, index) => {
+    const image = images.find((img) => img.image_key === slot.imageKey);
+    const defaults = defaultFranciellyCourses[index] ?? defaultFranciellyCourses[0]!;
+    const title = String(settings[slot.titleKey] ?? "") || defaults.title;
+
+    return {
+      id: `legacy-course-${index + 1}`,
+      image_key: `francielly_course_${String(index + 1).padStart(3, "0")}`,
+      image_url: image?.image_url ?? franImage,
+      storage_path: image?.storage_path ?? null,
+      eyebrow: String(settings[slot.eyebrowKey] ?? "") || defaults.eyebrow,
+      title,
+      subtitle: String(settings[slot.subtitleKey] ?? "") || defaults.subtitle,
+      altText: image?.alt_text || title,
+    } satisfies FranciellyCourseCard;
+  });
+  const usingLegacyFranciellyCourses = persistedFranciellyCourses.length === 0;
+  const franciellyCourses = (
+    usingLegacyFranciellyCourses ? legacyFranciellyCourses : persistedFranciellyCourses
+  ).map((course) => ({ ...course, ...courseOverrides[course.image_key] }));
+
+  function updateCourseEditor(
+    imageKey: string,
+    patch: Partial<FranciellyCourseCard>,
+  ) {
+    setCourseOverrides((current) => ({
+      ...current,
+      [imageKey]: { ...current[imageKey], ...patch },
+    }));
+  }
+
+  function courseToSiteImage(course: FranciellyCourseCard) {
+    return {
+      image_key: course.image_key,
+      image_url: course.image_url || franImage,
+      storage_path: course.storage_path,
+      alt_text: serializeFranciellyCourseMeta(course),
+    };
+  }
 
   async function handleLogoUpload(file: File) {
     setUploadingLogo(true);
@@ -4406,7 +4448,7 @@ function SettingsTab({
       if (isDemo) {
         const fakeUrl = URL.createObjectURL(file);
         if (imageKey) {
-          setImages((prev) => prev.map((img) => (img.image_key === imageKey ? { ...img, image_url: fakeUrl } : img)));
+          updateCourseEditor(imageKey, { image_url: fakeUrl, storage_path: null });
         } else {
           setCourseDraft((current) => ({ ...current, image_url: fakeUrl, storage_path: null }));
         }
@@ -4417,28 +4459,24 @@ function SettingsTab({
       const uploadKey = imageKey ?? `francielly_course_${Date.now()}`;
       const uploaded = await uploadImagem(file, `site/${uploadKey}`);
       if (imageKey) {
-        const current = images.find((img) => img.image_key === imageKey);
-        const currentMeta = current ? siteImageToFranciellyCourse(current) : null;
+        const currentCourse = franciellyCourses.find((course) => course.image_key === imageKey);
+        if (!currentCourse) throw new Error("Não foi possível identificar o card deste curso.");
+        const updatedCourse = {
+          ...currentCourse,
+          image_url: uploaded.url,
+          storage_path: uploaded.path,
+        };
+        const coursesToPersist = usingLegacyFranciellyCourses
+          ? franciellyCourses.map((course) =>
+              course.image_key === imageKey ? updatedCourse : course,
+            )
+          : [updatedCourse];
         const { error } = await getSupabaseClient()
           .from("site_images")
-          .upsert(
-            {
-              image_key: imageKey,
-              image_url: uploaded.url,
-              storage_path: uploaded.path,
-              alt_text: currentMeta
-                ? serializeFranciellyCourseMeta(currentMeta)
-                : serializeFranciellyCourseMeta({
-                    eyebrow: "Curso Bem Bonita",
-                    title: "Curso com a Francielly",
-                    subtitle: "Entre em contato para saber disponibilidade, conteúdo, valores e próximas turmas.",
-                    altText: "Curso da Francielly",
-                  }),
-            },
-            { onConflict: "image_key" },
-          );
+          .upsert(coursesToPersist.map(courseToSiteImage), { onConflict: "image_key" });
         if (error) throw error;
         await onReload();
+        setCourseOverrides({});
         onSuccess("Foto do curso atualizada.");
       } else {
         setCourseDraft((current) => ({ ...current, image_url: uploaded.url, storage_path: uploaded.path }));
@@ -4457,18 +4495,32 @@ function SettingsTab({
     }
     setSavingCourseKey(course.image_key);
     try {
-      const alt_text = serializeFranciellyCourseMeta(course);
+      const coursesToPersist = usingLegacyFranciellyCourses
+        ? franciellyCourses
+        : [course];
       if (isDemo) {
-        setImages((prev) => prev.map((img) => (img.image_key === course.image_key ? { ...img, alt_text } : img)));
+        setImages((prev) => {
+          const savedKeys = new Set(coursesToPersist.map((item) => item.image_key));
+          const untouched = prev.filter((img) => !savedKeys.has(img.image_key));
+          return [
+            ...untouched,
+            ...coursesToPersist.map((item, index) => ({
+              id: item.id.startsWith("legacy-") ? `img-course-${Date.now()}-${index}` : item.id,
+              ...courseToSiteImage(item),
+            })),
+          ];
+        });
+        setCourseOverrides({});
         onSuccess("Card do curso atualizado.");
         return;
       }
+      await garantirSessaoAtiva();
       const { error } = await getSupabaseClient()
         .from("site_images")
-        .update({ alt_text })
-        .eq("image_key", course.image_key);
+        .upsert(coursesToPersist.map(courseToSiteImage), { onConflict: "image_key" });
       if (error) throw error;
       await onReload();
+      setCourseOverrides({});
       onSuccess("Card do curso atualizado.");
     } catch (error) {
       onError(`Não foi possível salvar o card do curso: ${mensagemDeErro(error)}`);
@@ -4487,37 +4539,45 @@ function SettingsTab({
       return;
     }
     const imageKey = `francielly_course_${Date.now()}`;
-    const alt_text = serializeFranciellyCourseMeta({
+    const newCourse: FranciellyCourseCard = {
+      id: `new-course-${Date.now()}`,
+      image_key: imageKey,
+      image_url: courseDraft.image_url,
+      storage_path: courseDraft.storage_path,
       eyebrow: courseDraft.eyebrow,
       title: courseDraft.title,
       subtitle: courseDraft.subtitle,
       altText: courseDraft.altText || courseDraft.title,
-    });
+    };
+    const coursesToPersist = usingLegacyFranciellyCourses
+      ? [...franciellyCourses, newCourse]
+      : [newCourse];
 
     setSavingCourseKey("new-course");
     try {
       if (isDemo) {
-        setImages((prev) => [
-          ...prev,
-          {
-            id: `img-${Date.now()}`,
-            image_key: imageKey,
-            image_url: courseDraft.image_url,
-            storage_path: courseDraft.storage_path,
-            alt_text,
-          },
-        ]);
+        setImages((prev) => {
+          const savedKeys = new Set(coursesToPersist.map((item) => item.image_key));
+          const untouched = prev.filter((img) => !savedKeys.has(img.image_key));
+          return [
+            ...untouched,
+            ...coursesToPersist.map((item, index) => ({
+              id: item.id.startsWith("legacy-") || item.id.startsWith("new-course-")
+                ? `img-course-${Date.now()}-${index}`
+                : item.id,
+              ...courseToSiteImage(item),
+            })),
+          ];
+        });
       } else {
         await garantirSessaoAtiva();
-        const { error } = await getSupabaseClient().from("site_images").insert({
-          image_key: imageKey,
-          image_url: courseDraft.image_url,
-          storage_path: courseDraft.storage_path,
-          alt_text,
-        });
+        const { error } = await getSupabaseClient()
+          .from("site_images")
+          .upsert(coursesToPersist.map(courseToSiteImage), { onConflict: "image_key" });
         if (error) throw error;
         await onReload();
       }
+      setCourseOverrides({});
       setCourseDraft({
         eyebrow: "Curso Bem Bonita",
         title: "",
@@ -4529,62 +4589,6 @@ function SettingsTab({
       onSuccess("Novo card de curso adicionado.");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Não foi possível adicionar o card do curso.");
-    } finally {
-      setSavingCourseKey(null);
-    }
-  }
-
-  async function importCurrentCourseCards() {
-    const legacyCourses = franciellyExtraSlots.map((slot, index) => {
-      const image = images.find((img) => img.image_key === slot.imageKey);
-      const defaults = defaultFranciellyCourses[index] ?? defaultFranciellyCourses[0]!;
-      return {
-        image,
-        eyebrow: String(settings[slot.eyebrowKey] ?? "") || defaults.eyebrow,
-        title: String(settings[slot.titleKey] ?? "") || defaults.title,
-        subtitle: String(settings[slot.subtitleKey] ?? "") || defaults.subtitle,
-      };
-    });
-
-    setSavingCourseKey("import-courses");
-    try {
-      await garantirSessaoAtiva();
-      if (isDemo) {
-        setImages((prev) => [
-          ...prev,
-          ...legacyCourses.map((course, index) => ({
-            id: `img-course-${Date.now()}-${index}`,
-            image_key: `francielly_course_${Date.now()}_${index + 1}`,
-            image_url: course.image?.image_url ?? franImage,
-            storage_path: course.image?.storage_path ?? null,
-            alt_text: serializeFranciellyCourseMeta({
-              eyebrow: course.eyebrow,
-              title: course.title,
-              subtitle: course.subtitle,
-              altText: course.image?.alt_text || course.title,
-            }),
-          })),
-        ]);
-      } else {
-        const now = Date.now();
-        const payload = legacyCourses.map((course, index) => ({
-          image_key: `francielly_course_${now}_${index + 1}`,
-          image_url: course.image?.image_url ?? franImage,
-          storage_path: course.image?.storage_path ?? null,
-          alt_text: serializeFranciellyCourseMeta({
-            eyebrow: course.eyebrow,
-            title: course.title,
-            subtitle: course.subtitle,
-            altText: course.image?.alt_text || course.title,
-          }),
-        }));
-        const { error } = await getSupabaseClient().from("site_images").insert(payload);
-        if (error) throw error;
-        await onReload();
-      }
-      onSuccess("Cards atuais importados. Agora você pode editar, trocar foto, excluir ou adicionar outros.");
-    } catch (error) {
-      onError(`Não foi possível importar os cards atuais: ${mensagemDeErro(error)}`);
     } finally {
       setSavingCourseKey(null);
     }
@@ -4865,6 +4869,9 @@ function SettingsTab({
             {franciellyCourses.map((course) => {
               const uploadingThis = uploadingCourseKey === course.image_key;
               const savingThis = savingCourseKey === course.image_key;
+              const isPersisted = persistedFranciellyCourses.some(
+                (savedCourse) => savedCourse.image_key === course.image_key,
+              );
               return (
                 <div key={course.image_key} className="rounded-2xl border border-border bg-secondary/30 p-3 sm:p-4">
                   <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-card">
@@ -4901,21 +4908,7 @@ function SettingsTab({
                     <span className="text-xs font-bold text-muted-foreground">Etiqueta</span>
                     <input
                       value={course.eyebrow}
-                      onChange={(e) =>
-                        setImages((prev) =>
-                          prev.map((img) =>
-                            img.image_key === course.image_key
-                              ? {
-                                  ...img,
-                                  alt_text: serializeFranciellyCourseMeta({
-                                    ...course,
-                                    eyebrow: e.target.value,
-                                  }),
-                                }
-                              : img,
-                          ),
-                        )
-                      }
+                      onChange={(e) => updateCourseEditor(course.image_key, { eyebrow: e.target.value })}
                       className="admin-input mt-1"
                       placeholder="Ex.: Curso presencial"
                     />
@@ -4925,20 +4918,10 @@ function SettingsTab({
                     <input
                       value={course.title}
                       onChange={(e) =>
-                        setImages((prev) =>
-                          prev.map((img) =>
-                            img.image_key === course.image_key
-                              ? {
-                                  ...img,
-                                  alt_text: serializeFranciellyCourseMeta({
-                                    ...course,
-                                    title: e.target.value,
-                                    altText: course.altText || e.target.value,
-                                  }),
-                                }
-                              : img,
-                          ),
-                        )
+                        updateCourseEditor(course.image_key, {
+                          title: e.target.value,
+                          altText: course.altText || e.target.value,
+                        })
                       }
                       className="admin-input mt-1"
                       placeholder="Ex.: Finalização para cachos"
@@ -4949,21 +4932,7 @@ function SettingsTab({
                     <textarea
                       rows={3}
                       value={course.subtitle}
-                      onChange={(e) =>
-                        setImages((prev) =>
-                          prev.map((img) =>
-                            img.image_key === course.image_key
-                              ? {
-                                  ...img,
-                                  alt_text: serializeFranciellyCourseMeta({
-                                    ...course,
-                                    subtitle: e.target.value,
-                                  }),
-                                }
-                              : img,
-                          ),
-                        )
-                      }
+                      onChange={(e) => updateCourseEditor(course.image_key, { subtitle: e.target.value })}
                       className="admin-input mt-1 resize-y"
                       placeholder="Explique rapidamente o que a aluna vai aprender."
                     />
@@ -4972,21 +4941,7 @@ function SettingsTab({
                     <span className="text-xs font-bold text-muted-foreground">Texto alternativo da foto</span>
                     <input
                       value={course.altText}
-                      onChange={(e) =>
-                        setImages((prev) =>
-                          prev.map((img) =>
-                            img.image_key === course.image_key
-                              ? {
-                                  ...img,
-                                  alt_text: serializeFranciellyCourseMeta({
-                                    ...course,
-                                    altText: e.target.value,
-                                  }),
-                                }
-                              : img,
-                          ),
-                        )
-                      }
+                      onChange={(e) => updateCourseEditor(course.image_key, { altText: e.target.value })}
                       className="admin-input mt-1"
                       placeholder="Ex.: Aula prática de finalização para cachos"
                     />
@@ -4996,34 +4951,25 @@ function SettingsTab({
                       {savingThis ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                       {savingThis ? "Salvando..." : "Salvar card"}
                     </Botao>
-                    <button
-                      type="button"
-                      onClick={() => setPendingDeleteCourse(course)}
-                      className="min-h-11 rounded-xl border border-red-500/30 px-4 text-sm font-bold text-red-300 transition hover:bg-red-500/10"
-                    >
-                      Excluir
-                    </button>
+                    {isPersisted ? (
+                      <button
+                        type="button"
+                        onClick={() => setPendingDeleteCourse(course)}
+                        className="min-h-11 rounded-xl border border-red-500/30 px-4 text-sm font-bold text-red-300 transition hover:bg-red-500/10"
+                      >
+                        Excluir
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {!franciellyCourses.length ? (
-            <div className="rounded-2xl border border-dashed border-primary/30 bg-secondary/30 p-4 text-sm text-muted-foreground">
-              <p>
-                Nenhum curso editável cadastrado ainda. Os 3 cards padrão continuam aparecendo no site.
-              </p>
-              <button
-                type="button"
-                disabled={savingCourseKey === "import-courses"}
-                onClick={() => void importCurrentCourseCards()}
-                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground disabled:opacity-60"
-              >
-                {savingCourseKey === "import-courses" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                {savingCourseKey === "import-courses" ? "Importando..." : "Importar cards atuais para edição"}
-              </button>
-            </div>
+          {usingLegacyFranciellyCourses ? (
+            <p className="mt-4 rounded-2xl border border-primary/25 bg-secondary/30 p-4 text-xs leading-relaxed text-muted-foreground">
+              Os três cards que já aparecem no site estão disponíveis para edição acima. Ao salvar ou trocar uma foto, os três serão vinculados ao admin sem perder o conteúdo atual.
+            </p>
           ) : null}
 
           <div className="mt-6 rounded-2xl border border-primary/25 bg-background p-4 sm:p-5">
