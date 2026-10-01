@@ -321,6 +321,39 @@ create table if not exists public.product_order_items (
   created_at timestamptz not null default now()
 );
 
+-- 11. Currículos enviados pelo Trabalhe Conosco
+create table if not exists public.career_applications (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null,
+  whatsapp text not null,
+  city_neighborhood text,
+  interest_area text,
+  experience text,
+  courses text,
+  availability text,
+  instagram text,
+  message text,
+  resume_file_name text,
+  resume_storage_path text,
+  status text not null default 'new'
+    check (status in ('new', 'reviewed', 'contacted', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint career_applications_public_input_check check (
+    char_length(full_name) between 2 and 120
+    and char_length(whatsapp) between 8 and 30
+    and char_length(coalesce(city_neighborhood, '')) <= 160
+    and char_length(coalesce(interest_area, '')) <= 160
+    and char_length(coalesce(experience, '')) <= 3000
+    and char_length(coalesce(courses, '')) <= 3000
+    and char_length(coalesce(availability, '')) <= 500
+    and char_length(coalesce(instagram, '')) <= 160
+    and char_length(coalesce(message, '')) <= 3000
+    and char_length(coalesce(resume_file_name, '')) <= 255
+    and char_length(coalesce(resume_storage_path, '')) <= 500
+  )
+);
+
 -- Triggers para atualização automática de updated_at
 create or replace function public.set_updated_at()
 returns trigger
@@ -381,6 +414,10 @@ drop trigger if exists product_orders_updated_at on public.product_orders;
 create trigger product_orders_updated_at before update on public.product_orders
 for each row execute function public.set_updated_at();
 
+drop trigger if exists career_applications_updated_at on public.career_applications;
+create trigger career_applications_updated_at before update on public.career_applications
+for each row execute function public.set_updated_at();
+
 -- Políticas de Segurança RLS (Row Level Security)
 alter table public.admin_users enable row level security;
 alter table public.site_settings enable row level security;
@@ -396,6 +433,7 @@ alter table public.business_hours enable row level security;
 alter table public.contact_requests enable row level security;
 alter table public.product_orders enable row level security;
 alter table public.product_order_items enable row level security;
+alter table public.career_applications enable row level security;
 
 -- Policies
 drop policy if exists "Admins read admin users" on public.admin_users;
@@ -501,11 +539,24 @@ drop policy if exists "Admins read product order items" on public.product_order_
 create policy "Admins read product order items" on public.product_order_items
 for select to authenticated using (public.is_admin());
 
+drop policy if exists "Anyone can submit career applications" on public.career_applications;
+create policy "Anyone can submit career applications" on public.career_applications
+for insert to anon, authenticated
+with check (
+  char_length(full_name) between 2 and 120
+  and char_length(whatsapp) between 8 and 30
+  and status = 'new'
+);
+drop policy if exists "Admins manage career applications" on public.career_applications;
+create policy "Admins manage career applications" on public.career_applications
+for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
 grant usage on schema public to anon, authenticated;
 grant select on public.site_settings, public.professionals, public.site_images, public.space_photos, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours to anon, authenticated;
 grant insert on public.contact_requests to anon, authenticated;
 grant insert on public.product_orders, public.product_order_items to anon, authenticated;
-grant select, insert, update, delete on public.admin_users, public.site_settings, public.professionals, public.site_images, public.space_photos, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours, public.contact_requests, public.product_orders, public.product_order_items to authenticated;
+grant insert on public.career_applications to anon;
+grant select, insert, update, delete on public.admin_users, public.site_settings, public.professionals, public.site_images, public.space_photos, public.services, public.portfolio_categories, public.portfolio_items, public.testimonials, public.business_hours, public.contact_requests, public.product_orders, public.product_order_items, public.career_applications to authenticated;
 
 -- Índices
 create index if not exists professionals_sort_order_idx on public.professionals (active, sort_order);
@@ -520,6 +571,7 @@ create index if not exists space_photos_public_order_idx on public.space_photos 
 create index if not exists product_orders_created_idx on public.product_orders (created_at desc);
 create index if not exists product_orders_status_idx on public.product_orders (status, created_at desc);
 create index if not exists product_order_items_order_idx on public.product_order_items (order_id);
+create index if not exists career_applications_created_at_idx on public.career_applications (created_at desc);
 
 -- Storage bucket para upload de fotos
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -529,6 +581,19 @@ values (
   true,
   15728640,
   array['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'career-resumes',
+  'career-resumes',
+  false,
+  10485760,
+  array['application/pdf']
 )
 on conflict (id) do update set
   public = excluded.public,
@@ -582,3 +647,21 @@ drop policy if exists "Authenticated deletes space photo files" on storage.objec
 drop policy if exists "Admins delete space photo files" on storage.objects;
 create policy "Admins delete space photo files" on storage.objects
 for delete to authenticated using (bucket_id = 'space-photos' and public.is_admin());
+
+drop policy if exists "Anyone can upload career PDF" on storage.objects;
+create policy "Anyone can upload career PDF" on storage.objects
+for insert to anon, authenticated
+with check (
+  bucket_id = 'career-resumes'
+  and lower((storage.foldername(name))[1]) = 'curriculos'
+);
+
+drop policy if exists "Admins read career PDFs" on storage.objects;
+create policy "Admins read career PDFs" on storage.objects
+for select to authenticated
+using (bucket_id = 'career-resumes' and public.is_admin());
+
+drop policy if exists "Admins delete career PDFs" on storage.objects;
+create policy "Admins delete career PDFs" on storage.objects
+for delete to authenticated
+using (bucket_id = 'career-resumes' and public.is_admin());
